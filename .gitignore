@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+jspm_packages/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.docusaurus/
+.cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Antigravity & Skills
+.agent/
+.kiro/
+.cursor/
+.vscode/
+.antigravity/
+.Trae/
+
+# Environment Files (Per user request: DO NOT exclude .env)
+# .env
+# .env.local
+# .env.development
+# .env.test
+# .env.production
