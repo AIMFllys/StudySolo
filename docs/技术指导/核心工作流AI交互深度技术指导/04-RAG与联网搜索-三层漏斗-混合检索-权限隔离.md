@@ -55,4 +55,5 @@
 - 对策：缓存 query embedding + 召回结果。
 
 3. 召回质量波动
-- 对策：加入 rerank（百炼/方舟可选），并持续评估 Recall@K。
+> ⚠️ **【API 路由规划已过时警告】**：下方关于 rerank 可选模型的说法已过时，最新全量 RAG 模型链路（含 `qwen3-vl-rerank` 等）请**严格参考 [API 统一路由规划 · 权威索引](../../Plans/daily_plan/API/README.md) 文档**！
+~~- 对策：加入 rerank（百炼/方舟可选），并持续评估 Recall@K。~~

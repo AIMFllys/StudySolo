@@ -38,73 +38,18 @@
 
 #### 配置文件结构
 
+> ⚠️ **【API 路由规划已过时警告】**  
+> 以下展示的 `config.yaml` 示例为早期基于“双模型路由”的快照设定，仅供配置结构参考。  
+> **生产环境中真实的 YAML 结构已升级为包含八大平台与十级路由的复杂结构**。  
+> 完整的路由配置蓝图请**严格参考最新最权威 [API 统一路由规划 · 权威索引](../API/README.md) 文档的第五部分**！
+
 ```yaml
-# StudySolo/config.yaml — 所有配置集中在一个文件
-# ==================== 模型配置 ====================
-models:
-  # 简单任务模型（免费池）
-  - name: doubao-2.0-pro
-    display_name: 豆包 2.0-pro
-    provider: volcengine
-    base_url: https://ark.cn-beijing.volces.com/api/v3
-    api_key: $VOLCENGINE_API_KEY        # $开头 = 自动读环境变量
-    model: doubao-2.0-pro
-    max_tokens: 2048
-    temperature: 0.7
-    route: simple                        # 路由标记：简单任务
-
-  # 复杂任务模型
-  - name: qwen3-turbo
-    display_name: 通义千问3-turbo
-    provider: dashscope
-    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    api_key: $DASHSCOPE_API_KEY
-    model: qwen3-turbo
-    max_tokens: 4096
-    temperature: 0.7
-    route: complex                       # 路由标记：复杂任务
-
-# ==================== 节点配置 ====================
-node_types:
-  ai_analyzer:
-    display_name: 需求分析器
-    default_model: doubao-2.0-pro        # 走免费池
-    max_tokens: 1024
-    
-  ai_planner:
-    display_name: 工作流规划器
-    default_model: qwen3-turbo           # 走推理模型
-    max_tokens: 2048
-    
-  outline_gen:
-    display_name: 大纲生成
-    default_model: qwen3-turbo
-    max_tokens: 4096
-    
-  content_extract:
-    display_name: 知识提炼
-    default_model: qwen3-turbo
-    max_tokens: 4096
-    
-  flashcard:
-    display_name: 闪卡生成
-    default_model: doubao-2.0-pro        # 简单格式化任务，走免费池
-    max_tokens: 2048
-
-# ==================== 执行引擎配置 ====================
-execution:
-  max_concurrent_nodes: 3               # 最大并行节点数
-  retry_count: 3                        # 失败重试次数
-  timeout_seconds: 120                  # 单节点超时
-  sse_chunk_size: 1024                  # SSE 分块大小
-
-# ==================== 容灾降级配置 ====================
-fallback:
-  enabled: true
-  timeout_ms: 10000                     # 超时阈值
-  # 降级顺序：主模型超时 → 切换到备用
-  simple_fallback: qwen3-turbo          # 豆包挂了用千问
-  complex_fallback: doubao-2.0-pro      # 千问挂了用豆包
+# StudySolo/config.yaml — （⚠️ 已过时，仅供旧版结构参考）
+~~# ==================== 模型配置 ====================~~
+~~models:~~
+~~  # 简单任务模型（免费池）~~
+~~  - name: doubao-2.0-pro~~
+~~... (旧配置省略, 具体请看 API/README.md ) ...~~
 ```
 
 #### 配置加载器实现

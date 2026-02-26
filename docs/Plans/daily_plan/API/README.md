@@ -65,10 +65,10 @@
 | # | 平台 | Base URL | 环境变量 | 核心角色 |
 | :--- | :--- | :--- | :--- | :--- |
 | 1 | **阿里云百炼** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `DASHSCOPE_API_KEY` | Qwen 原生宿主 + 向量化/OCR/Rerank 全栈 |
-| 2 | **DeepSeek 官方** | `https://api.deepseek.com/v1` | `DEEPSEEK_API_KEY` | 推理之王 + 缓存命中极低价 |
-| 3 | **月之暗面 (Moonshot)** | `https://api.moonshot.cn/v1` | `MOONSHOT_API_KEY` | 256K 超长上下文 |
-| 4 | **火山引擎** | `https://ark.cn-beijing.volces.com/api/v3` | `VOLCENGINE_API_KEY` | 200W/日免费池兜底 |
-| 5 | **智谱AI** | `https://open.bigmodel.cn/api/paas/v4` | `ZHIPU_API_KEY` | 深度联网搜索 + GLM-OCR |
+| 2 | **DeepSeek 官方** | `https://api.deepseek.com/v1` | `DEEPSEEK_API_KEY` | 推理之王 + 缓存命中极低价  |
+| 3 | **月之暗面 (Moonshot)** | `https://api.moonshot.cn/v1` | `MOONSHOT_API_KEY` | 原生Kimi |
+| 4 | **火山引擎** | `https://ark.cn-beijing.volces.com/api/v3` | `VOLCENGINE_API_KEY` | 原生满血豆包模型 |
+| 5 | **智谱AI** | `https://open.bigmodel.cn/api/paas/v4` | `ZHIPU_API_KEY` | 原生智谱模型、深度联网搜索 + GLM-OCR |
 
 #### 代理聚合（3 家） — 灾备 / 海外模型 / 独占增值
 

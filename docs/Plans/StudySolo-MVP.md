@@ -192,15 +192,18 @@ Day 13（03-09 ~ 03-10）：Phase 4 — 联调 + 收尾 + 部署
 ### 任务清单
 
 - [ ] **T3-1** 后端：AI 双模型路由服务（YAML 配置驱动）
+  > ⚠️ **【API 路由规划已过时警告】**  
+  > 下方描述的基于“豆包+千问”的双模型硬路由机制现已废弃。  
+  > 实际开发时，请**严格基于最新最权威的 [API 统一路由规划 · 权威索引](./daily_plan/API/README.md) 中定义的八大平台与十路路由**来实现此任务！
   - 创建 `config.yaml`（项目根目录）：集中管理模型配置、节点配置、执行引擎参数、容灾策略
   - 创建 `backend/app/core/config_loader.py`（约 40 行）：YAML 加载器 + 环境变量自动解析
   - `backend/app/services/ai_router.py`：
     - 从 config.yaml 读取模型配置，代码零硬编码
-    - 简单任务（意图识别、节点拆解） → 火山引擎 doubao-2.0-pro（免费池）
-    - 复杂任务（大纲生成、知识总结） → 阿里云百炼 qwen3-turbo
-    - 容灾降级：任一侧超时自动切换（由 YAML fallback 配置驱动）
-  - 使用 `openai` Python SDK 统一调用（两家均兼容 OpenAI 格式）
-  - 📌 详细方案见 `daily_plan/core/02-yaml-config-and-markdown-rendering.md`
+    ~~- 简单任务（意图识别、节点拆解） → 火山引擎 doubao-2.0-pro（免费池）~~
+    ~~- 复杂任务（大纲生成、知识总结） → 阿里云百炼 qwen3-turbo~~
+    ~~- 容灾降级：任一侧超时自动切换（由 YAML fallback 配置驱动）~~
+  - 使用 `openai` Python SDK 统一调用（所有平台均兼容 OpenAI 格式）
+  - 📌 详细方案参考最新架构及 `daily_plan/core/02-yaml-config-and-markdown-rendering.md`
 
 - [ ] **T3-2** 后端：自然语言→工作流生成接口（`/api/ai/generate-workflow`）
   - 接收用户输入的学习目标（自然语言）
