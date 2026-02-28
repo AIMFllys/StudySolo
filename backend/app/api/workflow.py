@@ -163,8 +163,11 @@ async def execute_workflow_sse(
     nodes = workflow.get("nodes_json") or []
     edges = workflow.get("edges_json") or []
 
+    async def _save_results(wf_id: str, updated_nodes: list[dict]) -> None:
+        await db.from_("workflows").update({"nodes_json": updated_nodes}).eq("id", wf_id).eq("user_id", current_user["id"]).execute()
+
     async def event_generator():
-        async for event in execute_workflow(workflow_id, nodes, edges):
+        async for event in execute_workflow(workflow_id, nodes, edges, save_callback=_save_results):
             yield event
 
     return StreamingResponse(

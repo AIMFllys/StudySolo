@@ -1,0 +1,4 @@
+# file: D:\project\Study_1037Solo\StudySolo\backend\app\models\ai.py
+# hypothesis_version: 6.151.9
+
+[2000, 'ai_analyzer', 'ai_planner', 'chat_response', 'content_extract', 'flashcard', 'outline_gen', 'pending', 'summary', 'trigger_input', 'write_db', '用户自然语言学习目标']

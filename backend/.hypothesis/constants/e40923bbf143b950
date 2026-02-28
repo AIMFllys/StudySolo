@@ -1,0 +1,4 @@
+# file: D:\project\Study_1037Solo\StudySolo\backend\app\services\workflow_engine.py
+# hypothesis_version: 6.151.9
+
+['\n---', 'chat_response', 'completed', 'content', 'data', 'done', 'error', 'full_output', 'id', 'label', 'node_done', 'node_id', 'node_status', 'node_token', 'output', 'pending', 'role', 'running', 'save_error', 'source', 'status', 'system', 'system_prompt', 'target', 'token', 'type', 'user', 'workflow_done', 'workflow_id']

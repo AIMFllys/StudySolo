@@ -1,0 +1,4 @@
+# file: D:\project\Study_1037Solo\StudySolo\backend\app\core\config_loader.py
+# hypothesis_version: 6.151.9
+
+['config.yaml', 'r', 'utf-8']

@@ -1,0 +1,4 @@
+# file: D:\project\Study_1037Solo\StudySolo\backend\app\services\ai_router.py
+# hypothesis_version: 6.151.9
+
+[1000, 'A', 'api_key', 'base_url', 'chains', 'fallback', 'model', 'models', 'name', 'node_routes', 'platform', 'platforms', 'route_chain', 'timeout_ms']
