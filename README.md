@@ -53,10 +53,18 @@ StudySolo 是一个 AI 驱动的学习工作流平台。用户通过自然语言
 
 | 服务 | 套餐 | 说明 |
 |------|------|------|
-| **Supabase** | **Pro $25/月** | PostgreSQL 15 · Auth · pgvector · Realtime · 永不暂停 |
-| **阿里云 DirectMail** | 按量 | 邮件推送（注册/通知） |
-| **火山引擎 doubao-2.0-pro** | 200W Token/日免费 | 简单任务路由 |
-| **阿里云百炼 qwen3-turbo** | 按 Token | 复杂任务路由 |
+| **共享 Supabase** | **Pro $25/月** | PostgreSQL 15 · Auth · pgvector · Realtime · **与 Platform 共用** |
+| 阿里云 DirectMail | 按量 | 邮件推送（注册/通知） |
+| 火山引擎 doubao-2.0-pro | 200W Token/日免费 | 简单任务路由 |
+| 阿里云百炼 qwen3-turbo | 按 Token | 复杂任务路由 |
+
+> **📌 跨项目共享与数据库规范 (Git Submodule)**：本项目与 1037Solo Platform 共享同一个 Supabase Project（`hofcaclztjazoytmckup`）。  
+> **所有 AI 助手与开发者在开始任务前，必须阅读引入的共享规范！**
+> - ⭐ **[AI 强制上下文 (AGENTS.md)](./shared/AGENTS.md)** 
+> - 🗄️ **[共享数据库 TypeScript 类型](./shared/src/types/database.ts)**
+> - 📐 [跨项目决策与操作指南目录](./shared/docs/)
+> 
+> *注：StudySolo 专属表使用 `ss_` 前缀，共享表无前缀。任何数据库表名与字段修改，必须且只能在 `shared/src/types/database.ts` 中完成，然后通过 git submodule 同步。*
 
 ---
 
@@ -88,7 +96,8 @@ StudySolo 是一个 AI 驱动的学习工作流平台。用户通过自然语言
     │     └── /api/email/*      DirectMail 推送
     │
     └── 外部服务
-          ├── Supabase Pro（PostgreSQL + Auth + pgvector + Realtime）
+          ├── 共享 Supabase Pro（PostgreSQL + Auth + pgvector + Realtime）
+          │   └── 与 Platform 共用 Project: hofcaclztjazoytmckup
           ├── 阿里云 DirectMail
           ├── 火山引擎 doubao-2.0-pro（简单任务）
           └── 阿里云百炼 qwen3-turbo（复杂任务）
@@ -324,7 +333,7 @@ server {
 |------|------|------|
 | 阿里云 ECS | ¥0（已有至2026-11） | 无额外费用 |
 | 阿里云域名 | ~¥5/月 | 续费约 ¥60/年 |
-| **Supabase Pro** | **$25/月 ≈ ¥180** | 永不暂停 · 8GB DB · 每日备份 |
+| **共享 Supabase Pro** | **$25/月 ≈ ¥180** | 永不暂停 · 8GB DB · 每日备份 · 与 Platform 共用 |
 | 阿里云 DirectMail | ~¥1-5/月 | 按量 |
 | 火山引擎 AI | ¥0 | 200W Token/日免费池 |
 | 阿里云百炼 AI | 按量 | 复杂任务按 Token |
@@ -414,13 +423,14 @@ https://go.postman.co/workspace/9a3b2b4e-1361-4a93-9a97-b89456cd3cf9
 - 执行 SQL 查询
 - 管理数据库迁移
 
-**数据库项目**: StudySolo (hofcaclztjazoytmckup)
+**共享数据库项目**: StudySolo (hofcaclztjazoytmckup) · 与 1037Solo Platform 共用
 
 ---
 
 ## 📄 相关文档
 
 - [📋 PROJECT_PLAN.md](./PROJECT_PLAN.md) — 完整项目规划（架构 · 部署 · 数据库设计）
+- [🗄️ 共享 Supabase 数据库规范](./docs/Plans/daily_plan/user_auth/07-shared-supabase-database-convention.md) — 跨项目数据库命名与隔离策略
 
 ---
 
