@@ -1,0 +1,4 @@
+# file: D:\project\Study_1037Solo\StudySolo\backend\app\api\ai.py
+# hypothesis_version: 6.151.9
+
+[100, 350, 503, '/generate-workflow', '<\\s*system\\s*>', 'DAN\\b', '[FILTERED]', '^system\\s*:', 'act as', 'ai_analyzer', 'ai_planner', 'assistant', 'content', 'engine', 'jailbreak', 'language_style', 'pending', 'raw', 'role', 'system', 'target_audience', 'user', '你现在是', '学习者', '简洁专业']

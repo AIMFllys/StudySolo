@@ -1,0 +1,4 @@
+# file: D:\project\Study_1037Solo\StudySolo\backend\app\api\workflow.py
+# hypothesis_version: 6.151.9
+
+['/', '/{workflow_id}', 'Cache-Control', 'X-Accel-Buffering', 'description', 'draft', 'edges_json', 'email', 'id', 'name', 'no', 'no-cache', 'nodes_json', 'status', 'success', 'text/event-stream', 'updated_at', 'user_id', 'users', 'workflows', '创建工作流失败: 无返回数据', '工作流不存在', '无更新内容']

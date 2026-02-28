@@ -83,18 +83,43 @@ def _make_supabase_mock(workflow_id: str, name: str, description: str | None):
     """
     record = _make_workflow_record(workflow_id, name, description)
 
-    # Build a chainable mock that always resolves to the record
+    # Track whether insert was called (POST) vs select/single (GET)
+    state = {"is_insert": False, "is_single": False}
+
     chain = MagicMock()
-    chain.from_ = MagicMock(return_value=chain)
+
+    def _from_(table):
+        return chain
+
+    def _insert(payload):
+        state["is_insert"] = True
+        return chain
+
+    def _single():
+        state["is_single"] = True
+        return chain
+
+    chain.from_ = MagicMock(side_effect=_from_)
     chain.select = MagicMock(return_value=chain)
-    chain.insert = MagicMock(return_value=chain)
+    chain.insert = MagicMock(side_effect=_insert)
+    chain.upsert = MagicMock(return_value=chain)
     chain.eq = MagicMock(return_value=chain)
     chain.order = MagicMock(return_value=chain)
-    chain.single = MagicMock(return_value=chain)
+    chain.single = MagicMock(side_effect=_single)
 
-    result = MagicMock()
-    result.data = record
-    chain.execute = AsyncMock(return_value=result)
+    async def _execute():
+        result = MagicMock()
+        if state["is_insert"]:
+            result.data = [record]  # insert returns list
+            state["is_insert"] = False
+        elif state["is_single"]:
+            result.data = record   # single() returns dict
+            state["is_single"] = False
+        else:
+            result.data = [record]
+        return result
+
+    chain.execute = _execute
 
     return chain
 

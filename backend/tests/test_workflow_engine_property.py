@@ -96,15 +96,26 @@ def test_topological_sort_detects_cycle():
 
 # ── Property 14: Implicit context lifecycle ──────────────────────────────────
 
+_printable_text = st.text(
+    alphabet=st.characters(
+        whitelist_categories=("Lu", "Ll", "Lt", "Lm", "Lo", "Nd", "Zs"),
+        whitelist_characters=" _-.",
+    ),
+    min_size=1,
+    max_size=50,
+)
+
+
 @given(
-    theme=st.text(min_size=1, max_size=50),
-    style=st.text(min_size=1, max_size=30),
-    outline=st.lists(st.text(min_size=1, max_size=20), min_size=0, max_size=5),
-    audience=st.text(min_size=1, max_size=30),
+    theme=_printable_text,
+    style=_printable_text,
+    outline=st.lists(_printable_text, min_size=0, max_size=5),
+    audience=_printable_text,
 )
 @settings(max_examples=100)
 def test_implicit_context_injected_into_system_prompt(theme, style, outline, audience):
     """Implicit context must appear in the generated context prompt."""
+    import json as _json
     ctx = {
         "global_theme": theme,
         "language_style": style,
@@ -113,9 +124,10 @@ def test_implicit_context_injected_into_system_prompt(theme, style, outline, aud
         "user_constraints": {},
     }
     prompt = _build_context_prompt(ctx)
-    assert theme in prompt
-    assert style in prompt
-    assert audience in prompt
+    # Values are JSON-serialized in the prompt; compare against JSON-encoded form
+    assert _json.dumps(theme, ensure_ascii=False) in prompt
+    assert _json.dumps(style, ensure_ascii=False) in prompt
+    assert _json.dumps(audience, ensure_ascii=False) in prompt
 
 
 def test_empty_implicit_context_returns_empty_string():

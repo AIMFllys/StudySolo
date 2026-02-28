@@ -15,6 +15,7 @@ _CONTENT_COLS = "id,name,description,nodes_json,edges_json,status,created_at,upd
 
 
 @router.get("", response_model=list[WorkflowMeta])
+@router.get("/", response_model=list[WorkflowMeta], include_in_schema=False)
 async def list_workflows(
     current_user: dict = Depends(get_current_user),
     db: AsyncClient = Depends(get_supabase_client),
@@ -31,6 +32,7 @@ async def list_workflows(
 
 
 @router.post("", response_model=WorkflowMeta, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=WorkflowMeta, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_workflow(
     body: WorkflowCreate,
     current_user: dict = Depends(get_current_user),
