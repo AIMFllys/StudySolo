@@ -3,7 +3,7 @@
 # StudySolo
 
 > **基于自然语言的 AI 学习赋能工作流平台**  
-> 🌐 [studyflow.1037solo.com](https://studyflow.1037solo.com) · 🏗️ 阿里云 ECS + 宝塔面板 · 📅 2026-02-24
+> 🌐 [studyflow.1037solo.com](https://studyflow.1037solo.com) · 🏗️ 阿里云 ECS + 宝塔面板 · 📅 2026-03-03 · v0.2.x
 
 ---
 
@@ -90,35 +90,35 @@ StudySolo 是一个 AI 驱动的学习工作流平台。用户通过自然语言
     │
     ├── 🐍  FastAPI【Gunicorn+Uvicorn · port 2038】
     │     ├── /api/workflow/*   工作流引擎 (CRUD + 执行)
-    │     ├── /api/ai/*         双模型路由 + SSE 流式
+    │     ├── /api/ai/*         多模型路由 + SSE 流式
+    │     ├── /api/nodes/*      节点清单 API
     │     ├── /api/auth/*       JWT 验证 + Supabase Auth
-    │     ├── /api/prompts/*    提示词管理
-    │     └── /api/email/*      DirectMail 推送
+    │     └── /api/admin/*      管理后台 API
     │
     └── 外部服务
           ├── 共享 Supabase Pro（PostgreSQL + Auth + pgvector + Realtime）
           │   └── 与 Platform 共用 Project: hofcaclztjazoytmckup
           ├── 阿里云 DirectMail
-          ├── 火山引擎 doubao-2.0-pro（简单任务）
-          └── 阿里云百炼 qwen3-turbo（复杂任务）
+          └── 8 家 AI 平台（config.yaml 统一配置）
+              ├── 阿里云百炼 · DeepSeek · 月之暗面
+              ├── 火山引擎 · 智谱 AI
+              └── 硅基流动 · 优云智算 · 七牛云
 ```
 
 ---
 
-## 🔀 AI 双模型路由策略
+## 🔀 AI 多模型路由策略
 
-两家 AI 平台均兼容 **OpenAI API 格式**，用一个 `openai` SDK 统一调用：
+通过 `config.yaml` 配置中心统一管理 8 家 AI 平台，均兼容 **OpenAI API 格式**，用一个 `openai` SDK 统一调用：
 
 ```
-用户输入
+节点类型 → config.yaml node_routes 查表 → 确定 platform + model + route_chain
   │
-  ├─ 简单任务（意图识别 · 短文分类 · 环节拆解）
-  │    └──► 火山引擎 doubao-2.0-pro
-  │          · 200W Token/日免费池 · 高并发
+  ├─ 链 A: 格式严格链（JSON 输出、分析类）
+  │    └──► 百炼 qwen3-turbo → DeepSeek V3 → Moonshot
   │
-  ├─ 复杂任务（大纲生成 · 知识总结 · 长文润色）
-  │    └──► 阿里云百炼 qwen3-turbo
-  │          · 高质量输出 · 复杂逻辑推理
+  ├─ 链 B: 深度推理链（大纲、总结、对话）
+  │    └──► DeepSeek R1 → 百炼 qwen3-plus → 火山引擎 doubao-pro
   │
   └─ 容灾降级（任一侧 timeout / rate limit 时自动切换）
 ```
@@ -132,42 +132,44 @@ StudySolo/
 ├── frontend/               # Next.js 16.1 前端（pnpm 管理）
 │   ├── src/
 │   │   ├── app/            # App Router 路由页面
-│   │   ├── components/     # UI + 工作流 + AI 组件
+│   │   │   ├── (auth)/     # 登录、注册
+│   │   │   ├── (dashboard)/ # 三栏布局 + 工作流画布
+│   │   │   └── admin-analysis/ # Admin 管理后台
+│   │   ├── components/     # UI + 工作流 + AI + Admin 组件
+│   │   │   └── business/workflow/nodes/  # ← 渲染器注册表 + 各节点渲染器
 │   │   ├── hooks/          # 自定义 React Hooks
 │   │   ├── stores/         # Zustand 状态
+│   │   ├── services/       # auth.service.ts, admin.service.ts
 │   │   ├── lib/            # 工具函数
-│   │   └── types/          # TypeScript 类型（含自动生成的 api.ts）
-│   ├── public/
-│   ├── next.config.ts
-│   ├── tsconfig.json
+│   │   └── types/          # TypeScript 类型
 │   └── package.json
 │
 ├── backend/                # FastAPI 后端（pip/uv 管理）
 │   ├── app/
 │   │   ├── main.py         # FastAPI 入口
-│   │   ├── api/            # 路由模块
-│   │   │   ├── workflow.py
-│   │   │   ├── ai.py       # SSE 流式
-│   │   │   ├── auth.py
-│   │   │   ├── prompts.py
-│   │   │   └── email.py
-│   │   ├── services/       # 业务逻辑
-│   │   │   ├── ai_router.py       # 双模型路由 + 降级
-│   │   │   ├── workflow_engine.py
-│   │   │   └── email_service.py
+│   │   ├── api/            # 路由模块 (auth, workflow, ai, nodes, admin_*)
+│   │   ├── nodes/          # ← 插件化节点包（新增节点的主战场）
+│   │   │   ├── _base.py    #   BaseNode + 自动注册
+│   │   │   ├── _mixins.py  #   LLMStreamMixin + JsonOutputMixin
+│   │   │   ├── CONTRIBUTING.md # 节点开发指南
+│   │   │   ├── input/      #   触发类
+│   │   │   ├── analysis/   #   分析类
+│   │   │   ├── generation/ #   生成类（大纲/提炼/总结/闪卡）
+│   │   │   ├── interaction/#   交互类
+│   │   │   └── output/     #   输出类
+│   │   ├── engine/         # ← 工作流编排引擎
+│   │   │   ├── executor.py #   拓扑排序 + 节点调度
+│   │   │   ├── context.py  #   精确上下文传递
+│   │   │   └── sse.py      #   SSE 事件格式化
+│   │   ├── utils/          # ← 通用工具
+│   │   ├── services/       # AI 路由、邮件等服务
 │   │   ├── models/         # Pydantic 数据模型
 │   │   ├── core/           # 配置 + Supabase 初始化 + 依赖注入
 │   │   └── middleware/     # CORS + JWT + 限流
-│   ├── tests/
-│   ├── requirements.txt    # 宝塔 pip 安装用
-│   ├── pyproject.toml
-│   └── gunicorn.conf.py    # Gunicorn 生产配置
+│   ├── config.yaml         # AI 模型/节点路由/容灾配置中心
+│   └── requirements.txt
 │
 ├── scripts/                # 部署脚本
-│   ├── deploy-frontend.sh
-│   ├── deploy-backend.sh
-│   └── setup-server.sh
-│
 ├── docs/                   # 项目文档
 ├── .env.example
 ├── .gitignore
@@ -431,6 +433,9 @@ https://go.postman.co/workspace/9a3b2b4e-1361-4a93-9a97-b89456cd3cf9
 
 - [📋 PROJECT_PLAN.md](./PROJECT_PLAN.md) — 完整项目规划（架构 · 部署 · 数据库设计）
 - [🗄️ 共享 Supabase 数据库规范](./docs/Plans/daily_plan/user_auth/07-shared-supabase-database-convention.md) — 跨项目数据库命名与隔离策略
+- [📖 节点开发指南](./backend/app/nodes/CONTRIBUTING.md) — 新增工作流节点的完整操作手册
+- [🛠 项目地图](./docs/architecture.md) — 技术栏选型、模块划分、数据流向
+- [📊 开发进度](./docs/progress.md) — 当前状态与已完成功能
 
 ---
 

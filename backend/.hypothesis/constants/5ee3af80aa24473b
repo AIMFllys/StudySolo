@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\router.py
+# hypothesis_version: 6.151.9
+
+['/admin', '/ai', '/auth', '/workflow', 'admin-audit', 'admin-auth', 'admin-config', 'admin-dashboard', 'admin-members', 'admin-models', 'admin-notices', 'admin-ratings', 'admin-users', 'admin-workflows', 'ai', 'auth', 'workflow']

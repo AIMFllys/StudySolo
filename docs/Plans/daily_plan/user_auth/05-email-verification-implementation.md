@@ -66,7 +66,7 @@ sequenceDiagram
 ### 2.1 已有配置
 
 ```env
-# backend/.env（已配置）
+# backend/.env（已配置，与 Platform 共用）
 SMTP_HOST=smtpdm.aliyun.com
 SMTP_PORT=465
 SMTP_USER=accounts@email.1037solo.com

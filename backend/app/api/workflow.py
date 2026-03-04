@@ -1,12 +1,20 @@
 """Workflow CRUD routes: /api/workflow/*"""
 
+import json
+import logging
+import uuid
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from supabase import AsyncClient
 
+from app.core.database import get_db
 from app.core.deps import get_current_user, get_supabase_client
 from app.models.workflow import WorkflowContent, WorkflowCreate, WorkflowMeta, WorkflowUpdate
-from app.services.workflow_engine import execute_workflow
+from app.engine.executor import execute_workflow
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -135,6 +143,7 @@ async def execute_workflow_sse(
     workflow_id: str,
     current_user: dict = Depends(get_current_user),
     db: AsyncClient = Depends(get_supabase_client),
+    service_db: AsyncClient = Depends(get_db),
 ):
     """SSE endpoint: execute a workflow and stream node events.
 
@@ -155,13 +164,110 @@ async def execute_workflow_sse(
     workflow = result.data
     nodes = workflow.get("nodes_json") or []
     edges = workflow.get("edges_json") or []
+    user_id = current_user["id"]
+
+    # INSERT a workflow run record with status='running'
+    run_id = str(uuid.uuid4())
+    started_at = datetime.now(timezone.utc).isoformat()
+    try:
+        await service_db.from_("ss_workflow_runs").insert({
+            "id": run_id,
+            "workflow_id": workflow_id,
+            "user_id": user_id,
+            "status": "running",
+            "started_at": started_at,
+        }).execute()
+    except Exception as e:
+        logger.error("Failed to insert ss_workflow_runs record: %s", e)
 
     async def _save_results(wf_id: str, updated_nodes: list[dict]) -> None:
-        await db.from_("ss_workflows").update({"nodes_json": updated_nodes}).eq("id", wf_id).eq("user_id", current_user["id"]).execute()
+        await db.from_("ss_workflows").update({"nodes_json": updated_nodes}).eq("id", wf_id).eq("user_id", user_id).execute()
 
     async def event_generator():
-        async for event in execute_workflow(workflow_id, nodes, edges, save_callback=_save_results):
-            yield event
+        total_tokens = 0
+        final_output: dict | None = None
+        run_status = "completed"
+
+        try:
+            async for event in execute_workflow(workflow_id, nodes, edges, save_callback=_save_results):
+                yield event
+
+                # Parse SSE events to track tokens and final output
+                try:
+                    if event.startswith("event: node_token"):
+                        lines = event.strip().split("\n")
+                        for line in lines:
+                            if line.startswith("data: "):
+                                data = json.loads(line[6:])
+                                token = data.get("token", "")
+                                total_tokens += len(token.split())
+                    elif event.startswith("event: workflow_done"):
+                        lines = event.strip().split("\n")
+                        for line in lines:
+                            if line.startswith("data: "):
+                                data = json.loads(line[6:])
+                                if data.get("status") != "completed":
+                                    run_status = "failed"
+                                final_output = data
+                except Exception:
+                    pass  # Don't let parsing errors break the stream
+
+        except Exception as e:
+            logger.error("Workflow execution error for run %s: %s", run_id, e)
+            run_status = "failed"
+
+        # UPDATE ss_workflow_runs with final status
+        completed_at = datetime.now(timezone.utc).isoformat()
+        try:
+            update_payload: dict = {
+                "status": run_status,
+                "completed_at": completed_at,
+                "tokens_used": total_tokens,
+            }
+            if final_output is not None:
+                update_payload["output"] = final_output
+            await service_db.from_("ss_workflow_runs").update(update_payload).eq("id", run_id).execute()
+        except Exception as e:
+            logger.error("Failed to update ss_workflow_runs record %s: %s", run_id, e)
+
+        # UPSERT ss_usage_daily — increment executions_count and tokens_used
+        today = datetime.now(timezone.utc).date().isoformat()
+        try:
+            await service_db.from_("ss_usage_daily").upsert(
+                {
+                    "user_id": user_id,
+                    "date": today,
+                    "executions_count": 1,
+                    "tokens_used": total_tokens,
+                },
+                on_conflict="user_id,date",
+                count="exact",
+            ).execute()
+        except Exception:
+            # Upsert with increment requires raw SQL; fall back to read-then-write
+            try:
+                existing = (
+                    await service_db.from_("ss_usage_daily")
+                    .select("executions_count,tokens_used")
+                    .eq("user_id", user_id)
+                    .eq("date", today)
+                    .execute()
+                )
+                if existing.data:
+                    row = existing.data[0]
+                    await service_db.from_("ss_usage_daily").update({
+                        "executions_count": (row.get("executions_count") or 0) + 1,
+                        "tokens_used": (row.get("tokens_used") or 0) + total_tokens,
+                    }).eq("user_id", user_id).eq("date", today).execute()
+                else:
+                    await service_db.from_("ss_usage_daily").insert({
+                        "user_id": user_id,
+                        "date": today,
+                        "executions_count": 1,
+                        "tokens_used": total_tokens,
+                    }).execute()
+            except Exception as e2:
+                logger.error("Failed to update ss_usage_daily for user %s: %s", user_id, e2)
 
     return StreamingResponse(
         event_generator(),

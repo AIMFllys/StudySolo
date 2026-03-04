@@ -1,4 +1,4 @@
-&lt;!-- 编码：UTF-8 --&gt;
+<!-- 编码：UTF-8 -->
 
 # 📁 项目文档总览
 
@@ -14,6 +14,7 @@ docs/
 ├── README.md             ← 本文件：文档目录总览
 ├── architecture.md       ← 项目地图（技术栈·模块划分·数据流向）
 ├── naming.md             ← 命名规范（变量·文件·API字段·数据库表名前缀）
+├── frontend-engineering-spec.md ← 前端工程规范（分层·行数·拆分策略）
 ├── api.md                ← 接口契约（请求·响应·鉴权·端点列表）
 ├── progress.md           ← 开发进度
 │
@@ -64,9 +65,24 @@ docs/
 |------|------|
 | [architecture.md](architecture.md) | 项目地图：技术栈选型、模块划分、数据流向 |
 | [naming.md](naming.md) | 命名规范：变量、文件、API 字段、**数据库表名前缀** |
+| [frontend-engineering-spec.md](frontend-engineering-spec.md) | 前端工程规范：分层边界、**单文件 ≤ 300 行**、拆分治理流程 |
 | [api.md](api.md) | 接口契约：请求/响应格式、鉴权方式、端点列表 |
+| [progress.md](progress.md) | 开发进度与当前状态 |
 | [Plans/daily_plan/user_auth/07-shared-supabase-database-convention.md](Plans/daily_plan/user_auth/07-shared-supabase-database-convention.md) | **🔑 共享 Supabase 数据库规范**（跨项目核心） |
 
 ---
 
-*StudySolo Development Team · 最后更新：2026-02-28*
+## 节点开发文档
+
+| 文档 | 说明 |
+|------|------|
+| [../backend/app/nodes/CONTRIBUTING.md](../backend/app/nodes/CONTRIBUTING.md) | **📖 节点开发指南**：新增工作流节点的完整操作手册（7 步流程 + 3 种模板 + Checklist + FAQ） |
+
+> 💡 **新增节点只需 3 步**：
+> 1. 后端：创建 `nodes/<分类>/<节点名>/` 文件夹（`node.py` + `prompt.md`）
+> 2. 配置：在 `config.yaml` 的 `node_routes` 添加路由
+> 3. 前端：在 `nodes/index.ts` 的 `RENDERER_REGISTRY` 添加渲染器映射
+
+---
+
+*StudySolo Development Team · 最后更新：2026-03-03*

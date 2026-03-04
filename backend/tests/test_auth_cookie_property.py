@@ -27,13 +27,19 @@ def _install_supabase_stub():
 
 _install_supabase_stub()
 
+import os  # noqa: E402
+os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
+os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
+os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
+os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
+
 # Now safe to import app modules
 from fastapi.testclient import TestClient  # noqa: E402
 from hypothesis import given, settings as hyp_settings  # noqa: E402
 from hypothesis import strategies as st  # noqa: E402
 
 from app.main import app  # noqa: E402
-from app.core.database import get_db  # noqa: E402
+from app.core.database import get_db, get_anon_db  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +132,7 @@ def test_login_cookies_have_security_attributes(email: str, password: str):
 
     # Use FastAPI dependency override to inject the mock DB
     app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_anon_db] = _override_get_db
     try:
         client = TestClient(app, raise_server_exceptions=True)
         response = client.post(
@@ -134,6 +141,7 @@ def test_login_cookies_have_security_attributes(email: str, password: str):
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
+        app.dependency_overrides.pop(get_anon_db, None)
 
     assert response.status_code == 200, (
         f"Expected 200, got {response.status_code}: {response.text}"

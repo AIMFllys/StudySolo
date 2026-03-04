@@ -1,10 +1,14 @@
 """JWT Bearer Token validation middleware for protected API routes."""
 
+import logging
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.database import get_db
+
+logger = logging.getLogger(__name__)
 
 # Routes that do NOT require authentication
 UNPROTECTED_PATHS = {
@@ -12,6 +16,12 @@ UNPROTECTED_PATHS = {
     "/api/auth/login",
     "/api/auth/logout",
     "/api/auth/refresh",
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+    "/api/auth/reset-password-with-code",
+    "/api/auth/resend-verification",
+    "/api/auth/send-code",
+    "/api/auth/captcha-token",
     "/api/health",
     "/docs",
     "/openapi.json",
@@ -29,6 +39,10 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
 
+        # Admin paths are handled by AdminJWTMiddleware — skip here
+        if path.startswith("/api/admin/"):
+            return await call_next(request)
+
         # Only protect /api/* routes
         if not path.startswith("/api/"):
             return await call_next(request)
@@ -40,7 +54,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         # Extract token from Authorization header or cookie
         token = _extract_token(request)
         if not token:
-            print(f"[AUTH] No token found for {path} | cookies: {list(request.cookies.keys())}")
+            logger.debug("No token found for %s | cookies: %s", path, list(request.cookies.keys()))
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Token 无效或已过期"},
@@ -51,16 +65,16 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             db = await get_db()
             result = await db.auth.get_user(token)
             if not result or not result.user:
-                print(f"[AUTH] Supabase returned no user for {path}")
+                logger.debug("Supabase returned no user for %s", path)
                 return JSONResponse(
                     status_code=401,
                     content={"detail": "Token 无效或已过期"},
                 )
             # Store user info on request state for downstream use
             request.state.user = result.user
-            print(f"[AUTH] OK: user={result.user.id} for {path}")
+            logger.debug("Auth OK: user=%s for %s", result.user.id, path)
         except Exception as e:
-            print(f"[AUTH] Supabase error for {path}: {e}")
+            logger.warning("Supabase auth error for %s: %s", path, e)
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Token 无效或已过期"},
@@ -75,4 +89,3 @@ def _extract_token(request: Request) -> str | None:
     if auth_header.startswith("Bearer "):
         return auth_header[len("Bearer "):]
     return request.cookies.get("access_token")
-

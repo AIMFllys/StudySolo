@@ -18,6 +18,7 @@ from hypothesis import strategies as st
 # Set required env vars before importing app
 os.environ.setdefault("SUPABASE_URL", "https://test.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
+os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-testing-only")
 os.environ.setdefault("CORS_ORIGIN", "https://studysolo.example.com")
 

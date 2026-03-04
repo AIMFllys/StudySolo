@@ -1,0 +1,66 @@
+﻿.glass-panel {
+  background: var(--ss-surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--ss-border-dark);
+}
+
+.glass-card {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+.light .glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: #e2e8f0;
+}
+
+.light .glass-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.8) 0%, rgba(241, 245, 249, 0.9) 100%);
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.light .glass-card:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 1) 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.glass-active {
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.1) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+}
+
+.light .glass-active {
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.08) 0%, rgba(241, 245, 249, 0.9) 100%);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.1);
+}
+
+.shadow-glow {
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+}
+
+.shadow-glow-sm {
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+}
+
+.shadow-glow-accent {
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.shadow-glass {
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}

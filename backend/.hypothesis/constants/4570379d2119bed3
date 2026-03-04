@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\admin_models.py
+# hypothesis_version: 6.151.9
+
+[500, '/models/status', '/models/usage', '30d', '7d', '90d', 'admin-models', 'admin_id', 'all', 'config', 'description', 'key', 'model.', 'model.%', 'model_config', 'model_config_update', 'model_id', 'ss_system_config', 'ss_workflow_runs', 'started_at', 'tokens_used', 'updated_at', 'updated_by', 'value', '更新模型配置失败', '获取模型使用统计失败', '获取模型配置失败']

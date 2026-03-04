@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\admin_workflows.py
+# hypothesis_version: 6.151.9
+
+[0.0, 100, 300, 500, '+00:00', '/workflows/errors', '/workflows/running', '/workflows/stats', '30d', '7d', '90d', 'Z', 'admin-workflows', 'completed', 'completed_at', 'current_node', 'current_step', 'exact', 'failed', 'id', 'running', 'ss_workflow_runs', 'started_at', 'status', 'tokens_used', 'total_steps', 'user_id', 'workflow_id', '获取工作流统计失败', '获取运行中工作流失败', '获取错误工作流失败']

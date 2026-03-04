@@ -2,12 +2,34 @@
 
 from fastapi import APIRouter
 
+from app.api.admin_audit import router as admin_audit_router
+from app.api.admin_auth import router as admin_auth_router
+from app.api.admin_config import router as admin_config_router
+from app.api.admin_dashboard import router as admin_dashboard_router
+from app.api.admin_members import router as admin_members_router
+from app.api.admin_models import router as admin_models_router
+from app.api.admin_notices import router as admin_notices_router
+from app.api.admin_ratings import router as admin_ratings_router
+from app.api.admin_users import router as admin_users_router
+from app.api.admin_workflows import router as admin_workflows_router
 from app.api.auth import router as auth_router
 from app.api.workflow import router as workflow_router
 from app.api.ai import router as ai_router
+from app.api.nodes import router as nodes_router
 
 router = APIRouter()
 
 router.include_router(auth_router, prefix="/auth", tags=["auth"])
 router.include_router(workflow_router, prefix="/workflow", tags=["workflow"])
 router.include_router(ai_router, prefix="/ai", tags=["ai"])
+router.include_router(nodes_router, prefix="/nodes", tags=["nodes"])
+router.include_router(admin_auth_router, prefix="/admin", tags=["admin-auth"])
+router.include_router(admin_dashboard_router, prefix="/admin", tags=["admin-dashboard"])
+router.include_router(admin_users_router, prefix="/admin", tags=["admin-users"])
+router.include_router(admin_notices_router, prefix="/admin", tags=["admin-notices"])
+router.include_router(admin_workflows_router, prefix="/admin", tags=["admin-workflows"])
+router.include_router(admin_models_router, prefix="/admin", tags=["admin-models"])
+router.include_router(admin_members_router, prefix="/admin", tags=["admin-members"])
+router.include_router(admin_ratings_router, prefix="/admin", tags=["admin-ratings"])
+router.include_router(admin_config_router, prefix="/admin", tags=["admin-config"])
+router.include_router(admin_audit_router, prefix="/admin", tags=["admin-audit"])

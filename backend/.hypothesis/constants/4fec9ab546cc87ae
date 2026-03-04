@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\workflow.py
+# hypothesis_version: 6.151.9
+
+['/', '/{workflow_id}', 'Cache-Control', 'X-Accel-Buffering', 'completed', 'completed_at', 'data: ', 'date', 'description', 'draft', 'edges_json', 'event: node_token', 'event: workflow_done', 'exact', 'executions_count', 'failed', 'id', 'name', 'no', 'no-cache', 'nodes_json', 'output', 'running', 'ss_usage_daily', 'ss_workflow_runs', 'ss_workflows', 'started_at', 'status', 'success', 'text/event-stream', 'token', 'tokens_used', 'updated_at', 'user_id', 'user_id,date', 'workflow_id', '创建工作流失败: 无返回数据', '工作流不存在', '无更新内容']

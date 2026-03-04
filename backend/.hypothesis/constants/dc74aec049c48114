@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\admin_config.py
+# hypothesis_version: 6.151.9
+
+[500, '/config', 'admin-config', 'admin_id', 'config_update', 'description', 'key', 'ss_system_config', 'system_config', 'updated_at', 'updated_by', 'value', '更新系统配置失败', '获取系统配置失败']

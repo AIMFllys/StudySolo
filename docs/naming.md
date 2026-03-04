@@ -47,6 +47,13 @@
 | 配置文件 | kebab-case / 约定名 | `config.yaml`, `gunicorn.conf.py` | `Config.yaml` |
 | 文档文件 | kebab-case.md | `architecture.md`, `naming.md` | `Architecture.md`, `NAMING.md` |
 
+## 工程规模约束（新增 · 2026-03-04）
+
+- 前端 `frontend/src/**` 下所有 `.ts/.tsx/.css` 文件必须 **≤ 300 行**。
+- 超过 300 行禁止直接合并，必须按模块拆分后提交。
+- 页面文件建议控制在 `150~220` 行，超过 `220` 需拆分。
+- 详细规范与拆分流程见：[frontend-engineering-spec.md](frontend-engineering-spec.md)
+
 ## API 字段与前端字段映射
 
 后端 Supabase/Pydantic 使用 snake_case，前端 TypeScript 使用 camelCase。映射规则：

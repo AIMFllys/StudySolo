@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import Cookie, Depends, HTTPException, Request, status
 from supabase import AsyncClient
 
-from app.core.database import get_db
+from app.core.database import get_db, get_anon_db
 
 
 # ---------------------------------------------------------------------------
@@ -15,7 +15,18 @@ from app.core.database import get_db
 async def get_supabase_client(
     db: AsyncClient = Depends(get_db),
 ) -> AsyncClient:
-    """Yield the shared Supabase AsyncClient."""
+    """Yield the shared Supabase AsyncClient (service_role)."""
+    return db
+
+
+async def get_anon_supabase_client(
+    db: AsyncClient = Depends(get_anon_db),
+) -> AsyncClient:
+    """Yield the shared Supabase AsyncClient (anon key).
+
+    Use this for user-facing auth operations so that Supabase
+    email verification and auth policies are respected.
+    """
     return db
 
 

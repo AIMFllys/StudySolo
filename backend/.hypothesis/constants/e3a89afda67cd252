@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\admin_audit.py
+# hypothesis_version: 6.151.9
+
+[100, 500, '/audit-logs', 'action', 'admin-audit', 'admin_id', 'created_at', 'details', 'exact', 'id', 'ip_address', 'ss_admin_audit_logs', 'target_id', 'target_type', 'user_agent', '获取审计日志失败']

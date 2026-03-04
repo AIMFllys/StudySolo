@@ -9,8 +9,8 @@ import Link from 'next/link';
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   pending: { label: '待执行', color: 'bg-gray-400' },
   running: { label: '执行中', color: 'bg-blue-400' },
-  done:    { label: '已完成', color: 'bg-green-400' },
-  error:   { label: '错误',   color: 'bg-red-400' },
+  done: { label: '已完成', color: 'bg-green-400' },
+  error: { label: '错误', color: 'bg-red-400' },
 };
 
 function StatusItem({ label, count, color }: { label: string; count: number; color: string }) {
@@ -31,13 +31,13 @@ export default function RightPanel() {
   const nodes = useWorkflowStore((s) => s.nodes);
 
   const statusCounts = nodes.reduce<Record<string, number>>((acc, node) => {
-    const status = (node.data as AIStepNodeData)?.status ?? 'pending';
+    const status = (node.data as unknown as AIStepNodeData)?.status ?? 'pending';
     acc[status] = (acc[status] ?? 0) + 1;
     return acc;
   }, {});
 
   return (
-    <aside className="hidden md:flex flex-col w-60 border-l border-white/[0.08] bg-[#020617] p-4 shrink-0">
+    <aside className="hidden md:flex flex-col w-60 border-l border-border bg-background p-4 shrink-0">
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground mb-2">执行概览</h3>
         {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (

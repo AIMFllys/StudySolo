@@ -38,6 +38,7 @@ from fastapi.testclient import TestClient
 os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
+os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 
 from app.main import app  # noqa: E402
 from app.core import deps  # noqa: E402

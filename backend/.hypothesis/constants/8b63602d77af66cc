@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\models\notice.py
+# hypothesis_version: 6.151.9
+
+[200, 10000, 'archived', 'content', 'draft', 'expires_at', 'expires_at 必须是未来的时间', 'feature', 'maintenance', 'promotion', 'published', 'system', 'title', '内容不能为空', '内容不能超过 10000 个字符', '标题不能为空', '标题不能超过 200 个字符']

@@ -1,6 +1,6 @@
 # StudySolo 项目地图
 
-> 最后更新：2026-02-28
+> 最后更新：2026-03-03
 > 这份文件解决 AI "不知道自己在哪里"的问题。每次开新对话，先喂这份文件。
 
 ## 技术栈选型
@@ -41,8 +41,11 @@
 | 模块 | 职责 | 禁止跨界 |
 |------|------|---------|
 | `api/` | 路由层，参数校验 + 调用 service | 不允许包含业务逻辑 |
-| `services/` | 业务逻辑（AI 路由、工作流引擎） | 不允许直接操作数据库，通过 deps 注入 |
+| `nodes/` | **插件化节点包**：每个节点独立文件夹（node.py + prompt.md），自动注册 | 不允许直接操作数据库或调用其他节点 |
+| `engine/` | **工作流编排引擎**：拓扑排序 → 节点调度 → SSE 发射 | 不允许包含节点业务逻辑 |
+| `services/` | AI 路由、邮件等跨切面服务 | 不允许直接操作数据库，通过 deps 注入 |
 | `models/` | Pydantic 数据模型定义 | 不允许包含任何逻辑代码 |
+| `utils/` | 通用工具（Token 计数、输出截断） | 不允许依赖 api/ 或 services/ |
 | `core/` | 配置加载、数据库初始化、依赖注入 | 不允许引用 api/ 或 services/ |
 | `middleware/` | JWT 验证、CORS、限流 | 不允许修改请求体 |
 
@@ -63,11 +66,18 @@
   ↓
 前端 EventSource → GET /api/workflow/{id}/execute (SSE)
   ↓
-后端 workflow_engine 拓扑排序 → 逐节点调用 AI
+engine/executor.py：
+  topological_sort(nodes, edges) → 确定执行顺序
+  NODE_REGISTRY[node_type] → 查找节点类（插件化）
+  build_upstream_map(edges) → 精确上下文传递（仅直接上游）
+  node.execute(input, call_llm) → 流式 token
+  node.post_process(raw) → 格式校验
   ↓
 SSE 事件流: node_status → node_token → node_done → workflow_done
   ↓
 前端 Zustand Store 实时更新节点 status + output
+  ↓
+AIStepNode → getRenderer(nodeType) → 动态渲染器委托
   ↓
 三层防抖同步: UI(0ms) → IndexedDB(500ms) → Supabase(4s)
 ```
@@ -102,27 +112,51 @@ StudySolo/
 │   │   ├── app/                 # App Router 页面
 │   │   │   ├── (auth)/          # 登录、注册
 │   │   │   ├── (dashboard)/     # 三栏布局 + 工作流
+│   │   │   ├── admin-analysis/  # Admin 管理后台
 │   │   │   └── page.tsx         # Landing 首页
 │   │   ├── components/
 │   │   │   ├── ui/              # Shadcn/UI 基础组件
 │   │   │   ├── layout/          # Sidebar, Navbar, MobileNav
-│   │   │   └── business/        # 工作流画布、节点、输入
+│   │   │   └── business/
+│   │   │       ├── workflow/    # WorkflowCanvas, PromptInput
+│   │   │       │   └── nodes/   # ← 渲染器注册表 + 渲染器组件
+│   │   │       │       ├── index.ts          # getRenderer() 注册表
+│   │   │       │       ├── AIStepNode.tsx     # 通用节点壳（动态委托渲染器）
+│   │   │       │       └── renderers/         # Markdown / Flashcard / JSON / ...
+│   │   │       └── admin/       # Admin 后台组件
 │   │   ├── hooks/               # use-workflow-sync, use-workflow-execution
 │   │   ├── stores/              # Zustand Store
-│   │   ├── services/            # auth.service.ts
+│   │   ├── services/            # auth.service.ts, admin.service.ts
 │   │   ├── utils/supabase/      # Supabase SSR 客户端
 │   │   └── types/               # 公共类型定义
 │   └── package.json
 │
 ├── backend/                     # FastAPI 后端
 │   ├── app/
-│   │   ├── api/                 # auth.py, workflow.py, ai.py, router.py
-│   │   ├── services/            # ai_router.py, workflow_engine.py
-│   │   ├── models/              # user.py, workflow.py, ai.py
+│   │   ├── api/                 # auth.py, workflow.py, ai.py, nodes.py, router.py
+│   │   ├── nodes/               # ← 插件化节点包（新增节点的主战场）
+│   │   │   ├── _base.py         #   BaseNode 抽象基类 + 自动注册
+│   │   │   ├── _mixins.py       #   LLMStreamMixin + JsonOutputMixin
+│   │   │   ├── _categories.py   #   节点分类枚举
+│   │   │   ├── CONTRIBUTING.md  #   节点开发指南
+│   │   │   ├── input/           #   触发类节点
+│   │   │   ├── analysis/        #   分析类节点
+│   │   │   ├── generation/      #   生成类节点（大纲/提炼/总结/闪卡）
+│   │   │   ├── interaction/     #   交互类节点
+│   │   │   └── output/          #   输出类节点
+│   │   ├── engine/              # ← 工作流编排引擎
+│   │   │   ├── executor.py      #   拓扑排序 + 节点调度 + SSE
+│   │   │   ├── context.py       #   精确上下文传递 + 错误传播
+│   │   │   └── sse.py           #   SSE 事件格式化
+│   │   ├── utils/               # ← 通用工具
+│   │   │   ├── token_counter.py #   tiktoken 精确计数
+│   │   │   └── output_truncator.py # 智能截断
+│   │   ├── services/            # ai_router.py, email_service.py
+│   │   ├── models/              # user.py, workflow.py, ai.py, admin.py
 │   │   ├── core/                # config.py, config_loader.py, database.py, deps.py
-│   │   ├── middleware/          # auth.py, security.py
+│   │   ├── middleware/          # auth.py, admin_auth.py, security.py
 │   │   └── main.py
-│   ├── config.yaml              # AI 模型/节点/容灾配置中心
+│   ├── config.yaml              # AI 模型/节点路由/容灾配置中心
 │   └── requirements.txt
 │
 ├── scripts/                     # 部署脚本 + nginx.conf

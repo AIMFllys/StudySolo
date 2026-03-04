@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\admin_members.py
+# hypothesis_version: 6.151.9
+
+[0.0, 100, 500, '/members/list', '/members/revenue', '/members/stats', 'active', 'admin-members', 'amount', 'annual', 'billing_cycle', 'created_at', 'email', 'exact', 'free', 'id', 'id, email, tier', 'monthly', 'pro', 'pro_plus', 'status', 'subscriptions', 'tier', 'ultra', 'user_profiles', '获取会员列表失败', '获取会员统计失败', '获取收入统计失败']

@@ -51,7 +51,7 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
     set((state) => ({
       nodes: state.nodes.map((node) => {
         if (node.id !== nodeId) return node;
-        const prevData = node.data as NodeData;
+        const prevData = node.data as unknown as NodeData;
         const patch = typeof data === 'function' ? data(prevData) : data;
         return { ...node, data: { ...prevData, ...patch } };
       }),

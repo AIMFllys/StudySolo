@@ -12,6 +12,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
+import type { Edge, Node } from '@xyflow/react';
 
 // Arbitraries
 const arbNodeStatus = fc.constantFrom('pending', 'running', 'done', 'error', 'paused');
@@ -59,7 +60,7 @@ describe('Property 6: Zustand Store 状态一致性', () => {
         fc.array(arbNode, { minLength: 0, maxLength: 10 }),
         fc.array(arbEdge, { minLength: 0, maxLength: 10 }),
         (workflowId, nodes, edges) => {
-          useWorkflowStore.getState().setCurrentWorkflow(workflowId, nodes as any, edges as any);
+          useWorkflowStore.getState().setCurrentWorkflow(workflowId, nodes as unknown as Node[], edges as unknown as Edge[]);
 
           const state = useWorkflowStore.getState();
 
@@ -83,7 +84,7 @@ describe('Property 6: Zustand Store 状态一致性', () => {
       fc.property(
         fc.array(arbNode, { minLength: 0, maxLength: 10 }),
         (nodes) => {
-          useWorkflowStore.getState().setNodes(nodes as any);
+          useWorkflowStore.getState().setNodes(nodes as unknown as Node[]);
 
           const state = useWorkflowStore.getState();
           expect(state.nodes).toEqual(nodes);
@@ -99,7 +100,7 @@ describe('Property 6: Zustand Store 状态一致性', () => {
       fc.property(
         fc.array(arbEdge, { minLength: 0, maxLength: 10 }),
         (edges) => {
-          useWorkflowStore.getState().setEdges(edges as any);
+          useWorkflowStore.getState().setEdges(edges as unknown as Edge[]);
 
           const state = useWorkflowStore.getState();
           expect(state.edges).toEqual(edges);
@@ -116,7 +117,7 @@ describe('Property 6: Zustand Store 状态一致性', () => {
         fc.array(arbNode, { minLength: 1, maxLength: 5 }),
         (nodes) => {
           // Set nodes to make dirty
-          useWorkflowStore.getState().setNodes(nodes as any);
+          useWorkflowStore.getState().setNodes(nodes as unknown as Node[]);
           expect(useWorkflowStore.getState().isDirty).toBe(true);
 
           // markClean should reset

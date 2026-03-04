@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\admin_auth.py
+# hypothesis_version: 6.151.9
+
+[401, 404, 423, 3600, '*', '+00:00', '/change-password', '/login', '/logout', 'HS256', 'Z', 'account_locked', 'admin', 'admin-auth', 'admin_id', 'admin_token', 'error', 'exp', 'failed_attempts', 'iat', 'id', 'invalid_credentials', 'last_login', 'lax', 'locked_until', 'login_failed', 'login_success', 'logout', 'message', 'password_changed', 'password_hash', 'production', 'remaining_attempts', 'ss_admin_accounts', 'sub', 'type', 'updated_at', 'username', 'utf-8', '密码修改成功', '已退出登录', '当前密码不正确', '管理员未认证', '管理员账号不存在']

@@ -11,6 +11,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
+import type { Edge, Node } from '@xyflow/react';
 
 const arbNodeStatus = fc.constantFrom('pending' as const, 'running' as const, 'done' as const, 'error' as const, 'paused' as const);
 const arbNodeType = fc.constantFrom(
@@ -54,7 +55,7 @@ describe('Property 7: 三层同步脏标记管理', () => {
         fc.array(arbNode, { minLength: 1, maxLength: 8 }),
         (nodes) => {
           useWorkflowStore.setState({ isDirty: false });
-          useWorkflowStore.getState().setNodes(nodes as any);
+          useWorkflowStore.getState().setNodes(nodes as unknown as Node[]);
           expect(useWorkflowStore.getState().isDirty).toBe(true);
         }
       ),
@@ -68,7 +69,7 @@ describe('Property 7: 三层同步脏标记管理', () => {
         fc.array(arbEdge, { minLength: 1, maxLength: 8 }),
         (edges) => {
           useWorkflowStore.setState({ isDirty: false });
-          useWorkflowStore.getState().setEdges(edges as any);
+          useWorkflowStore.getState().setEdges(edges as unknown as Edge[]);
           expect(useWorkflowStore.getState().isDirty).toBe(true);
         }
       ),
@@ -82,7 +83,7 @@ describe('Property 7: 三层同步脏标记管理', () => {
         fc.array(arbNode, { minLength: 1, maxLength: 8 }),
         (nodes) => {
           // Simulate modification → dirty
-          useWorkflowStore.getState().setNodes(nodes as any);
+          useWorkflowStore.getState().setNodes(nodes as unknown as Node[]);
           expect(useWorkflowStore.getState().isDirty).toBe(true);
 
           // Simulate cloud sync success → markClean
@@ -102,8 +103,8 @@ describe('Property 7: 三层同步脏标记管理', () => {
         (nodes, edges) => {
           useWorkflowStore.setState({ isDirty: false });
 
-          useWorkflowStore.getState().setNodes(nodes as any);
-          useWorkflowStore.getState().setEdges(edges as any);
+          useWorkflowStore.getState().setNodes(nodes as unknown as Node[]);
+          useWorkflowStore.getState().setEdges(edges as unknown as Edge[]);
 
           // Still dirty — cloud sync hasn't happened
           expect(useWorkflowStore.getState().isDirty).toBe(true);

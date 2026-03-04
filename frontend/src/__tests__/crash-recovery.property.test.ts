@@ -28,25 +28,24 @@ function detectConflict(
 }
 
 // Generate a pair of ISO timestamps where local > cloud
+const timestampArb = fc.integer({
+  min: new Date('2020-01-01').getTime(),
+  max: new Date('2030-01-01').getTime(),
+});
+
 const arbConflictTimestamps = fc
-  .tuple(
-    fc.date({ min: new Date('2020-01-01'), max: new Date('2030-01-01') }),
-    fc.integer({ min: 1, max: 86_400_000 }) // 1ms to 24h offset
-  )
-  .map(([cloudDate, offsetMs]) => ({
-    cloud_updated_at: cloudDate.toISOString(),
-    local_updated_at: new Date(cloudDate.getTime() + offsetMs).toISOString(),
+  .tuple(timestampArb, fc.integer({ min: 1, max: 86_400_000 })) // 1ms to 24h offset
+  .map(([cloudTs, offsetMs]) => ({
+    cloud_updated_at: new Date(cloudTs).toISOString(),
+    local_updated_at: new Date(cloudTs + offsetMs).toISOString(),
   }));
 
 // Generate a pair where local <= cloud (no conflict)
 const arbNoConflictTimestamps = fc
-  .tuple(
-    fc.date({ min: new Date('2020-01-01'), max: new Date('2030-01-01') }),
-    fc.integer({ min: 0, max: 86_400_000 })
-  )
-  .map(([localDate, offsetMs]) => ({
-    local_updated_at: localDate.toISOString(),
-    cloud_updated_at: new Date(localDate.getTime() + offsetMs).toISOString(),
+  .tuple(timestampArb, fc.integer({ min: 0, max: 86_400_000 }))
+  .map(([localTs, offsetMs]) => ({
+    local_updated_at: new Date(localTs).toISOString(),
+    cloud_updated_at: new Date(localTs + offsetMs).toISOString(),
   }));
 
 describe('Property 8: 崩溃恢复冲突检测', () => {
@@ -84,11 +83,11 @@ describe('Property 8: 崩溃恢复冲突检测', () => {
     fc.assert(
       fc.property(
         fc.boolean(),
-        fc.date({ min: new Date('2020-01-01'), max: new Date('2030-01-01') }),
-        fc.date({ min: new Date('2020-01-01'), max: new Date('2030-01-01') }),
-        (dirty, localDate, cloudDate) => {
-          const local = localDate.toISOString();
-          const cloud = cloudDate.toISOString();
+        timestampArb,
+        timestampArb,
+        (dirty, localTs, cloudTs) => {
+          const local = new Date(localTs).toISOString();
+          const cloud = new Date(cloudTs).toISOString();
           const r1 = detectConflict(dirty, local, cloud);
           const r2 = detectConflict(dirty, local, cloud);
           expect(r1).toBe(r2);

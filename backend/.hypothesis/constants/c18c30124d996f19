@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\models\admin.py
+# hypothesis_version: 6.151.9
+
+['; ', 'T', 'new_password', '密码必须包含至少一个大写字母', '密码必须包含至少一个小写字母', '密码必须包含至少一个数字', '密码长度至少 12 个字符']

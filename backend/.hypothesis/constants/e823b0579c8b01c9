@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\admin_users.py
+# hypothesis_version: 6.151.9
+
+[100, 404, 500, '/users', '/users/{user_id}', 'admin-users', 'admin_id', 'after', 'before', 'created_at', 'current_period_end', 'email', 'exact', 'free', 'id', 'id, is_active', 'id, tier', 'is_active', 'last_login', 'plan_id', 'pro', 'pro_plus', 'ss_workflow_runs', 'started_at', 'status', 'subscriptions', 'tier', 'tokens_used', 'ultra', 'user', 'user_id', 'user_profiles', 'user_role_change', 'user_status_toggle', '更新用户状态失败', '更新用户角色失败', '用户不存在', '获取用户列表失败', '获取用户详情失败']

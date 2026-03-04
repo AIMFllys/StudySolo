@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\services\audit_logger.py
+# hypothesis_version: 6.151.9
+
+[',', 'action', 'admin_id', 'details', 'ip_address', 'ss_admin_audit_logs', 'target_id', 'target_type', 'user-agent', 'user_agent', 'x-forwarded-for']

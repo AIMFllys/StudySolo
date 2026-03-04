@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 
 from app.api.router import router as api_router
+from app.middleware.admin_auth import AdminJWTMiddleware
 from app.middleware.auth import JWTAuthMiddleware
 from app.middleware.security import add_cors_middleware
 
@@ -13,6 +14,9 @@ add_cors_middleware(app)
 
 # JWT authentication middleware for protected /api/* routes
 app.add_middleware(JWTAuthMiddleware)
+
+# Admin JWT middleware for /api/admin/* routes (registered after JWTAuthMiddleware)
+app.add_middleware(AdminJWTMiddleware)
 
 # Health check
 @app.get("/api/health")

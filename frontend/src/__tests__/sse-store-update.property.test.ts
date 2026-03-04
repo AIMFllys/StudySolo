@@ -15,6 +15,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import type { Node } from '@xyflow/react';
+import type { AIStepNodeData } from '@/types';
 
 const arbNodeStatus = fc.constantFrom('pending' as const, 'running' as const, 'done' as const, 'error' as const);
 
@@ -25,6 +26,10 @@ function makeNode(id: string, status = 'pending', output = ''): Node {
     position: { x: 0, y: 0 },
     data: { label: id, system_prompt: '', model_route: '', status, output },
   };
+}
+
+function getNodeData(node: Node | undefined): AIStepNodeData {
+  return node?.data as unknown as AIStepNodeData;
 }
 
 describe('Property 17: SSE 事件驱动 Store 更新', () => {
@@ -46,7 +51,7 @@ describe('Property 17: SSE 事件驱动 Store 更新', () => {
           useWorkflowStore.getState().updateNodeData(nodeId, { status: newStatus });
 
           const node = useWorkflowStore.getState().nodes.find((n) => n.id === nodeId);
-          expect((node?.data as any).status).toBe(newStatus);
+          expect(getNodeData(node).status).toBe(newStatus);
         }
       ),
       { numRuns: 100 }
@@ -65,12 +70,12 @@ describe('Property 17: SSE 事件驱动 Store 更新', () => {
           useWorkflowStore.setState({ isDirty: false });
 
           // Simulate node_token event handler
-          useWorkflowStore.getState().updateNodeData(nodeId, (prev: any) => ({
+          useWorkflowStore.getState().updateNodeData(nodeId, (prev) => ({
             output: (prev.output ?? '') + token,
           }));
 
           const node = useWorkflowStore.getState().nodes.find((n) => n.id === nodeId);
-          expect((node?.data as any).output).toBe(existingOutput + token);
+          expect(getNodeData(node).output).toBe(existingOutput + token);
         }
       ),
       { numRuns: 100 }
@@ -94,8 +99,8 @@ describe('Property 17: SSE 事件驱动 Store 更新', () => {
           });
 
           const node = useWorkflowStore.getState().nodes.find((n) => n.id === nodeId);
-          expect((node?.data as any).output).toBe(finalOutput);
-          expect((node?.data as any).status).toBe('done');
+          expect(getNodeData(node).output).toBe(finalOutput);
+          expect(getNodeData(node).status).toBe('done');
         }
       ),
       { numRuns: 100 }
@@ -113,13 +118,13 @@ describe('Property 17: SSE 事件驱动 Store 更新', () => {
 
           // Simulate receiving multiple node_token events
           for (const token of tokens) {
-            useWorkflowStore.getState().updateNodeData(nodeId, (prev: any) => ({
+            useWorkflowStore.getState().updateNodeData(nodeId, (prev) => ({
               output: (prev.output ?? '') + token,
             }));
           }
 
           const node = useWorkflowStore.getState().nodes.find((n) => n.id === nodeId);
-          expect((node?.data as any).output).toBe(tokens.join(''));
+          expect(getNodeData(node).output).toBe(tokens.join(''));
         }
       ),
       { numRuns: 100 }

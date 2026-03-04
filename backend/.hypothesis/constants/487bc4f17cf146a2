@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\admin_notices.py
+# hypothesis_version: 6.151.9
+
+[100, 201, 400, 404, 500, '/notices', '/notices/{notice_id}', 'admin-notices', 'admin_id', 'after', 'after_status', 'archived', 'before', 'before_status', 'content', 'created_at', 'created_by', 'draft', 'exact', 'expires_at', 'feature', 'id', 'id, status', 'id, status, title', 'maintenance', 'notice', 'notice_create', 'notice_delete', 'notice_id', 'notice_publish', 'notice_update', 'promotion', 'published', 'published_at', 'ss_notice_reads', 'ss_notices', 'status', 'system', 'title', 'type', '公告不存在', '创建公告失败', '删除公告失败', '发布公告失败', '只能删除草稿状态的公告', '更新公告失败', '获取公告列表失败', '获取公告详情失败']

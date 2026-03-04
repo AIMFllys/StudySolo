@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\admin_dashboard.py
+# hypothesis_version: 6.151.9
+
+[500, '/dashboard/charts', '/dashboard/overview', '30d', '7d', '90d', 'active', 'admin-dashboard', 'date', 'edu_signups', 'exact', 'failed', 'free', 'id', 'is_active', 'pro', 'pro_plus', 'signups', 'signups, edu_signups', 'ss_workflow_runs', 'started_at', 'status', 'subscriptions', 'success', 'tier', 'total_runs', 'total_tokens', 'ultra', 'user_id', 'user_profiles', 'v_daily_signups', '获取 Dashboard 数据失败', '获取图表数据失败']

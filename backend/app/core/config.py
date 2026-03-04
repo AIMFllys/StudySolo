@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     # Supabase
     supabase_url: str
     supabase_service_role_key: str
+    supabase_anon_key: str
 
     # Security
     jwt_secret: str
@@ -40,6 +41,12 @@ class Settings(BaseSettings):
     youyun_base_url: str = "https://api.youyun.com/v1"
     siliconflow_api_key: str = ""
     siliconflow_base_url: str = "https://api.siliconflow.cn/v1"
+
+    # Email (Aliyun DirectMail) — 与 Platform 共用 accounts@email.1037solo.com
+    smtp_host: str = "smtpdm.aliyun.com"
+    smtp_port: int = 465
+    smtp_user: str = ""
+    smtp_pass: str = ""
 
 
 @lru_cache

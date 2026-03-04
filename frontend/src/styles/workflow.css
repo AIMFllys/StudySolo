@@ -1,0 +1,92 @@
+﻿.workflow-canvas .react-flow__pane {
+  cursor: grab;
+}
+
+.workflow-canvas .react-flow__pane:active {
+  cursor: grabbing;
+}
+
+.workflow-canvas .react-flow__background {
+  display: none;
+}
+
+.workflow-controls.react-flow__controls {
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 4px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  bottom: 16px;
+  right: 16px;
+}
+
+.workflow-controls .react-flow__controls-button {
+  background: transparent;
+  border: none;
+  border-radius: 9999px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+}
+
+.workflow-controls .react-flow__controls-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+.workflow-controls .react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+@keyframes edge-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.edge-animated-pulse {
+  animation: edge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes border-pulse {
+  0%,
+  100% {
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+
+  50% {
+    border-color: rgba(99, 102, 241, 0.7);
+  }
+}
+
+.animate-border-pulse {
+  animation: border-pulse 2s ease-in-out infinite;
+}
+
+.workflow-canvas .react-flow__edge-path {
+  stroke: #6366f1;
+  stroke-opacity: 0.3;
+  stroke-width: 2;
+}
+
+.workflow-canvas .react-flow__minimap {
+  display: none;
+}
+
+.workflow-canvas .react-flow__node.selected > div {
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5), 0 0 20px rgba(99, 102, 241, 0.15);
+}

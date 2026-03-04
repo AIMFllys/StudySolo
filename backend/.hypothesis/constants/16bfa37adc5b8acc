@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\middleware\admin_auth.py
+# hypothesis_version: 6.151.9
+
+[401, 403, '/api/admin/', '/api/admin/login', 'HS256', 'OPTIONS', 'Token 无效或已过期', 'Token 类型无效', 'Token 缺少 sub 字段', 'admin', 'admin_token', 'detail', 'id', 'id, is_active', 'is_active', 'ss_admin_accounts', 'sub', 'type', '管理员未认证', '管理员账号不存在', '管理员账号已被禁用']

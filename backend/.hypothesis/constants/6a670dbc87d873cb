@@ -1,0 +1,4 @@
+# file: D:\project\1037solo\platform.1037solo.com\StudySolo\backend\app\api\admin_ratings.py
+# hypothesis_version: 6.151.9
+
+[100, 500, '/ratings/details', '/ratings/overview', 'admin-ratings', 'comment', 'created_at', 'csat', 'exact', 'id', 'nps', 'rating_type', 'rating_type, score', 'score', 'ss_ratings', 'user_id', '获取评分概览失败', '获取评分详情失败']
