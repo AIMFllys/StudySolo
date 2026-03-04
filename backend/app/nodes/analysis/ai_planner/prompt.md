@@ -17,7 +17,9 @@
 | mind_map | 🧠 知识结构可视化思维导图 | 需要可视化/导图/结构化展示时 |
 | merge_polish | ✏️ 多段文本润色合并为连贯长文 | 有 ≥2 个并行内容需要整合时 |
 | knowledge_base | 📚 从用户知识库检索相关内容 | 用户有自己的学习材料需要检索时 |
+| web_search | 🌐 联网搜索获取最新信息 | 用户想学最新知识或需要实时信息时 |
 | chat_response | 💬 自由对话回答 | 简短问答或解释时 |
+| export_file | 📥 将学习成果导出为文件 | 用户需要下载/导出学习笔记时 |
 | write_db | 💾 保存结果到数据库 | 工作流末尾保存结果时 |
 
 ## 编排规则
@@ -32,6 +34,10 @@
 8. 复杂主题优先使用 outline_gen → content_extract 的路径
 9. 当用户提及"我的资料"、"我上传的"、"知识库"、"我的文件"时，在工作流头部添加 **knowledge_base** 检索节点
 10. knowledge_base 节点的输出可以直接传递给 content_extract、summary、quiz_gen 等节点
+11. 当用户提及"最新"、"搜索"、"联网"、"互联网"、"实时"时，在工作流头部添加 **web_search** 节点
+12. 当用户提及"导出"、"下载"、"PDF"、"Word"、"保存文件"时，在工作流末尾添加 **export_file** 节点
+13. export_file 的 label 中应包含格式指定（如："📥 导出为 PDF"）
+14. **export_file** 和 **write_db** 都是终端节点，可以并列存在
 
 ## 经典编排模式
 
@@ -41,5 +47,8 @@
 - **长文合并**：content_extract ×N → merge_polish
 - **RAG 增强学习**：knowledge_base → content_extract → summary / quiz_gen
 - **资料对比分析**：knowledge_base → compare → flashcard
+- **联网实时学习**：web_search → content_extract → flashcard
+- **长文合并导出**：content_extract ×N → merge_polish → export_file
+- **学习报告生成**：outline_gen → content_extract → summary → export_file
 
 最多生成 12 个节点。不要输出任何 JSON 以外的内容。

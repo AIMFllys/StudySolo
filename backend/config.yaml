@@ -141,6 +141,14 @@ node_routes:
     route_chain: "A"
     default_model: "qwen3-turbo"
     platform: "dashscope"
+  web_search:
+    route_chain: "A"
+    default_model: "qwen3-turbo"
+    platform: "dashscope"
+  export_file:
+    route_chain: "A"
+    default_model: "qwen3-turbo"
+    platform: "dashscope"
 
 # 容灾降级配置
 fallback:
