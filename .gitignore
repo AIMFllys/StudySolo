@@ -46,3 +46,10 @@ Desktop.ini
 .env.development
 .env.test
 .env.production
+
+# Docs
+docs/*
+!docs/项目介绍/
+!docs/项目介绍/**
+!docs/技术指导/
+!docs/技术指导/**

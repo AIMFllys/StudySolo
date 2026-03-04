@@ -60,6 +60,10 @@ const RENDERER_REGISTRY: Record<string, React.FC<NodeRendererProps>> = {
     knowledge_base: MarkdownRenderer,
     web_search: MarkdownRenderer,
     export_file: ExportRenderer,
+
+    // ── P2 引擎增强节点渲染器 ──
+    logic_switch: JsonRenderer,
+    loop_map: JsonRenderer,
 };
 
 /**

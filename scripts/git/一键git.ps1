@@ -199,7 +199,16 @@ Write-Host ""
 
 # 获取提交消息
 if (-not $Message) {
-    Write-Host "💬 请输入你的 Commit 描述 [直接回车将使用自动时间戳]" -ForegroundColor Yellow
+    Write-Host "💬 请输入你的 Commit 描述 [直接回车将使用自动时间戳] 
+    分支命名规范：
+| 前缀 | 用途 |
+|------|------|
+| feat/ | 新功能 |
+| fix/ | Bug 修复 |
+| refactor/ | 重构 |
+| docs/ | 文档 |
+| chore/ | 工具/构建 |
+| hotfix/ | 紧急线上修复 |" -ForegroundColor Yellow
     $Message = Read-Host " >"
     if (-not $Message) {
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm"

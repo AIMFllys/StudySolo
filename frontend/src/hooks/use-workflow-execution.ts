@@ -36,23 +36,32 @@ export function useWorkflowExecution() {
         esRef.current = es;
 
         es.addEventListener('node_status', (e) => {
-          const data = JSON.parse(e.data);
-          updateNodeData(data.node_id, { status: data.status });
+          try {
+            const data = JSON.parse(e.data);
+            updateNodeData(data.node_id, {
+              status: data.status,
+              ...(data.error ? { error: data.error } : {}),
+            });
+          } catch { /* ignore malformed SSE */ }
         });
 
         es.addEventListener('node_token', (e) => {
-          const data = JSON.parse(e.data);
-          updateNodeData(data.node_id, (prev) => ({
-            output: (prev.output ?? '') + data.token,
-          }));
+          try {
+            const data = JSON.parse(e.data);
+            updateNodeData(data.node_id, (prev) => ({
+              output: (prev.output ?? '') + data.token,
+            }));
+          } catch { /* ignore malformed SSE */ }
         });
 
         es.addEventListener('node_done', (e) => {
-          const data = JSON.parse(e.data);
-          updateNodeData(data.node_id, {
-            output: data.full_output,
-            status: 'done',
-          });
+          try {
+            const data = JSON.parse(e.data);
+            updateNodeData(data.node_id, {
+              output: data.full_output,
+              status: 'done',
+            });
+          } catch { /* ignore malformed SSE */ }
         });
 
         es.addEventListener('workflow_done', () => {

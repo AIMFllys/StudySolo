@@ -36,12 +36,28 @@ class WebSearchNode(BaseNode):
         from app.services.search_service import search_web, format_search_results
 
         # Build search query
+        # Strategy: label is the primary search term.
+        # Upstream outputs only contribute a short keyword hint (first line/title),
+        # NOT the raw 200-char dump which pollutes search recall.
         query_parts: list[str] = []
         if node_input.user_content:
-            query_parts.append(node_input.user_content)
+            # Strip common emoji prefixes from planner labels
+            label = node_input.user_content.strip()
+            for prefix in ("🌐", "🔍", "📖"):
+                label = label.removeprefix(prefix).strip()
+            query_parts.append(label)
+
         if node_input.upstream_outputs:
             for uid, out in node_input.upstream_outputs.items():
-                query_parts.append(out[:200])
+                # Extract only the first meaningful line as keyword context
+                first_line = ""
+                for line in out.split("\n"):
+                    stripped = line.strip().lstrip("#").strip()
+                    if stripped and len(stripped) > 3:
+                        first_line = stripped[:80]
+                        break
+                if first_line:
+                    query_parts.append(first_line)
 
         query = " ".join(query_parts)
         if not query.strip():

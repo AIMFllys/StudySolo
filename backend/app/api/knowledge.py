@@ -7,7 +7,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, status
 from pydantic import BaseModel
 from supabase import AsyncClient
 
@@ -60,17 +60,116 @@ class QueryResponse(BaseModel):
     context: str  # formatted context string for LLM
 
 
+# ── Background processing pipeline ──────────────────────────────────────────
+
+async def _process_document_pipeline(
+    doc_id: str,
+    filename: str,
+    file_content: bytes,
+    db: AsyncClient,
+) -> None:
+    """Background task: parse → chunk → embed → store.
+
+    Updates document status to 'ready' on success or 'error' on failure.
+    Runs outside the HTTP request lifecycle, so no timeout concern.
+    """
+    try:
+        # Step 1: Parse
+        parsed = parse_file(filename, file_content)
+
+        # Step 2: Chunk
+        chunks = chunk_document(parsed)
+        if not chunks:
+            raise ValueError("文档解析后无有效内容")
+
+        total_tokens = sum(c.token_count for c in chunks)
+
+        # Step 3: Store chunks
+        chunk_records = []
+        for chunk in chunks:
+            chunk_id = str(uuid.uuid4())
+            chunk_records.append({
+                "id": chunk_id,
+                "document_id": doc_id,
+                "chunk_index": chunk.index,
+                "content": chunk.content,
+                "token_count": chunk.token_count,
+                "metadata": chunk.metadata,
+            })
+
+        await db.from_("ss_kb_document_chunks").insert(chunk_records).execute()
+
+        # Step 4: Generate embeddings (batch, may take a while)
+        chunk_texts = [c.content for c in chunks]
+        embeddings = await embed_texts(chunk_texts)
+
+        # Step 5: Store embeddings
+        embedding_records = []
+        for chunk_record, embedding in zip(chunk_records, embeddings):
+            if embedding:  # Skip failed embeddings
+                embedding_records.append({
+                    "chunk_id": chunk_record["id"],
+                    "document_id": doc_id,
+                    "embedding": embedding,
+                })
+
+        if embedding_records:
+            await db.from_("ss_kb_chunk_embeddings").insert(embedding_records).execute()
+
+        # Step 6: Generate document summary
+        summary_text = parsed.full_text[:2000]
+        summary_embedding = await embed_text(summary_text)
+
+        await db.from_("ss_kb_document_summaries").insert({
+            "document_id": doc_id,
+            "summary": summary_text[:500],
+            "key_concepts": [],
+        }).execute()
+
+        if summary_embedding:
+            await db.from_("ss_kb_summary_embeddings").insert({
+                "document_id": doc_id,
+                "embedding": summary_embedding,
+            }).execute()
+
+        # Step 7: Update document status to 'ready'
+        await db.from_("ss_kb_documents").update({
+            "status": "ready",
+            "total_chunks": len(chunks),
+            "total_tokens": total_tokens,
+        }).eq("id", doc_id).execute()
+
+        logger.info(
+            "Document '%s' processed: %d chunks, %d tokens",
+            filename, len(chunks), total_tokens,
+        )
+
+    except Exception as e:
+        logger.error("Document processing failed for %s: %s", doc_id, e)
+        try:
+            await db.from_("ss_kb_documents").update({
+                "status": "error",
+                "error_message": str(e)[:500],
+            }).eq("id", doc_id).execute()
+        except Exception as update_err:
+            logger.error("Failed to update error status: %s", update_err)
+
+
 # ── Upload endpoint ──────────────────────────────────────────────────────────
 
-@router.post("/upload", response_model=DocumentMeta, status_code=status.HTTP_201_CREATED)
+@router.post("/upload", response_model=DocumentMeta, status_code=status.HTTP_202_ACCEPTED)
 async def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
     db: AsyncClient = Depends(get_supabase_client),
 ):
     """Upload a document to the knowledge base.
 
-    Triggers the processing pipeline: parse → chunk → embed → store.
+    Returns immediately with status='processing'.
+    The heavy pipeline (parse → chunk → embed → store) runs
+    in a background task. Frontend polls GET /api/knowledge/{id}
+    to check when status becomes 'ready'.
     """
     user_id = current_user["id"]
 
@@ -105,88 +204,16 @@ async def upload_document(
         logger.error("Failed to create document record: %s", e)
         raise HTTPException(status_code=500, detail=f"创建文档记录失败: {e}")
 
-    # Process pipeline: parse → chunk → embed → store
-    try:
-        # Step 1: Parse
-        parsed = parse_file(file.filename, content)
+    # Schedule background processing — returns immediately
+    background_tasks.add_task(
+        _process_document_pipeline,
+        doc_id=doc_id,
+        filename=file.filename,
+        file_content=content,
+        db=db,
+    )
 
-        # Step 2: Chunk
-        chunks = chunk_document(parsed)
-        if not chunks:
-            raise ValueError("文档解析后无有效内容")
-
-        total_tokens = sum(c.token_count for c in chunks)
-
-        # Step 3: Store chunks
-        chunk_records = []
-        for chunk in chunks:
-            chunk_id = str(uuid.uuid4())
-            chunk_records.append({
-                "id": chunk_id,
-                "document_id": doc_id,
-                "chunk_index": chunk.index,
-                "content": chunk.content,
-                "token_count": chunk.token_count,
-                "metadata": chunk.metadata,
-            })
-
-        await db.from_("ss_kb_document_chunks").insert(chunk_records).execute()
-
-        # Step 4: Generate embeddings
-        chunk_texts = [c.content for c in chunks]
-        embeddings = await embed_texts(chunk_texts)
-
-        # Step 5: Store embeddings
-        embedding_records = []
-        for chunk_record, embedding in zip(chunk_records, embeddings):
-            if embedding:  # Skip failed embeddings
-                embedding_records.append({
-                    "chunk_id": chunk_record["id"],
-                    "document_id": doc_id,
-                    "embedding": embedding,
-                })
-
-        if embedding_records:
-            await db.from_("ss_kb_chunk_embeddings").insert(embedding_records).execute()
-
-        # Step 6: Generate document summary
-        summary_text = parsed.full_text[:2000]  # Use first 2000 chars for summary
-        summary_embedding = await embed_text(summary_text)
-
-        await db.from_("ss_kb_document_summaries").insert({
-            "document_id": doc_id,
-            "summary": summary_text[:500],
-            "key_concepts": [],
-        }).execute()
-
-        if summary_embedding:
-            await db.from_("ss_kb_summary_embeddings").insert({
-                "document_id": doc_id,
-                "embedding": summary_embedding,
-            }).execute()
-
-        # Step 7: Update document status to 'ready'
-        await db.from_("ss_kb_documents").update({
-            "status": "ready",
-            "total_chunks": len(chunks),
-            "total_tokens": total_tokens,
-        }).eq("id", doc_id).execute()
-
-        logger.info(
-            "Document '%s' processed: %d chunks, %d tokens",
-            file.filename, len(chunks), total_tokens,
-        )
-
-    except Exception as e:
-        logger.error("Document processing failed for %s: %s", doc_id, e)
-        # Update status to error
-        await db.from_("ss_kb_documents").update({
-            "status": "error",
-            "error_message": str(e)[:500],
-        }).eq("id", doc_id).execute()
-        raise HTTPException(status_code=500, detail=f"文档处理失败: {e}")
-
-    # Return the created document
+    # Return the document immediately with 'processing' status
     result = await db.from_("ss_kb_documents").select("*").eq("id", doc_id).single().execute()
     return result.data
 

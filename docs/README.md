@@ -27,6 +27,16 @@ docs/
 │   │   │   ├── 07-shared-supabase-database-convention.md ← 🔑 **共享 Supabase 数据库规范**
 │   │   │   ├── 04-sso-cross-project-auth.md
 │   │   │   ├── vip-01-membership-system-design.md
+│
+├── Plans/
+│   ├── PROJECT_PLAN.md   ← 项目整体规划方案 v3
+│   ├── StudySolo-MVP.md  ← MVP 任务规划（13天冲刺）
+│   ├── global/           ← 🌐 全局规划（项目深度功能规划 · 全景视图）
+│   ├── daily_plan/       ← 每日计划（按功能模块分子目录）
+│   │   ├── user_auth/    ← 用户认证相关规划
+│   │   │   ├── 07-shared-supabase-database-convention.md ← 🔑 **共享 Supabase 数据库规范**
+│   │   │   ├── 04-sso-cross-project-auth.md
+│   │   │   ├── vip-01-membership-system-design.md
 │   │   │   └── ...
 │   │   ├── core/         ← 核心功能规划
 │   │   ├── workflow_canvas/ ← 画布编辑器规划
@@ -34,7 +44,7 @@ docs/
 │   └── accumulate_plan/  ← 长期积累性规划与创意池
 │
 ├── Updates/              ← 更新日志（按日期·对标 1037solo 规范）
-├── Vibe Coding/          ← AI 编程总结（按功能分类）
+├── summary/              ← AI 编程总结（预分类汇总重构与实现细节）
 ├── Source/               ← 规范来源文件暂存（学长分享的核心规范）
 ├── backup/               ← 备份文件
 ├── 详细指南/              ← 操作手册（宝塔部署等）
@@ -85,4 +95,15 @@ docs/
 
 ---
 
-*StudySolo Development Team · 最后更新：2026-03-03*
+## 📝 阶段总结 (Summary)
+
+记录核心架构演进和各阶段重构的详细总结，更多详情请查阅 [summary/README.md](summary/README.md)。
+
+| 文档分类 | 文档链接 | 核心内容说明 |
+|:---|:---|:---|
+| **🏗️ 后端与引擎架构** | [工作流引擎重构总结](summary/2026-03-04-workflow-engine-refactor-summary.md) | **引擎解耦重构**：拓扑分层并行执行、多节点生态扩展、知识库子系统、流式输出优化 |
+| **🎨 前端与工程化** | [前端全量重构总结](summary/2026-03-04-frontend-full-refactor-summary.md) | **全量模块化重构**：组件代码收敛(≤300行)、业务副作用下沉hooks、严格测试与构建门禁 |
+
+---
+
+*StudySolo Development Team · 最后更新：2026-03-04*
