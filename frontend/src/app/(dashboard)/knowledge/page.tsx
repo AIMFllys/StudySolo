@@ -97,13 +97,23 @@ export default function KnowledgePage() {
             });
 
             if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.detail || "上传失败");
+                const text = await res.text();
+                let message = "上传失败";
+                if (text) {
+                    try {
+                        const data = JSON.parse(text);
+                        message = data.detail || data.message || text;
+                    } catch {
+                        message = text;
+                    }
+                }
+                throw new Error(message);
             }
 
             await fetchDocuments();
-        } catch (err: any) {
-            setError(err.message || "上传失败");
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "上传失败";
+            setError(message);
         } finally {
             setUploading(false);
         }

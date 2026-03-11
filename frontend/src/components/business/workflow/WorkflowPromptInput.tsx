@@ -7,7 +7,11 @@ import type { Edge, Node } from '@xyflow/react';
 interface GenerateResponse {
   nodes: Node[];
   edges: Edge[];
-  implicit_context: Record<string, unknown>;
+  implicit_context: {
+    user_constraints?: {
+      mode?: string;
+    };
+  };
 }
 
 export default function WorkflowPromptInput() {
@@ -38,6 +42,10 @@ export default function WorkflowPromptInput() {
       const data: GenerateResponse = await res.json();
       setNodes(data.nodes);
       setEdges(data.edges);
+
+      if (data.implicit_context?.user_constraints?.mode === 'mock') {
+        setError('当前为 Mock 生成模式（DEV_MOCK_AI=true），结果用于联调，不代表真实 AI 规划质量。');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '生成失败，请重试');
     } finally {

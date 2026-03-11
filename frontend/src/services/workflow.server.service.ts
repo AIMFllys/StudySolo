@@ -12,7 +12,7 @@ async function getAccessTokenFromCookieStore() {
 
 export async function fetchWorkflowListForServer(): Promise<WorkflowMeta[]> {
   const token = await getAccessTokenFromCookieStore();
-  return fetchWorkflowList(token, 30);
+  return fetchWorkflowList(token, 0);
 }
 
 export async function fetchWorkflowContentForServer(

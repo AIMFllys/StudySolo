@@ -11,7 +11,18 @@ interface UseCreateWorkflowActionResult {
   createWorkflow: () => Promise<void>;
 }
 
-export function useCreateWorkflowAction(defaultName = '未命名工作流'): UseCreateWorkflowActionResult {
+function buildAutoWorkflowName() {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const y = now.getFullYear();
+  const m = pad(now.getMonth() + 1);
+  const d = pad(now.getDate());
+  const hh = pad(now.getHours());
+  const mm = pad(now.getMinutes());
+  return `工作流_${y}${m}${d}_${hh}${mm}`;
+}
+
+export function useCreateWorkflowAction(defaultName?: string): UseCreateWorkflowActionResult {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
 
@@ -22,11 +33,12 @@ export function useCreateWorkflowAction(defaultName = '未命名工作流'): Use
 
     setCreating(true);
     try {
+      const workflowName = defaultName?.trim() || buildAutoWorkflowName();
       const response = await fetch('/api/workflow/', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: defaultName }),
+        body: JSON.stringify({ name: workflowName }),
       });
 
       if (response.status === 401) {

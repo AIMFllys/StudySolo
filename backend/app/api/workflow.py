@@ -104,18 +104,28 @@ async def update_workflow(
     if not updates:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="无更新内容")
 
-    result = (
+    # NOTE: Some postgrest-py versions don't support `.select()` on update filter builders.
+    update_result = (
         await db.from_("ss_workflows")
         .update(updates)
         .eq("id", workflow_id)
         .eq("user_id", current_user["id"])
+        .execute()
+    )
+    if update_result.data is not None and len(update_result.data) == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="工作流不存在")
+
+    fetch_result = (
+        await db.from_("ss_workflows")
         .select(_META_COLS)
+        .eq("id", workflow_id)
+        .eq("user_id", current_user["id"])
         .single()
         .execute()
     )
-    if not result.data:
+    if not fetch_result.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="工作流不存在")
-    return result.data
+    return fetch_result.data
 
 
 @router.delete("/{workflow_id}")

@@ -16,7 +16,6 @@ function AnimatedEdge({
   sourcePosition,
   targetPosition,
   style,
-  markerEnd,
   animated,
 }: EdgeProps) {
   const [edgePath] = getBezierPath({
@@ -26,6 +25,7 @@ function AnimatedEdge({
     targetX,
     targetY,
     targetPosition,
+    curvature: 0.5,
   });
 
   const gradientId = `edge-gradient-${id}`;
@@ -34,18 +34,21 @@ function AnimatedEdge({
     <>
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#6366F1" stopOpacity={animated ? 0.8 : 0.3} />
-          <stop offset="50%" stopColor="#818CF8" stopOpacity={animated ? 1 : 0.4} />
-          <stop offset="100%" stopColor="#10B981" stopOpacity={animated ? 0.8 : 0.3} />
+          <stop offset="0%" stopColor="#6366F1" stopOpacity={animated ? 0.9 : 0.72} />
+          <stop offset="55%" stopColor="#8B5CF6" stopOpacity={animated ? 0.96 : 0.8} />
+          <stop offset="100%" stopColor="#A78BFA" stopOpacity={animated ? 0.9 : 0.72} />
         </linearGradient>
       </defs>
       <BaseEdge
         id={id}
         path={edgePath}
-        markerEnd={markerEnd}
+        markerEnd={undefined}
         style={{
           stroke: `url(#${gradientId})`,
-          strokeWidth: 2,
+          strokeWidth: 2.5,
+          strokeOpacity: 0.82,
+          filter: animated ? 'drop-shadow(0 0 4px rgba(139, 92, 246, 0.22))' : 'none',
+          transition: 'stroke 120ms ease, stroke-opacity 120ms ease, stroke-width 120ms ease',
           ...style,
         }}
         className={animated ? 'edge-animated-pulse' : ''}
@@ -55,9 +58,9 @@ function AnimatedEdge({
         <path
           d={edgePath}
           fill="none"
-          stroke="#6366F1"
-          strokeWidth={6}
-          strokeOpacity={0.15}
+          stroke="#8B5CF6"
+          strokeWidth={4.5}
+          strokeOpacity={0.14}
           className="edge-animated-pulse"
         />
       )}

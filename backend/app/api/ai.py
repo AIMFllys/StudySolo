@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -23,6 +24,7 @@ from app.models.ai import (
 )
 from app.services.ai_router import call_llm, AIRouterError
 from app.core.config_loader import get_config
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -62,6 +64,74 @@ def _extract_json(text: str) -> str:
     if m:
         return m.group(1).strip()
     return text.strip()
+
+
+def _mock_workflow_response(user_input: str) -> GenerateWorkflowResponse:
+    """Return a deterministic mock workflow for local debugging without API keys."""
+    normalized = user_input.strip() or "学习目标"
+    include_knowledge = any(k in normalized for k in ("知识库", "资料", "上传", "文档", "笔记", "文件"))
+    node_x = 120
+    nodes: list[WorkflowNodeSchema] = []
+    edges: list[WorkflowEdgeSchema] = []
+
+    def add_node(node_id: str, node_type: str, label: str, y: float = 120) -> None:
+        nonlocal node_x
+        try:
+            node_type_enum = NodeType(node_type)
+        except ValueError:
+            node_type_enum = NodeType.chat_response
+        nodes.append(
+            WorkflowNodeSchema(
+                id=node_id,
+                type=node_type,
+                position=NodePosition(x=node_x, y=y),
+                data=NodeData(
+                    label=label,
+                    system_prompt=SYSTEM_PROMPTS.get(node_type_enum, ""),
+                    model_route=f"{node_type}/default",
+                    status="pending",
+                    output="",
+                ),
+            )
+        )
+        node_x += 340
+
+    add_node("n-trigger", "trigger_input", f"🎯 目标输入：{normalized}")
+    prev_id = "n-trigger"
+
+    if include_knowledge:
+        add_node("n-kb", "knowledge_base", "📚 从知识库检索相关资料")
+        edges.append(WorkflowEdgeSchema(id="e-trigger-kb", source=prev_id, target="n-kb"))
+        prev_id = "n-kb"
+
+    add_node("n-outline", "outline_gen", "🧭 生成学习大纲")
+    add_node("n-content", "content_extract", "🧠 提炼核心知识点")
+    add_node("n-summary", "summary", "📝 输出学习总结")
+    add_node("n-write", "write_db", "💾 保存结果")
+
+    chain = [prev_id, "n-outline", "n-content", "n-summary", "n-write"]
+    for idx in range(len(chain) - 1):
+        edges.append(
+            WorkflowEdgeSchema(
+                id=f"e-{chain[idx]}-{chain[idx + 1]}",
+                source=chain[idx],
+                target=chain[idx + 1],
+            )
+        )
+
+    implicit_context = ImplicitContext(
+        global_theme=normalized,
+        language_style="简洁专业",
+        core_outline=["理解核心概念", "实践操作", "复盘总结"],
+        target_audience="学习者",
+        user_constraints={"max_steps": 6, "mode": "mock"},
+    )
+
+    return GenerateWorkflowResponse(
+        nodes=nodes,
+        edges=edges,
+        implicit_context=implicit_context,
+    )
 
 
 # ── Retry-validated AI call ──────────────────────────────────────────────────
@@ -107,6 +177,13 @@ async def generate_workflow(
     max_retries = cfg["engine"]["json_validation_retries"]
 
     safe_input = sanitize_user_input(body.user_input)
+
+    settings = get_settings()
+    mock_ai_enabled = os.getenv("DEV_MOCK_AI", "").lower() in {"1", "true", "yes", "on"}
+    is_dev_env = settings.environment.lower() in {"development", "dev", "local"}
+    if mock_ai_enabled and is_dev_env:
+        logger.info("DEV_MOCK_AI enabled, returning mock workflow for user %s", current_user.get("id"))
+        return _mock_workflow_response(body.user_input)
 
     # ── Stage 1: AI_Analyzer ─────────────────────────────────────────────
     analyzer_messages = [

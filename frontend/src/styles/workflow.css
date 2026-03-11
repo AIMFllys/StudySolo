@@ -78,9 +78,12 @@
 }
 
 .workflow-canvas .react-flow__edge-path {
-  stroke: #6366f1;
-  stroke-opacity: 0.3;
-  stroke-width: 2;
+  stroke: #7c83f6;
+  stroke-opacity: 0.75;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 120ms ease, stroke-opacity 120ms ease;
 }
 
 .workflow-canvas .react-flow__minimap {

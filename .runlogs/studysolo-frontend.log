@@ -1,0 +1,22 @@
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:2037
+- Network:       http://192.168.1.200:2037
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 2.8s
+ GET / 200 in 3.6s (compile: 2.1s, proxy.ts: 414ms, render: 1066ms)
+⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ GET /login 200 in 1887ms (compile: 637ms, proxy.ts: 230ms, render: 1019ms)
+ GET /login 200 in 86ms (compile: 20ms, proxy.ts: 20ms, render: 45ms)
+(node:64099) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ GET /workspace 200 in 1392ms (compile: 7ms, proxy.ts: 190ms, render: 1196ms)
+ GET /workspace 200 in 2.3s (compile: 134ms, proxy.ts: 548ms, render: 1609ms)
+ GET /workspace/834135dc-74b1-4487-93c4-1e3a07f00973 200 in 4.1s (compile: 1838ms, proxy.ts: 377ms, render: 1876ms)
+ GET /workspace/c1f131a5-fdd6-4880-a257-1deacd6afb0c 200 in 1702ms (compile: 124ms, proxy.ts: 445ms, render: 1132ms)
+ GET /workspace/c1f131a5-fdd6-4880-a257-1deacd6afb0c 200 in 1364ms (compile: 97ms, proxy.ts: 341ms, render: 926ms)
+ GET /workspace/c1f131a5-fdd6-4880-a257-1deacd6afb0c 200 in 1160ms (compile: 86ms, proxy.ts: 193ms, render: 881ms)
+ GET /workspace/834135dc-74b1-4487-93c4-1e3a07f00973 200 in 771ms (compile: 57ms, proxy.ts: 232ms, render: 481ms)
+[?25h

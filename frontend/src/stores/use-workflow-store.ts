@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
-import type { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
+import { addEdge, applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
+import type { Node, Edge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import type { AIStepNodeData } from '@/types';
 
 type NodeData = AIStepNodeData;
@@ -17,6 +17,7 @@ interface WorkflowStore {
   setEdges: (edges: Edge[]) => void;
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
+  onConnect: (connection: Connection) => void;
   updateNodeData: (
     nodeId: string,
     data: Partial<NodeData> | ((prev: NodeData) => Partial<NodeData>)
@@ -46,6 +47,37 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
       edges: applyEdgeChanges(changes, state.edges),
       isDirty: true,
     })),
+
+  onConnect: (connection) =>
+    set((state) => {
+      if (!connection.source || !connection.target) {
+        return state;
+      }
+
+      const duplicate = state.edges.some(
+        (edge) =>
+          edge.source === connection.source &&
+          edge.target === connection.target &&
+          (edge.sourceHandle ?? null) === (connection.sourceHandle ?? null) &&
+          (edge.targetHandle ?? null) === (connection.targetHandle ?? null)
+      );
+
+      if (duplicate) {
+        return state;
+      }
+
+      return {
+        edges: addEdge(
+          {
+            ...connection,
+            type: 'default',
+            animated: false,
+          },
+          state.edges
+        ),
+        isDirty: true,
+      };
+    }),
 
   updateNodeData: (nodeId, data) =>
     set((state) => ({

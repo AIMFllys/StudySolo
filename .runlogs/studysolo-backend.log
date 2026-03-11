@@ -1,0 +1,28 @@
+INFO:     Will watch for changes in these directories: ['/home/jack/Project/FlankerStudySolo/backend']
+INFO:     Uvicorn running on http://0.0.0.0:2038 (Press CTRL+C to quit)
+INFO:     Started reloader process [63691] using WatchFiles
+INFO:     Started server process [63850]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:34262 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52768 - "GET /api/workflow HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52772 - "GET /api/workflow HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52788 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52792 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39164 - "GET /api/workflow/834135dc-74b1-4487-93c4-1e3a07f00973/content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36672 - "PUT /api/workflow/834135dc-74b1-4487-93c4-1e3a07f00973 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35670 - "GET /api/workflow/c1f131a5-fdd6-4880-a257-1deacd6afb0c/content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35684 - "PUT /api/workflow/834135dc-74b1-4487-93c4-1e3a07f00973 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35698 - "PUT /api/workflow/834135dc-74b1-4487-93c4-1e3a07f00973 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45000 - "PUT /api/workflow/834135dc-74b1-4487-93c4-1e3a07f00973 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45020 - "GET /api/workflow/c1f131a5-fdd6-4880-a257-1deacd6afb0c/content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45014 - "GET /api/workflow HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45014 - "GET /api/workflow/c1f131a5-fdd6-4880-a257-1deacd6afb0c/content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45014 - "GET /api/workflow/834135dc-74b1-4487-93c4-1e3a07f00973/content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45024 - "PUT /api/workflow/c1f131a5-fdd6-4880-a257-1deacd6afb0c HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49014 - "PUT /api/workflow/c1f131a5-fdd6-4880-a257-1deacd6afb0c HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [63850]
+INFO:     Stopping reloader process [63691]

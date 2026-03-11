@@ -210,7 +210,7 @@ function SliderCaptcha({ onVerified, disabled = false }: SliderCaptchaProps) {
   }, []);
 
   // --------------- drag handlers ---------------
-  const handleDragStart = useCallback((clientX: number, _clientY: number) => {
+  const handleDragStart = useCallback((clientX: number) => {
     if (verified || disabled || verifying) return;
     isDragging.current = true;
     originX.current = clientX;
