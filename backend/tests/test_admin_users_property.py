@@ -10,7 +10,7 @@ Properties:
 
 import sys
 from types import ModuleType
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
 # ---------------------------------------------------------------------------
@@ -43,8 +43,10 @@ from fastapi.testclient import TestClient
 from hypothesis import given, settings as hyp_settings
 from hypothesis import strategies as st
 from jose import jwt
+import pytest
+from tests._helpers import TEST_JWT_SECRET, make_client_with_cookie
 
-os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
+os.environ.setdefault("JWT_SECRET", TEST_JWT_SECRET)
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
@@ -53,13 +55,28 @@ os.environ.setdefault("ENVIRONMENT", "development")
 from app.main import app  # noqa: E402
 from app.core.database import get_db  # noqa: E402
 
+
+@pytest.fixture(autouse=True)
+def _disable_audit_queue():
+    with patch("app.api.admin_users.queue_audit_log"):
+        yield
+
 # ---------------------------------------------------------------------------
 # JWT helper — create a valid admin token for bypassing middleware
 # ---------------------------------------------------------------------------
 
-JWT_SECRET = "test-secret-for-property-tests"
+JWT_SECRET = TEST_JWT_SECRET
 
 VALID_TIERS = {"free", "pro", "pro_plus", "ultra"}
+
+
+def _make_admin_client(token: str, *, raise_server_exceptions: bool) -> TestClient:
+    return make_client_with_cookie(
+        app,
+        "admin_token",
+        token,
+        raise_server_exceptions=raise_server_exceptions,
+    )
 
 
 def _make_admin_token() -> str:
@@ -94,14 +111,14 @@ def _make_users_db_mock() -> AsyncMock:
         .range(...)
         .execute()    → count=0, data=[]
     """
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
 
     def _make_chain(count=0, data=None):
         result = MagicMock()
         result.count = count
         result.data = data if data is not None else []
 
-        chain = AsyncMock()
+        chain = MagicMock()
         chain.execute = AsyncMock(return_value=result)
         # All filter methods return the same chain (fluent interface)
         chain.ilike = MagicMock(return_value=chain)
@@ -155,10 +172,9 @@ def test_p7_valid_tier_returns_200(tier: str):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.get(
             f"/api/admin/users?tier={tier}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -186,10 +202,9 @@ def test_p7_valid_tier_response_has_required_fields(tier: str):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.get(
             f"/api/admin/users?tier={tier}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -239,10 +254,9 @@ def test_p7_invalid_tier_returns_422(invalid_tier: str):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
+        client = _make_admin_client(token, raise_server_exceptions=False)
         response = client.get(
             f"/api/admin/users?tier={invalid_tier}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -279,10 +293,9 @@ def test_pagination_valid_params_return_200(page: int, page_size: int):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.get(
             f"/api/admin/users?page={page}&page_size={page_size}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -309,10 +322,9 @@ def test_pagination_response_echoes_params(page: int, page_size: int):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.get(
             f"/api/admin/users?page={page}&page_size={page_size}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -346,10 +358,9 @@ def test_pagination_invalid_page_returns_422(page: int):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
+        client = _make_admin_client(token, raise_server_exceptions=False)
         response = client.get(
             f"/api/admin/users?page={page}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -382,10 +393,9 @@ def test_pagination_invalid_page_size_returns_422(page_size: int):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
+        client = _make_admin_client(token, raise_server_exceptions=False)
         response = client.get(
             f"/api/admin/users?page_size={page_size}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -410,8 +420,8 @@ def test_users_list_returns_200_no_filters():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/users", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/users")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -451,8 +461,8 @@ def test_tier_free_returns_200():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/users?tier=free", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/users?tier=free")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -469,8 +479,8 @@ def test_tier_pro_plus_underscore_returns_200():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/users?tier=pro_plus", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/users?tier=pro_plus")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -487,8 +497,8 @@ def test_tier_pro_plus_symbol_returns_422():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
-        response = client.get("/api/admin/users?tier=Pro%2B", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=False)
+        response = client.get("/api/admin/users?tier=Pro%2B")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -505,8 +515,8 @@ def test_tier_uppercase_pro_returns_422():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
-        response = client.get("/api/admin/users?tier=PRO", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=False)
+        response = client.get("/api/admin/users?tier=PRO")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -523,8 +533,8 @@ def test_tier_premium_returns_422():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
-        response = client.get("/api/admin/users?tier=premium", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=False)
+        response = client.get("/api/admin/users?tier=premium")
     finally:
         app.dependency_overrides.pop(get_db, None)
 

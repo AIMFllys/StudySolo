@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation';
-import { useWorkflowContextMenu } from '@/hooks/use-workflow-context-menu';
-import { useWorkflowSidebarActions } from '@/hooks/use-workflow-sidebar-actions';
+import { useWorkflowContextMenu } from '@/features/workflow/hooks/use-workflow-context-menu';
+import { useWorkflowSidebarActions } from '@/features/workflow/hooks/use-workflow-sidebar-actions';
 import { SidebarContextMenu } from './sidebar/SidebarContextMenu';
 import { SidebarWorkflowItem } from './sidebar/SidebarWorkflowItem';
 

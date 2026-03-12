@@ -45,8 +45,9 @@ from fastapi.testclient import TestClient
 from hypothesis import given, settings as hyp_settings
 from hypothesis import strategies as st
 from jose import jwt
+from tests._helpers import TEST_JWT_SECRET, make_client_with_cookie
 
-os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
+os.environ.setdefault("JWT_SECRET", TEST_JWT_SECRET)
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
@@ -59,7 +60,16 @@ from app.core.database import get_db  # noqa: E402
 # JWT helper
 # ---------------------------------------------------------------------------
 
-JWT_SECRET = "test-secret-for-property-tests"
+JWT_SECRET = TEST_JWT_SECRET
+
+
+def _make_admin_client(token: str, *, raise_server_exceptions: bool) -> TestClient:
+    return make_client_with_cookie(
+        app,
+        "admin_token",
+        token,
+        raise_server_exceptions=raise_server_exceptions,
+    )
 
 
 def _make_admin_token() -> str:
@@ -83,7 +93,7 @@ def _make_dashboard_db_mock(
     user_count: int = 0,
 ) -> AsyncMock:
     """Build a mock Supabase AsyncClient for dashboard queries."""
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
     _signup_rows = signup_rows or []
     _workflow_rows = workflow_rows or []
 
@@ -92,7 +102,7 @@ def _make_dashboard_db_mock(
         result.count = count
         result.data = data if data is not None else []
 
-        chain = AsyncMock()
+        chain = MagicMock()
         chain.execute = AsyncMock(return_value=result)
         chain.eq = MagicMock(return_value=chain)
         chain.gte = MagicMock(return_value=chain)
@@ -182,8 +192,8 @@ def test_p12_daily_signups_edu_lte_total(signup_rows: list[dict]):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/dashboard/overview", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/dashboard/overview")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -217,8 +227,8 @@ def test_p13_workflow_stats_success_plus_failed_lte_total(workflow_rows: list[di
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/dashboard/charts?time_range=7d", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/dashboard/charts?time_range=7d")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -249,8 +259,8 @@ def test_p13_workflow_success_rate_in_valid_range(workflow_rows: list[dict]):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/dashboard/overview", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/dashboard/overview")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -289,8 +299,8 @@ def test_dashboard_overview_returns_200():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/dashboard/overview", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/dashboard/overview")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -307,8 +317,8 @@ def test_dashboard_charts_returns_200():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/dashboard/charts?time_range=30d", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/dashboard/charts?time_range=30d")
     finally:
         app.dependency_overrides.pop(get_db, None)
 

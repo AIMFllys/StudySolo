@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import NoticeEditor, { type NoticeFormData } from '@/components/business/admin/NoticeEditor'
+import NoticeEditor, { type NoticeFormData } from '@/features/admin/notices/NoticeEditor'
 import { adminFetch } from '@/services/admin.service'
 
 export default function CreateNoticePage() {

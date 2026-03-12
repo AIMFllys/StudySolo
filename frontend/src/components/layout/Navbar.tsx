@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUser, logout, type UserInfo } from '@/services/auth.service';
-import { useCreateWorkflowAction } from '@/hooks/use-create-workflow-action';
+import { useCreateWorkflowAction } from '@/features/workflow/hooks/use-create-workflow-action';
 
 interface NavbarProps {
   onNewWorkflow?: () => Promise<void> | void;

@@ -8,6 +8,7 @@ the CORS middleware must not return Access-Control-Allow-Origin header.
 Validates: Requirements 9.1
 """
 
+import importlib
 import os
 
 import pytest
@@ -19,14 +20,21 @@ from hypothesis import strategies as st
 os.environ.setdefault("SUPABASE_URL", "https://test.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
-os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-testing-only")
-os.environ.setdefault("CORS_ORIGIN", "https://studysolo.example.com")
+os.environ["JWT_SECRET"] = "test-jwt-secret-for-testing-only"
+os.environ["CORS_ORIGIN"] = "https://studysolo.example.com"
 
-from app.main import app
+from app.core.config import get_settings
 
-client = TestClient(app, raise_server_exceptions=False)
 
 ALLOWED_ORIGIN = "https://studysolo.example.com"
+
+
+def _build_client() -> TestClient:
+    """Create a fresh app instance after applying test env overrides."""
+    get_settings.cache_clear()
+    import app.main as app_main
+    reloaded = importlib.reload(app_main)
+    return TestClient(reloaded.app, raise_server_exceptions=False)
 
 # Strategy: generate domains that are NOT the allowed origin
 _disallowed_origin = st.from_regex(
@@ -39,6 +47,7 @@ _disallowed_origin = st.from_regex(
 @settings(max_examples=100)
 def test_cors_rejects_disallowed_origins(origin: str):
     """Requests from non-allowed origins must not receive ACAO header."""
+    client = _build_client()
     response = client.get(
         "/api/health",
         headers={"Origin": origin},
@@ -52,6 +61,7 @@ def test_cors_rejects_disallowed_origins(origin: str):
 
 def test_cors_allows_configured_origin():
     """Requests from the configured CORS_ORIGIN must receive ACAO header."""
+    client = _build_client()
     response = client.get(
         "/api/health",
         headers={"Origin": ALLOWED_ORIGIN},
@@ -64,6 +74,7 @@ def test_cors_allows_configured_origin():
 
 def test_cors_preflight_allowed_origin():
     """OPTIONS preflight from allowed origin must succeed."""
+    client = _build_client()
     response = client.options(
         "/api/health",
         headers={

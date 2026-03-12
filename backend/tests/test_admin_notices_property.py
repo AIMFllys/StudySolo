@@ -11,7 +11,7 @@ Properties:
 
 import sys
 from types import ModuleType
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
 # ---------------------------------------------------------------------------
@@ -44,8 +44,10 @@ from fastapi.testclient import TestClient
 from hypothesis import given, settings as hyp_settings
 from hypothesis import strategies as st
 from jose import jwt
+import pytest
+from tests._helpers import TEST_JWT_SECRET, make_client_with_cookie
 
-os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
+os.environ.setdefault("JWT_SECRET", TEST_JWT_SECRET)
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
@@ -54,14 +56,29 @@ os.environ.setdefault("ENVIRONMENT", "development")
 from app.main import app  # noqa: E402
 from app.core.database import get_db  # noqa: E402
 
+
+@pytest.fixture(autouse=True)
+def _disable_audit_queue():
+    with patch("app.api.admin_notices.queue_audit_log"):
+        yield
+
 # ---------------------------------------------------------------------------
 # JWT helper
 # ---------------------------------------------------------------------------
 
-JWT_SECRET = "test-secret-for-property-tests"
+JWT_SECRET = TEST_JWT_SECRET
 
 VALID_TYPES = {"system", "feature", "maintenance", "promotion"}
 VALID_STATUSES = {"draft", "published", "archived"}
+
+
+def _make_admin_client(token: str, *, raise_server_exceptions: bool) -> TestClient:
+    return make_client_with_cookie(
+        app,
+        "admin_token",
+        token,
+        raise_server_exceptions=raise_server_exceptions,
+    )
 
 
 def _make_admin_token() -> str:
@@ -84,7 +101,7 @@ def _make_notices_db_mock(notice_id: str | None = None) -> AsyncMock:
     Build a mock Supabase AsyncClient for notice CRUD operations.
     Handles: insert, select, update, delete with full fluent chain.
     """
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
     _id = notice_id or str(uuid.uuid4())
 
     def _make_chain(count=0, data=None):
@@ -92,7 +109,7 @@ def _make_notices_db_mock(notice_id: str | None = None) -> AsyncMock:
         result.count = count
         result.data = data if data is not None else []
 
-        chain = AsyncMock()
+        chain = MagicMock()
         chain.execute = AsyncMock(return_value=result)
         chain.eq = MagicMock(return_value=chain)
         chain.ilike = MagicMock(return_value=chain)
@@ -122,7 +139,7 @@ def _make_notices_db_mock(notice_id: str | None = None) -> AsyncMock:
         result.count = 1
         result.data = [row]
 
-        chain = AsyncMock()
+        chain = MagicMock()
         chain.execute = AsyncMock(return_value=result)
         return chain
 
@@ -198,11 +215,10 @@ def test_p8_valid_notice_create_returns_201(title: str, content: str, notice_typ
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.post(
             "/api/admin/notices",
             json={"title": title, "content": content, "type": notice_type},
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -241,11 +257,10 @@ def test_p8_invalid_type_returns_422(invalid_type: str):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
+        client = _make_admin_client(token, raise_server_exceptions=False)
         response = client.post(
             "/api/admin/notices",
             json={"title": "Test", "content": "Body", "type": invalid_type},
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -278,11 +293,10 @@ def test_p8_title_too_long_returns_422(extra: int):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
+        client = _make_admin_client(token, raise_server_exceptions=False)
         response = client.post(
             "/api/admin/notices",
             json={"title": long_title, "content": "Body", "type": "system"},
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -315,11 +329,10 @@ def test_p8_content_too_long_returns_422(extra: int):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
+        client = _make_admin_client(token, raise_server_exceptions=False)
         response = client.post(
             "/api/admin/notices",
             json={"title": "Test", "content": long_content, "type": "system"},
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -352,11 +365,10 @@ def test_p8_past_expires_at_returns_422(days_ago: int):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
+        client = _make_admin_client(token, raise_server_exceptions=False)
         response = client.post(
             "/api/admin/notices",
             json={"title": "Test", "content": "Body", "type": "system", "expires_at": past_dt},
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -381,8 +393,8 @@ def test_notices_list_returns_200():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/notices", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/notices")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -421,11 +433,10 @@ def test_create_notice_valid_returns_201():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.post(
             "/api/admin/notices",
             json={"title": "Test Notice", "content": "Hello world", "type": "system"},
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -449,11 +460,10 @@ def test_create_notice_empty_title_returns_422():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
+        client = _make_admin_client(token, raise_server_exceptions=False)
         response = client.post(
             "/api/admin/notices",
             json={"title": "   ", "content": "Body", "type": "system"},
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -471,11 +481,10 @@ def test_create_notice_invalid_type_returns_422():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
+        client = _make_admin_client(token, raise_server_exceptions=False)
         response = client.post(
             "/api/admin/notices",
             json={"title": "Test", "content": "Body", "type": "unknown"},
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)

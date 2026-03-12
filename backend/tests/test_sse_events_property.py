@@ -15,7 +15,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from app.services.workflow_engine import _sse_event
+from app.engine.events import sse_event as _sse_event
 
 VALID_EVENT_TYPES = {"node_status", "node_token", "node_done", "workflow_done"}
 

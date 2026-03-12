@@ -1,5 +1,5 @@
 ﻿import Link from 'next/link';
-import SliderCaptcha from '@/components/ui/slider-captcha';
+import { SliderCaptcha } from '@/features/auth/components';
 interface CountdownState {
   secondsLeft: number;
   isActive: boolean;

@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useCreateWorkflowAction } from '@/hooks/use-create-workflow-action';
+import { useCreateWorkflowAction } from '@/features/workflow/hooks/use-create-workflow-action';
 import Navbar from './Navbar';
 import MobileNav from './MobileNav';
 

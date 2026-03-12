@@ -1,7 +1,6 @@
 'use client'
 
-import AdminSidebar from '@/components/business/admin/AdminSidebar'
-import AdminTopbar from '@/components/business/admin/AdminTopbar'
+import { AdminSidebar, AdminTopbar } from '@/features/admin/shared/components'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (

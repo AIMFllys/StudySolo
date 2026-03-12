@@ -14,7 +14,11 @@ import pytest
 from hypothesis import given, settings, assume
 from hypothesis import strategies as st
 
-from app.services.workflow_engine import topological_sort, _build_context_prompt, _get_all_downstream_helper
+from app.engine.executor import (
+    _build_context_prompt,
+    _get_all_downstream_helper,
+    topological_sort,
+)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

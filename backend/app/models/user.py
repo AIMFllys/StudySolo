@@ -44,6 +44,11 @@ class SendCodeRequest(BaseModel):
     code_type: str = "register"  # 'register' or 'reset_password'
 
 
+class CaptchaVerifyRequest(BaseModel):
+    challenge: str
+    x: int
+
+
 class UserInfo(BaseModel):
     id: str
     email: str

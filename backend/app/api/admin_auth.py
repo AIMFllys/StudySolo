@@ -6,7 +6,6 @@ Endpoints:
   POST /admin/change-password — password complexity validation, bcrypt update
 """
 
-import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -23,7 +22,7 @@ from app.models.admin import (
     AdminProfile,
     ChangePasswordRequest,
 )
-from app.services.audit_logger import get_client_info, log_action
+from app.services.audit_logger import get_client_info, queue_audit_log
 
 logger = logging.getLogger(__name__)
 
@@ -106,14 +105,12 @@ async def login(
     if locked_until:
         locked_until_dt = datetime.fromisoformat(locked_until.replace("Z", "+00:00"))
         if locked_until_dt > now:
-            asyncio.create_task(
-                log_action(
-                    db,
-                    admin_id=account["id"],
-                    action="login_rejected_locked",
-                    ip_address=ip_address,
-                    user_agent=user_agent,
-                )
+            queue_audit_log(
+                db,
+                admin_id=account["id"],
+                action="login_rejected_locked",
+                ip_address=ip_address,
+                user_agent=user_agent,
             )
             raise HTTPException(
                 status_code=423,
@@ -142,15 +139,13 @@ async def login(
             "id", account["id"]
         ).execute()
 
-        asyncio.create_task(
-            log_action(
-                db,
-                admin_id=account["id"],
-                action="login_failed",
-                details={"failed_attempts": new_failed},
-                ip_address=ip_address,
-                user_agent=user_agent,
-            )
+        queue_audit_log(
+            db,
+            admin_id=account["id"],
+            action="login_failed",
+            details={"failed_attempts": new_failed},
+            ip_address=ip_address,
+            user_agent=user_agent,
         )
 
         if new_failed >= MAX_FAILED_ATTEMPTS:
@@ -187,14 +182,12 @@ async def login(
     _set_admin_cookie(response, token)
 
     # 7. Record audit log (fire-and-forget)
-    asyncio.create_task(
-        log_action(
-            db,
-            admin_id=account["id"],
-            action="login_success",
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
+    queue_audit_log(
+        db,
+        admin_id=account["id"],
+        action="login_success",
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return AdminLoginResponse(
@@ -221,14 +214,12 @@ async def logout(
 
     _clear_admin_cookie(response)
 
-    asyncio.create_task(
-        log_action(
-            db,
-            admin_id=admin_id,
-            action="logout",
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
+    queue_audit_log(
+        db,
+        admin_id=admin_id,
+        action="logout",
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return {"message": "已退出登录"}
@@ -288,14 +279,12 @@ async def change_password(
     ).eq("id", admin_id).execute()
 
     # Record audit log (fire-and-forget)
-    asyncio.create_task(
-        log_action(
-            db,
-            admin_id=admin_id,
-            action="password_changed",
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
+    queue_audit_log(
+        db,
+        admin_id=admin_id,
+        action="password_changed",
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return {"message": "密码修改成功"}

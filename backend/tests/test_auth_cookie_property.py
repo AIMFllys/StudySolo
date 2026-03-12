@@ -23,15 +23,21 @@ def _install_supabase_stub():
         sys.modules["supabase"] = stub
     for sub in ("supabase._async", "supabase._async.client", "supabase.lib"):
         sys.modules.setdefault(sub, ModuleType(sub))
+    async_client_mod = sys.modules["supabase._async.client"]
+    if not hasattr(async_client_mod, "AsyncClient"):
+        async_client_mod.AsyncClient = object  # type: ignore[attr-defined]
 
 
 _install_supabase_stub()
 
 import os  # noqa: E402
-os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
+from tests._helpers import TEST_JWT_SECRET  # noqa: E402
+
+os.environ.setdefault("JWT_SECRET", TEST_JWT_SECRET)
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
+os.environ["ENVIRONMENT"] = "production"
 
 # Now safe to import app modules
 from fastapi.testclient import TestClient  # noqa: E402

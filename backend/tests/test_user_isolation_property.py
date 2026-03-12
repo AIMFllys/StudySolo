@@ -18,6 +18,9 @@ def _install_supabase_stub():
         sys.modules["supabase"] = stub
     for sub in ("supabase._async", "supabase._async.client", "supabase.lib"):
         sys.modules.setdefault(sub, ModuleType(sub))
+    async_client_mod = sys.modules["supabase._async.client"]
+    if not hasattr(async_client_mod, "AsyncClient"):
+        async_client_mod.AsyncClient = object  # type: ignore[attr-defined]
 
 
 _install_supabase_stub()
@@ -30,8 +33,9 @@ import jwt
 from hypothesis import given, settings as hyp_settings
 from hypothesis import strategies as st
 from fastapi.testclient import TestClient
+from tests._helpers import TEST_JWT_SECRET
 
-os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
+os.environ.setdefault("JWT_SECRET", TEST_JWT_SECRET)
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
@@ -43,7 +47,7 @@ from app.core import deps  # noqa: E402
 # Helpers
 # ---------------------------------------------------------------------------
 
-_JWT_SECRET = "test-secret-for-property-tests"
+_JWT_SECRET = TEST_JWT_SECRET
 
 
 def _make_user(user_id: str) -> dict:

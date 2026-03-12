@@ -10,7 +10,7 @@ import {
   getNodeTypeMeta,
   getStatusMeta,
   STATUS_META,
-} from '@/components/business/workflow/workflow-meta';
+} from '@/features/workflow/constants/workflow-meta';
 
 function getNodeData(node: Node | null | undefined) {
   return (node?.data as unknown as AIStepNodeData | undefined) ?? undefined;

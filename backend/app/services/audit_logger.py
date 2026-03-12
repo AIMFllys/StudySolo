@@ -75,3 +75,44 @@ async def log_action(
         await db.table("ss_admin_audit_logs").insert(record).execute()
     except Exception as exc:  # noqa: BLE001
         logger.error("Audit log insertion failed (action=%s): %s", action, exc)
+
+
+def _consume_task_result(task: asyncio.Task[None]) -> None:
+    """Drain task exceptions so background audit logging stays quiet in tests and prod."""
+    try:
+        task.result()
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Queued audit log task failed: %s", exc)
+
+
+def queue_audit_log(
+    db: AsyncClient,
+    admin_id: str | None,
+    action: str,
+    target_type: str | None = None,
+    target_id: str | None = None,
+    details: dict[str, Any] | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> asyncio.Task[None] | None:
+    """Schedule audit logging on the running loop, or skip cleanly when no loop is active."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        logger.debug("Skipping audit log queue because no running event loop is available")
+        return None
+
+    task = loop.create_task(
+        log_action(
+            db,
+            admin_id=admin_id,
+            action=action,
+            target_type=target_type,
+            target_id=target_id,
+            details=details,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+    )
+    task.add_done_callback(_consume_task_result)
+    return task

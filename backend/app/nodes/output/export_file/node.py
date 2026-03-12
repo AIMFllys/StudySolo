@@ -35,7 +35,7 @@ class ExportFileNode(BaseNode):
         The export format is determined by node_config or defaults to DOCX.
         """
         # Lazy imports
-        from app.services.file_converter import convert_file
+        from app.services.document_service import convert_document
 
         # Collect upstream content
         content_parts: list[str] = []
@@ -68,7 +68,7 @@ class ExportFileNode(BaseNode):
         yield f"📥 正在导出 {export_format.upper()} 文件...\n\n"
 
         try:
-            result = await convert_file(
+            result = await convert_document(
                 content=content,
                 format=export_format,
                 filename=filename,

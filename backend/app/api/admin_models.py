@@ -6,7 +6,6 @@ Endpoints:
   PUT  /models/{id}/config — update model config in ss_system_config
 """
 
-import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
@@ -16,7 +15,7 @@ from pydantic import BaseModel
 from supabase._async.client import AsyncClient
 
 from app.core.database import get_db
-from app.services.audit_logger import get_client_info, log_action
+from app.services.audit_logger import get_client_info, queue_audit_log
 
 logger = logging.getLogger(__name__)
 
@@ -163,17 +162,15 @@ async def update_model_config(
         logger.exception("Model config update failed for %s: %s", model_id, exc)
         raise HTTPException(status_code=500, detail="更新模型配置失败")
 
-    asyncio.create_task(
-        log_action(
-            db,
-            admin_id=admin_id,
-            action="model_config_update",
-            target_type="model_config",
-            target_id=config_key,
-            details={"model_id": model_id, "config": body.config},
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
+    queue_audit_log(
+        db,
+        admin_id=admin_id,
+        action="model_config_update",
+        target_type="model_config",
+        target_id=config_key,
+        details={"model_id": model_id, "config": body.config},
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return ModelConfigUpdateResponse(success=True, model_id=model_id)

@@ -5,7 +5,6 @@ Endpoints:
   PUT /config        — upsert a config entry + audit log
 """
 
-import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -15,7 +14,7 @@ from pydantic import BaseModel
 from supabase._async.client import AsyncClient
 
 from app.core.database import get_db
-from app.services.audit_logger import get_client_info, log_action
+from app.services.audit_logger import get_client_info, queue_audit_log
 
 logger = logging.getLogger(__name__)
 
@@ -113,17 +112,15 @@ async def update_config(
         logger.exception("Config update failed for key %s: %s", body.key, exc)
         raise HTTPException(status_code=500, detail="更新系统配置失败")
 
-    asyncio.create_task(
-        log_action(
-            db,
-            admin_id=admin_id,
-            action="config_update",
-            target_type="system_config",
-            target_id=body.key,
-            details={"key": body.key, "value": body.value},
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
+    queue_audit_log(
+        db,
+        admin_id=admin_id,
+        action="config_update",
+        target_type="system_config",
+        target_id=body.key,
+        details={"key": body.key, "value": body.value},
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return ConfigUpdateResponse(success=True, key=body.key)

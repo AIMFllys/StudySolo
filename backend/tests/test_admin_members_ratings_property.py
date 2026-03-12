@@ -45,8 +45,9 @@ from fastapi.testclient import TestClient
 from hypothesis import given, settings as hyp_settings
 from hypothesis import strategies as st
 from jose import jwt
+from tests._helpers import TEST_JWT_SECRET, make_client_with_cookie
 
-os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
+os.environ.setdefault("JWT_SECRET", TEST_JWT_SECRET)
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
@@ -59,8 +60,17 @@ from app.core.database import get_db  # noqa: E402
 # JWT helper
 # ---------------------------------------------------------------------------
 
-JWT_SECRET = "test-secret-for-property-tests"
+JWT_SECRET = TEST_JWT_SECRET
 VALID_TIERS = ["free", "pro", "pro_plus", "ultra"]
+
+
+def _make_admin_client(token: str, *, raise_server_exceptions: bool) -> TestClient:
+    return make_client_with_cookie(
+        app,
+        "admin_token",
+        token,
+        raise_server_exceptions=raise_server_exceptions,
+    )
 
 
 def _make_admin_token() -> str:
@@ -80,7 +90,7 @@ def _make_admin_token() -> str:
 
 def _make_members_db_mock(tier_rows: list[dict] | None = None) -> AsyncMock:
     """Build a mock Supabase AsyncClient for member queries."""
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
     _rows = tier_rows or []
 
     def _make_chain(count=0, data=None):
@@ -88,7 +98,7 @@ def _make_members_db_mock(tier_rows: list[dict] | None = None) -> AsyncMock:
         result.count = count
         result.data = data if data is not None else []
 
-        chain = AsyncMock()
+        chain = MagicMock()
         chain.execute = AsyncMock(return_value=result)
         chain.eq = MagicMock(return_value=chain)
         chain.neq = MagicMock(return_value=chain)
@@ -115,7 +125,7 @@ def _make_members_db_mock(tier_rows: list[dict] | None = None) -> AsyncMock:
 
 def _make_ratings_db_mock(rating_rows: list[dict] | None = None) -> AsyncMock:
     """Build a mock Supabase AsyncClient for ratings queries."""
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
     _rows = rating_rows or []
 
     def _make_chain(count=0, data=None):
@@ -123,7 +133,7 @@ def _make_ratings_db_mock(rating_rows: list[dict] | None = None) -> AsyncMock:
         result.count = count
         result.data = data if data is not None else []
 
-        chain = AsyncMock()
+        chain = MagicMock()
         chain.execute = AsyncMock(return_value=result)
         chain.eq = MagicMock(return_value=chain)
         chain.order = MagicMock(return_value=chain)
@@ -197,8 +207,8 @@ def test_p16_tier_counts_sum_correctly(tier_rows: list[dict]):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/members/stats", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/members/stats")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -255,8 +265,8 @@ def test_p16_tier_counts_match_input(tier_rows: list[dict]):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/members/stats", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/members/stats")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -292,8 +302,8 @@ def test_p17_nps_score_in_valid_range(nps_rows: list[dict]):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/ratings/overview", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/ratings/overview")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -335,8 +345,8 @@ def test_p17_csat_avg_in_valid_range(csat_rows: list[dict]):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/ratings/overview", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/ratings/overview")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -383,8 +393,8 @@ def test_p17_nps_and_csat_counts_are_independent(
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/ratings/overview", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/ratings/overview")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -413,8 +423,8 @@ def test_member_stats_empty_returns_zeros():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/members/stats", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/members/stats")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -438,8 +448,8 @@ def test_ratings_overview_empty_returns_nulls():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/ratings/overview", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/ratings/overview")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -497,8 +507,8 @@ def test_nps_score_all_promoters():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/ratings/overview", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/ratings/overview")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -518,8 +528,8 @@ def test_nps_score_all_detractors():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/ratings/overview", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/ratings/overview")
     finally:
         app.dependency_overrides.pop(get_db, None)
 

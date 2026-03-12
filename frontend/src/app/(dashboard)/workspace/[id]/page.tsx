@@ -1,8 +1,8 @@
 ﻿import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import WorkflowCanvasLoader from './WorkflowCanvasLoader';
-import RunButton from '@/components/business/workflow/RunButton';
-import WorkflowPromptInput from '@/components/business/workflow/WorkflowPromptInput';
+import RunButton from '@/features/workflow/components/toolbar/RunButton';
+import WorkflowPromptInput from '@/features/workflow/components/panel/WorkflowPromptInput';
 import { fetchWorkflowContentForServer } from '@/services/workflow.server.service';
 
 interface Props {

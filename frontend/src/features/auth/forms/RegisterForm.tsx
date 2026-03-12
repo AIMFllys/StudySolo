@@ -3,10 +3,9 @@
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import SliderCaptcha from '@/components/ui/slider-captcha';
 import { sendVerificationCode, register } from '@/services/auth.service';
 import { useVerificationCountdown } from '@/hooks/use-verification-countdown';
-import { AuthShell } from '@/features/auth/components';
+import { AuthShell, SliderCaptcha } from '@/features/auth/components';
 
 export function RegisterForm() {
   const router = useRouter();

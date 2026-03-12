@@ -11,7 +11,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from unittest.mock import AsyncMock, patch
 
-from app.services.workflow_engine import execute_workflow, _merge_outputs
+from app.engine.executor import execute_workflow, _merge_outputs
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -58,13 +58,11 @@ def test_merge_outputs_sets_done_status_for_accumulated(node_ids, output_text):
     data.output to the accumulated value and data.status to 'done'.
     """
     nodes = [make_node(nid) for nid in node_ids]
-    node_map = {n["id"]: n for n in nodes}
-
     # Use a subset of node_ids as accumulated outputs
     accumulated_outputs = {nid: f"{output_text}_{nid}" for nid in node_ids[:max(1, len(node_ids) // 2)]}
     failed_nodes: set[str] = set()
 
-    result = _merge_outputs(nodes, node_map, accumulated_outputs, failed_nodes)
+    result = _merge_outputs(nodes, accumulated_outputs, failed_nodes)
 
     # Length must equal input nodes
     assert len(result) == len(nodes), (
@@ -93,13 +91,11 @@ def test_merge_outputs_sets_error_status_for_failed(node_ids):
     _merge_outputs must set data.status to 'error'.
     """
     nodes = [make_node(nid) for nid in node_ids]
-    node_map = {n["id"]: n for n in nodes}
-
     # No accumulated outputs; all nodes are failed
     accumulated_outputs: dict[str, str] = {}
     failed_nodes = set(node_ids)
 
-    result = _merge_outputs(nodes, node_map, accumulated_outputs, failed_nodes)
+    result = _merge_outputs(nodes, accumulated_outputs, failed_nodes)
 
     assert len(result) == len(nodes)
 
@@ -120,12 +116,10 @@ def test_merge_outputs_accumulated_takes_priority_over_failed(node_ids, output_t
     accumulated output takes priority: status must be 'done'.
     """
     nodes = [make_node(nid) for nid in node_ids]
-    node_map = {n["id"]: n for n in nodes}
-
     accumulated_outputs = {nid: f"{output_text}_{nid}" for nid in node_ids}
     failed_nodes = set(node_ids)  # same nodes in both
 
-    result = _merge_outputs(nodes, node_map, accumulated_outputs, failed_nodes)
+    result = _merge_outputs(nodes, accumulated_outputs, failed_nodes)
 
     for node in result:
         nid = node["id"]
@@ -145,9 +139,7 @@ def test_merge_outputs_length_equals_input(node_ids):
     The length of updated_nodes must always equal the length of input nodes.
     """
     nodes = [make_node(nid) for nid in node_ids]
-    node_map = {n["id"]: n for n in nodes}
-
-    result = _merge_outputs(nodes, node_map, {}, set())
+    result = _merge_outputs(nodes, {}, set())
 
     assert len(result) == len(nodes)
 
@@ -176,7 +168,7 @@ async def test_save_error_event_emitted_when_callback_raises():
             yield  # make it an async generator
         return empty_gen()
 
-    with patch("app.services.ai_router.call_llm", side_effect=mock_call_llm):
+    with patch("app.engine.executor.call_llm", side_effect=mock_call_llm):
         gen = execute_workflow(
             workflow_id=workflow_id,
             nodes=nodes,
@@ -222,7 +214,7 @@ async def test_workflow_done_emitted_even_when_save_fails():
             yield
         return empty_gen()
 
-    with patch("app.services.ai_router.call_llm", side_effect=mock_call_llm):
+    with patch("app.engine.executor.call_llm", side_effect=mock_call_llm):
         gen = execute_workflow(
             workflow_id=workflow_id,
             nodes=nodes,
@@ -260,7 +252,7 @@ async def test_no_save_error_when_callback_succeeds():
             yield
         return empty_gen()
 
-    with patch("app.services.ai_router.call_llm", side_effect=mock_call_llm):
+    with patch("app.engine.executor.call_llm", side_effect=mock_call_llm):
         gen = execute_workflow(
             workflow_id=workflow_id,
             nodes=nodes,
@@ -298,7 +290,7 @@ async def test_no_save_callback_does_not_error():
             yield
         return empty_gen()
 
-    with patch("app.services.ai_router.call_llm", side_effect=mock_call_llm):
+    with patch("app.engine.executor.call_llm", side_effect=mock_call_llm):
         gen = execute_workflow(
             workflow_id=workflow_id,
             nodes=nodes,

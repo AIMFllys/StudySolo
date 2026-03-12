@@ -12,7 +12,7 @@ Validates: Requirements 14.3, 14.4, 15.2, 15.4, 16.1
 
 import sys
 from types import ModuleType
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
 # ---------------------------------------------------------------------------
@@ -45,8 +45,10 @@ from fastapi.testclient import TestClient
 from hypothesis import given, settings as hyp_settings
 from hypothesis import strategies as st
 from jose import jwt
+import pytest
+from tests._helpers import TEST_JWT_SECRET, make_client_with_cookie
 
-os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
+os.environ.setdefault("JWT_SECRET", TEST_JWT_SECRET)
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
@@ -55,11 +57,26 @@ os.environ.setdefault("ENVIRONMENT", "development")
 from app.main import app  # noqa: E402
 from app.core.database import get_db  # noqa: E402
 
+
+@pytest.fixture(autouse=True)
+def _disable_audit_queue():
+    with patch("app.api.admin_config.queue_audit_log"):
+        yield
+
 # ---------------------------------------------------------------------------
 # JWT helper
 # ---------------------------------------------------------------------------
 
-JWT_SECRET = "test-secret-for-property-tests"
+JWT_SECRET = TEST_JWT_SECRET
+
+
+def _make_admin_client(token: str, *, raise_server_exceptions: bool) -> TestClient:
+    return make_client_with_cookie(
+        app,
+        "admin_token",
+        token,
+        raise_server_exceptions=raise_server_exceptions,
+    )
 
 
 def _make_admin_token() -> str:
@@ -79,7 +96,7 @@ def _make_admin_token() -> str:
 
 def _make_config_db_mock(config_rows: list[dict] | None = None) -> AsyncMock:
     """Build a mock Supabase AsyncClient for config queries."""
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
     _rows = config_rows or []
 
     def _make_chain(count=0, data=None):
@@ -87,7 +104,7 @@ def _make_config_db_mock(config_rows: list[dict] | None = None) -> AsyncMock:
         result.count = count
         result.data = data if data is not None else []
 
-        chain = AsyncMock()
+        chain = MagicMock()
         chain.execute = AsyncMock(return_value=result)
         chain.eq = MagicMock(return_value=chain)
         chain.order = MagicMock(return_value=chain)
@@ -114,7 +131,7 @@ def _make_config_db_mock(config_rows: list[dict] | None = None) -> AsyncMock:
 
 def _make_audit_db_mock(log_rows: list[dict] | None = None, total: int = 0) -> AsyncMock:
     """Build a mock Supabase AsyncClient for audit log queries."""
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
     _rows = log_rows or []
     _total = total or len(_rows)
 
@@ -123,7 +140,7 @@ def _make_audit_db_mock(log_rows: list[dict] | None = None, total: int = 0) -> A
         result.count = count
         result.data = data if data is not None else []
 
-        chain = AsyncMock()
+        chain = MagicMock()
         chain.execute = AsyncMock(return_value=result)
         chain.eq = MagicMock(return_value=chain)
         chain.order = MagicMock(return_value=chain)
@@ -197,8 +214,8 @@ def test_p11_config_list_returns_correct_structure(config_rows: list[dict]):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/config", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/config")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -233,11 +250,10 @@ def test_p14_config_update_returns_success_with_key(config_key: str, config_valu
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.put(
             "/api/admin/config",
             json={"key": config_key, "value": config_value},
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -271,10 +287,9 @@ def test_p15_audit_log_pagination_constraints(page: int, page_size: int):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.get(
             f"/api/admin/audit-logs?page={page}&page_size={page_size}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -300,8 +315,8 @@ def test_config_list_empty_returns_200():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/config", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/config")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -338,8 +353,8 @@ def test_audit_logs_empty_returns_200():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/audit-logs", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/audit-logs")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -377,8 +392,8 @@ def test_audit_logs_action_filter_passes_through():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/audit-logs?action=login", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/audit-logs?action=login")
     finally:
         app.dependency_overrides.pop(get_db, None)
 

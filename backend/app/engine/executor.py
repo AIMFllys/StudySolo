@@ -20,16 +20,32 @@ import logging
 from collections import defaultdict, deque
 from typing import AsyncIterator, Awaitable, Callable
 
+from app.engine.context import build_upstream_map, build_downstream_map, get_all_downstream
+from app.engine.events import sse_event
 from app.nodes import NODE_REGISTRY
 from app.nodes._base import BaseNode, NodeInput
-from app.engine.sse import sse_event
-from app.engine.context import build_upstream_map, build_downstream_map, get_all_downstream
 from app.services.ai_router import call_llm, AIRouterError
 
 logger = logging.getLogger(__name__)
 
 # Default per-node timeout in seconds
 DEFAULT_NODE_TIMEOUT = 120
+
+
+def _build_context_prompt(implicit_context: dict | None) -> str:
+    """Compatibility helper retained for tests and diagnostics."""
+    if not implicit_context:
+        return ""
+    return (
+        "\n\n---\n暗线上下文（请保持输出风格与以下上下文一致）：\n"
+        + json.dumps(implicit_context, ensure_ascii=False, indent=2)
+        + "\n---"
+    )
+
+
+def _get_all_downstream_helper(node_id: str, downstream_map: dict[str, set[str]]) -> set[str]:
+    """Compatibility helper retained for tests."""
+    return get_all_downstream(node_id, downstream_map)
 
 
 # ── Topological sort (level-aware) ───────────────────────────────────────────

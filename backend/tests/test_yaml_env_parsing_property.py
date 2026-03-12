@@ -20,7 +20,11 @@ from app.core.config_loader import _resolve_env_vars
 
 # Strategy: valid env var names (uppercase letters, digits, underscores)
 _env_var_name = st.from_regex(r"[A-Z][A-Z0-9_]{0,19}", fullmatch=True)
-_env_var_value = st.text(min_size=0, max_size=50)
+_env_var_value = st.text(
+    alphabet=st.characters(blacklist_characters="\x00"),
+    min_size=0,
+    max_size=50,
+)
 
 # Strategy: strings that do NOT start with $ (should pass through unchanged)
 _plain_string = st.text(min_size=0, max_size=50).filter(lambda s: not s.startswith("$"))

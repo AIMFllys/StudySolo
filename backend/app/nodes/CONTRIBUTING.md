@@ -380,7 +380,7 @@ print('✅ quiz_gen 注册成功')
 #### 5.2 创建渲染器组件
 
 ```
-frontend/src/components/business/workflow/nodes/renderers/QuizRenderer.tsx
+frontend/src/features/workflow/components/nodes/renderers/QuizRenderer.tsx
 ```
 
 **渲染器规范：**
@@ -455,7 +455,7 @@ export const QuizRenderer: React.FC<NodeRendererProps> = ({
 
 ### Step 6：在前端注册表注册
 
-打开 `frontend/src/components/business/workflow/nodes/index.ts`，添加两处：
+打开 `frontend/src/features/workflow/components/nodes/index.ts`，添加两处：
 
 ```typescript
 // 1. 添加 import

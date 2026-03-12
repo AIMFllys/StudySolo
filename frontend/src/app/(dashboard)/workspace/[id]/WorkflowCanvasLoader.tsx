@@ -2,13 +2,13 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
-import { useWorkflowSync } from '@/hooks/use-workflow-sync';
+import { useWorkflowSync } from '@/features/workflow/hooks/use-workflow-sync';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import type { Node, Edge } from '@xyflow/react';
 
 // Lazy-load the heavy canvas component
 const WorkflowCanvas = dynamic(
-  () => import('@/components/business/workflow/WorkflowCanvas'),
+  () => import('@/features/workflow/components/canvas/WorkflowCanvas'),
   {
     ssr: false,
     loading: () => (

@@ -43,8 +43,9 @@ from fastapi.testclient import TestClient
 from hypothesis import given, settings as hyp_settings
 from hypothesis import strategies as st
 from jose import jwt
+from tests._helpers import TEST_JWT_SECRET, make_client_with_cookie
 
-os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
+os.environ.setdefault("JWT_SECRET", TEST_JWT_SECRET)
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
@@ -57,9 +58,18 @@ from app.core.database import get_db  # noqa: E402
 # JWT helper
 # ---------------------------------------------------------------------------
 
-JWT_SECRET = "test-secret-for-property-tests"
+JWT_SECRET = TEST_JWT_SECRET
 
 VALID_TIME_RANGES = {"7d", "30d", "90d"}
+
+
+def _make_admin_client(token: str, *, raise_server_exceptions: bool) -> TestClient:
+    return make_client_with_cookie(
+        app,
+        "admin_token",
+        token,
+        raise_server_exceptions=raise_server_exceptions,
+    )
 
 
 def _make_admin_token() -> str:
@@ -82,7 +92,7 @@ def _make_workflows_db_mock(
     run_count: int = 0,
 ) -> AsyncMock:
     """Build a mock Supabase AsyncClient for workflow queries."""
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
     _rows = run_rows or []
 
     def _make_chain(count=0, data=None):
@@ -90,7 +100,7 @@ def _make_workflows_db_mock(
         result.count = count
         result.data = data if data is not None else []
 
-        chain = AsyncMock()
+        chain = MagicMock()
         chain.execute = AsyncMock(return_value=result)
         chain.eq = MagicMock(return_value=chain)
         chain.gte = MagicMock(return_value=chain)
@@ -139,10 +149,9 @@ def test_p10_valid_time_range_returns_200(time_range: str):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.get(
             f"/api/admin/workflows/stats?time_range={time_range}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -181,10 +190,9 @@ def test_p10_invalid_time_range_returns_422(invalid_range: str):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
+        client = _make_admin_client(token, raise_server_exceptions=False)
         response = client.get(
             f"/api/admin/workflows/stats?time_range={invalid_range}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -216,10 +224,9 @@ def test_p10_stats_response_has_required_fields(time_range: str):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.get(
             f"/api/admin/workflows/stats?time_range={time_range}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -249,8 +256,8 @@ def test_workflow_stats_returns_200_default():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/workflows/stats", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/workflows/stats")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -271,8 +278,8 @@ def test_workflow_running_returns_200():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/workflows/running", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/workflows/running")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -293,8 +300,8 @@ def test_workflow_errors_returns_200():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/workflows/errors", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/workflows/errors")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -331,8 +338,8 @@ def test_workflow_stats_success_rate_zero_when_no_runs():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get("/api/admin/workflows/stats", cookies={"admin_token": token})
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/workflows/stats")
     finally:
         app.dependency_overrides.pop(get_db, None)
 

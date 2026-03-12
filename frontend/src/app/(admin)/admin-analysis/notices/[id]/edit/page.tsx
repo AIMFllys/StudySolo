@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import NoticeEditor, { type NoticeFormData, type NoticeType, type NoticeStatus } from '@/components/business/admin/NoticeEditor'
+import NoticeEditor, { type NoticeFormData, type NoticeType, type NoticeStatus } from '@/features/admin/notices/NoticeEditor'
 import { adminFetch } from '@/services/admin.service'
 
 interface NoticeDetail {

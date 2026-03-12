@@ -9,7 +9,6 @@ Endpoints:
   POST   /notices/{id}/publish — publish notice
 """
 
-import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Literal
@@ -27,7 +26,7 @@ from app.models.notice import (
     PaginatedNoticeList,
     PublishResponse,
 )
-from app.services.audit_logger import get_client_info, log_action
+from app.services.audit_logger import get_client_info, queue_audit_log
 
 logger = logging.getLogger(__name__)
 
@@ -178,17 +177,15 @@ async def create_notice(
         logger.exception("Notice create failed: %s", exc)
         raise HTTPException(status_code=500, detail="创建公告失败")
 
-    asyncio.create_task(
-        log_action(
-            db,
-            admin_id=admin_id,
-            action="notice_create",
-            target_type="notice",
-            target_id=new_row["id"],
-            details={"title": body.title, "type": body.type, "status": body.status},
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
+    queue_audit_log(
+        db,
+        admin_id=admin_id,
+        action="notice_create",
+        target_type="notice",
+        target_id=new_row["id"],
+        details={"title": body.title, "type": body.type, "status": body.status},
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return NoticeDetail(**_row_to_item(new_row).model_dump(), read_count=0)
@@ -268,17 +265,15 @@ async def update_notice(
         logger.exception("Notice update failed for %s: %s", notice_id, exc)
         raise HTTPException(status_code=500, detail="更新公告失败")
 
-    asyncio.create_task(
-        log_action(
-            db,
-            admin_id=admin_id,
-            action="notice_update",
-            target_type="notice",
-            target_id=notice_id,
-            details={"before": {k: existing.get(k) for k in updates}, "after": updates},
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
+    queue_audit_log(
+        db,
+        admin_id=admin_id,
+        action="notice_update",
+        target_type="notice",
+        target_id=notice_id,
+        details={"before": {k: existing.get(k) for k in updates}, "after": updates},
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return NoticeDetail(**_row_to_item(updated_row).model_dump(), read_count=read_count)
@@ -317,17 +312,15 @@ async def delete_notice(
         logger.exception("Notice delete failed for %s: %s", notice_id, exc)
         raise HTTPException(status_code=500, detail="删除公告失败")
 
-    asyncio.create_task(
-        log_action(
-            db,
-            admin_id=admin_id,
-            action="notice_delete",
-            target_type="notice",
-            target_id=notice_id,
-            details={"title": existing.get("title")},
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
+    queue_audit_log(
+        db,
+        admin_id=admin_id,
+        action="notice_delete",
+        target_type="notice",
+        target_id=notice_id,
+        details={"title": existing.get("title")},
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return DeleteResponse(success=True, notice_id=notice_id)
@@ -371,17 +364,15 @@ async def publish_notice(
         logger.exception("Notice publish failed for %s: %s", notice_id, exc)
         raise HTTPException(status_code=500, detail="发布公告失败")
 
-    asyncio.create_task(
-        log_action(
-            db,
-            admin_id=admin_id,
-            action="notice_publish",
-            target_type="notice",
-            target_id=notice_id,
-            details={"before_status": existing.get("status"), "after_status": "published"},
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
+    queue_audit_log(
+        db,
+        admin_id=admin_id,
+        action="notice_publish",
+        target_type="notice",
+        target_id=notice_id,
+        details={"before_status": existing.get("status"), "after_status": "published"},
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return PublishResponse(

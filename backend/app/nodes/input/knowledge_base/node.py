@@ -40,7 +40,10 @@ class KnowledgeBaseNode(BaseNode):
         """
         # Lazy imports — avoid registration-time dependency on supabase
         from app.core.database import get_db
-        from app.services.knowledge_retriever import retrieve_chunks, format_retrieval_context
+        from app.services.knowledge_service import (
+            format_retrieval_context,
+            retrieve_knowledge_chunks,
+        )
 
         # Build query from user content + upstream context
         query_parts: list[str] = []
@@ -75,7 +78,7 @@ class KnowledgeBaseNode(BaseNode):
         # Perform retrieval
         try:
             db = await get_db()
-            results = await retrieve_chunks(
+            results = await retrieve_knowledge_chunks(
                 query=query,
                 user_id=user_id,
                 db=db,

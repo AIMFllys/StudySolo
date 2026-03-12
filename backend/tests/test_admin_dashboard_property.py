@@ -42,8 +42,9 @@ from fastapi.testclient import TestClient
 from hypothesis import given, settings as hyp_settings
 from hypothesis import strategies as st
 from jose import jwt
+from tests._helpers import TEST_JWT_SECRET, make_client_with_cookie
 
-os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
+os.environ.setdefault("JWT_SECRET", TEST_JWT_SECRET)
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
@@ -56,7 +57,16 @@ from app.core.database import get_db  # noqa: E402
 # JWT helper — create a valid admin token for bypassing middleware
 # ---------------------------------------------------------------------------
 
-JWT_SECRET = "test-secret-for-property-tests"
+JWT_SECRET = TEST_JWT_SECRET
+
+
+def _make_admin_client(token: str, *, raise_server_exceptions: bool) -> TestClient:
+    return make_client_with_cookie(
+        app,
+        "admin_token",
+        token,
+        raise_server_exceptions=raise_server_exceptions,
+    )
 
 
 def _make_admin_token() -> str:
@@ -90,7 +100,7 @@ def _make_dashboard_db_mock() -> AsyncMock:
       - db.table("v_daily_signups").select(...).gte(...).order(...).execute() → data=[]
       - db.table("v_daily_workflow_stats").select(...).gte(...).order(...).execute() → data=[]
     """
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
 
     def _make_chain(count=0, data=None):
         """Create a fluent query chain mock returning the given count/data."""
@@ -98,7 +108,7 @@ def _make_dashboard_db_mock() -> AsyncMock:
         result.count = count
         result.data = data if data is not None else []
 
-        chain = AsyncMock()
+        chain = MagicMock()
         chain.execute = AsyncMock(return_value=result)
         chain.maybe_single = MagicMock(return_value=chain)
         chain.eq = MagicMock(return_value=chain)
@@ -167,10 +177,9 @@ def test_p18_valid_time_range_returns_200_with_correct_echo(time_range: str):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.get(
             f"/api/admin/dashboard/charts?time_range={time_range}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -216,10 +225,9 @@ def test_p18_time_range_echoed_matches_request(time_range: str):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = _make_admin_client(token, raise_server_exceptions=True)
         response = client.get(
             f"/api/admin/dashboard/charts?time_range={time_range}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -260,10 +268,9 @@ def test_p18_invalid_time_range_returns_422(invalid_range: str):
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=False)
+        client = _make_admin_client(token, raise_server_exceptions=False)
         response = client.get(
             f"/api/admin/dashboard/charts?time_range={invalid_range}",
-            cookies={"admin_token": token},
         )
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -288,11 +295,8 @@ def test_charts_default_time_range_is_7d():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get(
-            "/api/admin/dashboard/charts",
-            cookies={"admin_token": token},
-        )
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/dashboard/charts")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -313,11 +317,8 @@ def test_charts_returns_empty_lists_when_no_data():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get(
-            "/api/admin/dashboard/charts?time_range=30d",
-            cookies={"admin_token": token},
-        )
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/dashboard/charts?time_range=30d")
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -337,11 +338,8 @@ def test_overview_returns_200_with_zero_counts():
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
-        response = client.get(
-            "/api/admin/dashboard/overview",
-            cookies={"admin_token": token},
-        )
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/dashboard/overview")
     finally:
         app.dependency_overrides.pop(get_db, None)
 

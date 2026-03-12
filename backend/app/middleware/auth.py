@@ -16,6 +16,7 @@ UNPROTECTED_PATHS = {
     "/api/auth/login",
     "/api/auth/logout",
     "/api/auth/refresh",
+    "/api/auth/sync-session",
     "/api/auth/forgot-password",
     "/api/auth/reset-password",
     "/api/auth/reset-password-with-code",

@@ -49,8 +49,9 @@ from fastapi.testclient import TestClient
 from hypothesis import given, settings as hyp_settings
 from hypothesis import strategies as st
 from pydantic import ValidationError
+from tests._helpers import TEST_JWT_SECRET
 
-os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests")
+os.environ.setdefault("JWT_SECRET", TEST_JWT_SECRET)
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
@@ -59,6 +60,12 @@ os.environ.setdefault("ENVIRONMENT", "development")
 from app.main import app  # noqa: E402
 from app.core.database import get_db  # noqa: E402
 from app.models.admin import ChangePasswordRequest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _disable_audit_queue():
+    with patch("app.api.admin_auth.queue_audit_log"):
+        yield
 
 # ---------------------------------------------------------------------------
 # Strategies
@@ -182,7 +189,7 @@ def test_p1_valid_login_produces_authenticated_session(username: str, plain_pass
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        with patch("app.api.admin_auth.asyncio.create_task"):
+        with patch("app.api.admin_auth.queue_audit_log"):
             client = TestClient(app, raise_server_exceptions=True)
             response = client.post(
                 "/api/admin/login",
@@ -257,7 +264,7 @@ def test_p2_invalid_credentials_increment_failure_counter(
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        with patch("app.api.admin_auth.asyncio.create_task"):
+        with patch("app.api.admin_auth.queue_audit_log"):
             client = TestClient(app, raise_server_exceptions=False)
             response = client.post(
                 "/api/admin/login",
@@ -324,7 +331,7 @@ def test_p3_account_lockout_after_threshold_failures(username: str, plain_passwo
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        with patch("app.api.admin_auth.asyncio.create_task"):
+        with patch("app.api.admin_auth.queue_audit_log"):
             client = TestClient(app, raise_server_exceptions=False)
             response = client.post(
                 "/api/admin/login",
@@ -386,7 +393,7 @@ def test_p3b_locked_account_rejects_all_attempts(username: str, plain_password: 
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
-        with patch("app.api.admin_auth.asyncio.create_task"):
+        with patch("app.api.admin_auth.queue_audit_log"):
             client = TestClient(app, raise_server_exceptions=False)
             # Even with correct password, should be rejected
             response = client.post(

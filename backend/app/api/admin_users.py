@@ -7,7 +7,6 @@ Endpoints:
   PUT  /users/{id}/role    — change user_profiles.tier
 """
 
-import asyncio
 import logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
@@ -17,7 +16,7 @@ from pydantic import BaseModel
 from supabase._async.client import AsyncClient
 
 from app.core.database import get_db
-from app.services.audit_logger import get_client_info, log_action
+from app.services.audit_logger import get_client_info, queue_audit_log
 
 logger = logging.getLogger(__name__)
 
@@ -298,17 +297,15 @@ async def update_user_status(
         raise HTTPException(status_code=500, detail="更新用户状态失败")
 
     # Fire-and-forget audit log
-    asyncio.create_task(
-        log_action(
-            db,
-            admin_id=admin_id,
-            action="user_status_toggle",
-            target_type="user",
-            target_id=user_id,
-            details={"before": old_status, "after": body.is_active},
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
+    queue_audit_log(
+        db,
+        admin_id=admin_id,
+        action="user_status_toggle",
+        target_type="user",
+        target_id=user_id,
+        details={"before": old_status, "after": body.is_active},
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return StatusUpdateResponse(
@@ -356,17 +353,15 @@ async def update_user_role(
         raise HTTPException(status_code=500, detail="更新用户角色失败")
 
     # Fire-and-forget audit log
-    asyncio.create_task(
-        log_action(
-            db,
-            admin_id=admin_id,
-            action="user_role_change",
-            target_type="user",
-            target_id=user_id,
-            details={"before": old_tier, "after": body.tier},
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
+    queue_audit_log(
+        db,
+        admin_id=admin_id,
+        action="user_role_change",
+        target_type="user",
+        target_id=user_id,
+        details={"before": old_tier, "after": body.tier},
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return RoleUpdateResponse(
