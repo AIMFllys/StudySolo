@@ -49,6 +49,15 @@ export default function WorkflowCanvas() {
   } = useWorkflowStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const canvasNodes = useMemo(
+    () =>
+      nodes.map((node) => ({
+        ...node,
+        selected: node.id === selectedNodeId,
+      })),
+    [nodes, selectedNodeId]
+  );
+
   const selectedNodeData = useMemo(
     () =>
       ((selectedNodeId
@@ -103,7 +112,7 @@ export default function WorkflowCanvas() {
   return (
     <div className="workflow-canvas h-full w-full bg-background bg-grid-pattern-canvas" style={{ touchAction: 'none' }}>
       <ReactFlow
-        nodes={nodes}
+        nodes={canvasNodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
