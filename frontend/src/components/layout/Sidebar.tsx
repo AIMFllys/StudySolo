@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
+import { LayoutList, BookOpen, Settings, LogOut } from 'lucide-react';
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation';
 import { useWorkflowContextMenu } from '@/features/workflow/hooks/use-workflow-context-menu';
 import { useWorkflowSidebarActions } from '@/features/workflow/hooks/use-workflow-sidebar-actions';
@@ -40,29 +41,7 @@ export default function Sidebar({ workflows }: SidebarProps) {
     <>
       <aside className="flex h-full w-16 shrink-0 flex-col border-r border-border bg-background transition-all duration-200 lg:w-[280px]">
         <div className="flex items-center gap-2 border-b border-border px-3 py-3">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            className="shrink-0 text-primary"
-          >
-            <rect
-              x="2"
-              y="2"
-              width="16"
-              height="16"
-              rx="3"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M6 7h8M6 10h5M6 13h6"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
+          <LayoutList className="w-5 h-5 shrink-0 text-primary" />
           <span className="hidden text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:block">
             工作流
           </span>
@@ -92,21 +71,7 @@ export default function Sidebar({ workflows }: SidebarProps) {
               : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
               }`}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 18 18"
-              fill="none"
-              className="shrink-0"
-            >
-              <path
-                d="M2.25 3.75h4.5a1.5 1.5 0 011.5 1.5V15a1.125 1.125 0 00-1.125-1.125h-4.5A.375.375 0 012.25 13.5V3.75zM15.75 3.75h-4.5a1.5 1.5 0 00-1.5 1.5V15a1.125 1.125 0 011.125-1.125h4.5a.375.375 0 00.375-.375V3.75z"
-                stroke="currentColor"
-                strokeWidth="1.3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <BookOpen className="w-[18px] h-[18px] shrink-0" />
             <span className="hidden text-sm lg:block">知识库</span>
           </Link>
 
@@ -117,27 +82,7 @@ export default function Sidebar({ workflows }: SidebarProps) {
               : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
               }`}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 18 18"
-              fill="none"
-              className="shrink-0"
-            >
-              <circle
-                cx="9"
-                cy="9"
-                r="2.5"
-                stroke="currentColor"
-                strokeWidth="1.3"
-              />
-              <path
-                d="M9 2v1.5M9 14.5V16M2 9h1.5M14.5 9H16M3.87 3.87l1.06 1.06M13.07 13.07l1.06 1.06M3.87 14.13l1.06-1.06M13.07 4.93l1.06-1.06"
-                stroke="currentColor"
-                strokeWidth="1.3"
-                strokeLinecap="round"
-              />
-            </svg>
+            <Settings className="w-[18px] h-[18px] shrink-0" />
             <span className="hidden text-sm lg:block">设置</span>
           </Link>
 
@@ -147,21 +92,7 @@ export default function Sidebar({ workflows }: SidebarProps) {
             }}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 18 18"
-              fill="none"
-              className="shrink-0"
-            >
-              <path
-                d="M6.75 15.75H3.75a1.5 1.5 0 01-1.5-1.5V3.75a1.5 1.5 0 011.5-1.5h3M12 12.75L15.75 9 12 5.25M6.75 9h9"
-                stroke="currentColor"
-                strokeWidth="1.3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <LogOut className="w-[18px] h-[18px] shrink-0" />
             <span className="hidden text-sm lg:block">退出登录</span>
           </button>
         </div>
