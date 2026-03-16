@@ -22,6 +22,8 @@ import { useWorkflowStore } from '@/stores/use-workflow-store';
 import type { AIStepNodeData } from '@/types';
 
 const nodeTypes: NodeTypes = {
+  // ── 原始节点 (9) ──
+  trigger_input: AIStepNode,
   ai_analyzer: AIStepNode,
   ai_planner: AIStepNode,
   outline_gen: AIStepNode,
@@ -30,7 +32,17 @@ const nodeTypes: NodeTypes = {
   flashcard: AIStepNode,
   chat_response: AIStepNode,
   write_db: AIStepNode,
-  trigger_input: AIStepNode,
+  // ── P1 节点 (7) ──
+  compare: AIStepNode,
+  mind_map: AIStepNode,
+  quiz_gen: AIStepNode,
+  merge_polish: AIStepNode,
+  knowledge_base: AIStepNode,
+  web_search: AIStepNode,
+  export_file: AIStepNode,
+  // ── P2 引擎节点 (2) ──
+  logic_switch: AIStepNode,
+  loop_map: AIStepNode,
 };
 
 const edgeTypes: EdgeTypes = {

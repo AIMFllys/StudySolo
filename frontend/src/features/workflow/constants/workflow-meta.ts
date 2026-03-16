@@ -101,6 +101,68 @@ export const NODE_TYPE_META: Record<NodeType, NodeTypeMeta> = {
     description: '持久化结果并同步到工作流记录',
     accentClassName: 'from-slate-500/20 to-zinc-500/5 text-slate-100 ring-slate-400/30',
   },
+
+  // ── P1 generation 节点 ──
+  compare: {
+    label: '对比分析',
+    icon: 'compare_arrows',
+    description: '多维度内容对比分析',
+    accentClassName: 'from-teal-500/20 to-emerald-500/5 text-teal-100 ring-teal-400/30',
+  },
+  mind_map: {
+    label: '思维导图',
+    icon: 'account_tree',
+    description: '生成结构化思维导图',
+    accentClassName: 'from-lime-500/20 to-green-500/5 text-lime-100 ring-lime-400/30',
+  },
+  quiz_gen: {
+    label: '测验生成',
+    icon: 'quiz',
+    description: '生成测验题目与解析',
+    accentClassName: 'from-yellow-500/20 to-amber-500/5 text-yellow-100 ring-yellow-400/30',
+  },
+  merge_polish: {
+    label: '合并润色',
+    icon: 'auto_fix_high',
+    description: '整合与润色多源内容',
+    accentClassName: 'from-pink-500/20 to-rose-500/5 text-pink-100 ring-pink-400/30',
+  },
+
+  // ── P1 input 节点 ──
+  knowledge_base: {
+    label: '知识库检索',
+    icon: 'local_library',
+    description: '从知识库检索相关内容',
+    accentClassName: 'from-blue-500/20 to-indigo-500/5 text-blue-100 ring-blue-400/30',
+  },
+  web_search: {
+    label: '网络搜索',
+    icon: 'travel_explore',
+    description: '互联网内容搜索与整合',
+    accentClassName: 'from-cyan-500/20 to-blue-500/5 text-cyan-100 ring-cyan-400/30',
+  },
+
+  // ── P1 output 节点 ──
+  export_file: {
+    label: '文件导出',
+    icon: 'download',
+    description: '导出工作流结果为文件',
+    accentClassName: 'from-gray-500/20 to-slate-500/5 text-gray-100 ring-gray-400/30',
+  },
+
+  // ── P2 analysis 节点 ──
+  logic_switch: {
+    label: '逻辑分支',
+    icon: 'call_split',
+    description: '基于条件动态路由',
+    accentClassName: 'from-orange-500/20 to-amber-500/5 text-orange-100 ring-orange-400/30',
+  },
+  loop_map: {
+    label: '循环映射',
+    icon: 'all_inclusive',
+    description: '循环处理列表数据',
+    accentClassName: 'from-red-500/20 to-orange-500/5 text-red-100 ring-red-400/30',
+  },
 };
 
 export function getStatusMeta(status?: string) {

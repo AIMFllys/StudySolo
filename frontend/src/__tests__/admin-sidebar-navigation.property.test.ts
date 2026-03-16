@@ -1,9 +1,9 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import * as fc from 'fast-check';
 import {
   isAdminNavItemActive,
   shouldCloseSidebarOnNavigate,
-} from '@/hooks/admin-sidebar-navigation.helpers';
+} from '@/features/admin/hooks/use-admin-sidebar-navigation';
 
 describe('admin sidebar navigation helpers', () => {
   it('closes sidebar iff mobile width and sidebar is open', () => {

@@ -1,9 +1,9 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import * as fc from 'fast-check';
 import {
   isSettingsRouteActive,
   isWorkflowRouteActive,
-} from '@/hooks/sidebar-navigation.helpers';
+} from '@/hooks/use-sidebar-navigation';
 import { formatMonthDay } from '@/utils/date';
 
 describe('sidebar navigation helpers', () => {

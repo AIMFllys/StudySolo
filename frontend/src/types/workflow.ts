@@ -3,6 +3,7 @@ import type { Edge, Node } from '@xyflow/react';
 /**
  * 工作流节点类型枚举
  *
+ * ── 原始节点 (9) ──
  * trigger_input   — 用户输入触发
  * ai_analyzer     — 需求分析器
  * ai_planner      — 工作流规划器
@@ -12,6 +13,19 @@ import type { Edge, Node } from '@xyflow/react';
  * flashcard       — 闪卡生成
  * chat_response   — 回复用户
  * write_db        — 数据写入
+ *
+ * ── P1 新增节点 (7) ──
+ * compare         — 对比分析
+ * mind_map        — 思维导图
+ * quiz_gen        — 测验生成
+ * merge_polish    — 合并润色
+ * knowledge_base  — 知识库检索
+ * web_search      — 网络搜索
+ * export_file     — 文件导出
+ *
+ * ── P2 引擎节点 (2) ──
+ * logic_switch    — 逻辑分支
+ * loop_map        — 循环映射
  */
 export type NodeType =
   | 'trigger_input'
@@ -22,7 +36,18 @@ export type NodeType =
   | 'summary'
   | 'flashcard'
   | 'chat_response'
-  | 'write_db';
+  | 'write_db'
+  // ── P1 节点 ──
+  | 'compare'
+  | 'mind_map'
+  | 'quiz_gen'
+  | 'merge_polish'
+  | 'knowledge_base'
+  | 'web_search'
+  | 'export_file'
+  // ── P2 引擎节点 ──
+  | 'logic_switch'
+  | 'loop_map';
 
 /** 节点生命周期状态 */
 export type NodeStatus = 'pending' | 'running' | 'done' | 'error' | 'paused';

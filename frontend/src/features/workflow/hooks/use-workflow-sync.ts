@@ -83,6 +83,31 @@ export function useWorkflowSync(): UseWorkflowSync {
               local_updated_at: cached.local_updated_at,
               cloud_updated_at: cached.cloud_updated_at,
             },
+
+  // ── Crash recovery detection on mount ──────────────────────────────────
+  useEffect(() => {
+    if (!currentWorkflowId) return;
+
+    (async () => {
+      const cached = await localforage.getItem<LocalWorkflowCache>(
+        cacheKey(currentWorkflowId)
+      );
+      if (!cached) return;
+
+      const localTs = new Date(cached.local_updated_at).getTime();
+      const cloudTs = new Date(cached.cloud_updated_at).getTime();
+
+      if (cached.dirty && localTs > cloudTs) {
+        // Conflict detected — dispatch a custom event for UI to handle
+        window.dispatchEvent(
+          new CustomEvent('workflow:crash-recovery', {
+            detail: {
+              workflowId: currentWorkflowId,
+              localNodes: cached.nodes,
+              localEdges: cached.edges,
+              local_updated_at: cached.local_updated_at,
+              cloud_updated_at: cached.cloud_updated_at,
+            },
           })
         );
       }
@@ -91,32 +116,34 @@ export function useWorkflowSync(): UseWorkflowSync {
 
   // ── Save to IndexedDB (500ms debounce) ─────────────────────────────────
   const saveLocal = useCallback(async () => {
-    if (!currentWorkflowId) return;
+    const snap = pendingSnapshotRef.current;
+    if (!snap.currentWorkflowId) return;
     setSyncStatus('saving_local');
 
     const now = new Date().toISOString();
     const cache: LocalWorkflowCache = {
-      workflow_id: currentWorkflowId,
-      nodes,
-      edges,
+      workflow_id: snap.currentWorkflowId,
+      nodes: snap.nodes,
+      edges: snap.edges,
       dirty: true,
       local_updated_at: now,
       cloud_updated_at: cloudUpdatedAtRef.current,
     };
 
-    await localforage.setItem(cacheKey(currentWorkflowId), cache);
-  }, [currentWorkflowId, nodes, edges]);
+    await localforage.setItem(cacheKey(snap.currentWorkflowId), cache);
+  }, []);
 
   // ── Save to cloud (3-5s debounce) ──────────────────────────────────────
   const saveCloud = useCallback(async () => {
-    if (!currentWorkflowId) return;
+    const snap = pendingSnapshotRef.current;
+    if (!snap.currentWorkflowId) return;
     setSyncStatus('saving_cloud');
 
     try {
-      const res = await fetch(`/api/workflow/${currentWorkflowId}`, {
+      const res = await fetch(`/api/workflow/${snap.currentWorkflowId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nodes_json: nodes, edges_json: edges }),
+        body: JSON.stringify({ nodes_json: snap.nodes, edges_json: snap.edges }),
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -126,10 +153,10 @@ export function useWorkflowSync(): UseWorkflowSync {
 
       // Clear dirty flag in IndexedDB
       const cached = await localforage.getItem<LocalWorkflowCache>(
-        cacheKey(currentWorkflowId)
+        cacheKey(snap.currentWorkflowId)
       );
       if (cached) {
-        await localforage.setItem(cacheKey(currentWorkflowId), {
+        await localforage.setItem(cacheKey(snap.currentWorkflowId), {
           ...cached,
           dirty: false,
           cloud_updated_at: now,
@@ -142,7 +169,7 @@ export function useWorkflowSync(): UseWorkflowSync {
     } catch {
       setSyncStatus(navigator.onLine ? 'error' : 'offline');
     }
-  }, [currentWorkflowId, nodes, edges, markClean]);
+  }, [markClean]);
 
   // ── Trigger debounced saves when isDirty changes ────────────────────────
   useEffect(() => {
@@ -160,7 +187,7 @@ export function useWorkflowSync(): UseWorkflowSync {
       if (localTimerRef.current) clearTimeout(localTimerRef.current);
       if (cloudTimerRef.current) clearTimeout(cloudTimerRef.current);
     };
-  }, [isDirty, currentWorkflowId, nodes, edges, saveLocal, saveCloud]);
+  }, [isDirty, currentWorkflowId, saveLocal, saveCloud]);
 
   // ── Flush pending changes before route/workflow switch or unmount ────────
   useEffect(() => {
