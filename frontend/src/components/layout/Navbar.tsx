@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Zap, Search, Plus, Loader2, Settings, LogOut } from 'lucide-react';
 import { getUser, logout, type UserInfo } from '@/services/auth.service';
+import ThemeToggle from './ThemeToggle';
 
 interface NavbarProps {
   onNewWorkflow?: () => Promise<void> | void;
@@ -35,8 +36,11 @@ export default function Navbar({ onNewWorkflow, creating = false }: NavbarProps)
     : user?.email?.slice(0, 2).toUpperCase() ?? '??';
 
   return (
-    <header className="glass-panel h-14 flex items-center justify-between px-4 shrink-0 z-10">
+    <header className="h-14 flex items-center justify-between px-4 shrink-0 z-10 bg-background/95 backdrop-blur-xl border-b border-border shadow-sm">
       <div className="flex items-center gap-2 select-none">
+        {/* Theme toggle — before logo */}
+        <ThemeToggle />
+        <div className="h-5 w-px bg-border/40" />
         <Zap className="w-5 h-5 text-primary fill-primary/20" />
         <span
           className="font-bold text-sm tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"

@@ -10,14 +10,9 @@ export function isSettingsRouteActive(pathname: string): boolean {
   return pathname === '/settings';
 }
 
-export function isKnowledgeRouteActive(pathname: string): boolean {
-  return pathname === '/knowledge';
-}
-
 interface UseSidebarNavigationResult {
   pathname: string;
   settingsActive: boolean;
-  knowledgeActive: boolean;
   isWorkflowActive: (workflowId: string) => boolean;
   logoutAndRedirect: () => Promise<void>;
 }
@@ -39,7 +34,6 @@ export function useSidebarNavigation(): UseSidebarNavigationResult {
   return {
     pathname,
     settingsActive: isSettingsRouteActive(pathname),
-    knowledgeActive: isKnowledgeRouteActive(pathname),
     isWorkflowActive,
     logoutAndRedirect,
   };

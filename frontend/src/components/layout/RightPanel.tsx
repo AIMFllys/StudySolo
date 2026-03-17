@@ -3,8 +3,9 @@
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 import type { Node } from '@xyflow/react';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
-import { usePanelStore } from '@/stores/use-panel-store';
+import { usePanelStore, RIGHT_PANEL_MIN, RIGHT_PANEL_MAX } from '@/stores/use-panel-store';
 import { CollapsibleSection } from './CollapsibleSection';
+import ResizableHandle from './ResizableHandle';
 import type { AIStepNodeData } from '@/types';
 import {
   getNodePreview,
@@ -49,7 +50,7 @@ export default function RightPanel() {
     setSelectedNodeId,
   } = useWorkflowStore();
 
-  const { rightPanelCollapsed, toggleRightPanel } = usePanelStore();
+  const { rightPanelCollapsed, toggleRightPanel, rightPanelWidth, setRightPanelWidth } = usePanelStore();
 
   const statusCounts = nodes.reduce<Record<string, number>>((acc, node) => {
     const status = getNodeData(node)?.status ?? 'pending';
@@ -84,7 +85,15 @@ export default function RightPanel() {
 
   /* ─── Expanded panel ─── */
   return (
-    <aside className="hidden w-80 shrink-0 flex-col border-l border-border bg-background/95 backdrop-blur md:flex">
+    <>
+    <ResizableHandle
+      side="right"
+      currentWidth={rightPanelWidth}
+      onWidthChange={setRightPanelWidth}
+      minWidth={RIGHT_PANEL_MIN}
+      maxWidth={RIGHT_PANEL_MAX}
+    />
+    <aside className="hidden shrink-0 flex-col border-l border-border bg-background/95 backdrop-blur md:flex" style={{ width: rightPanelWidth }}>
       {/* Panel header with toggle */}
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5 shrink-0">
         <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
@@ -223,5 +232,6 @@ export default function RightPanel() {
         </CollapsibleSection>
       </div>
     </aside>
+    </>
   );
 }

@@ -20,6 +20,7 @@ export default async function WorkflowPage({ params }: Props) {
     <WorkflowPageShell workflowName={workflow.name}>
       <Suspense fallback={<CanvasSkeleton />}>
         <WorkflowCanvasLoader
+          key={workflow.id}
           workflowId={workflow.id}
           initialNodes={workflow.nodes_json ?? []}
           initialEdges={workflow.edges_json ?? []}
