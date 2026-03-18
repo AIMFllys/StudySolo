@@ -43,7 +43,7 @@ export default function Navbar({ onNewWorkflow, creating = false }: NavbarProps)
         <div className="h-5 w-px bg-border/40" />
         <Zap className="w-5 h-5 text-primary fill-primary/20" />
         <span
-          className="font-bold text-sm tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+          className="font-bold text-sm tracking-tight font-serif bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
         >
           StudySolo
         </span>

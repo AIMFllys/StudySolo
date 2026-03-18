@@ -6,6 +6,22 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+
+  /* ── Academic Font System ──────────────────────────────────────────────── */
+  /* Headings → Noto Serif SC (衬线体 — 学术书卷感) */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif), 'Noto Serif SC', 'Source Han Serif SC', 'Georgia', serif;
+  }
+
+  /* Code / technical elements → JetBrains Mono (等宽体 — 工业精准感) */
+  code, pre, kbd, samp, var {
+    font-family: var(--font-mono), ui-monospace, 'JetBrains Mono', 'SFMono-Regular', 'Menlo', monospace;
+  }
+
+  /* Buttons → keep sans-serif for readability and clickability */
+  button, [role="button"] {
+    font-family: var(--font-sans), 'Inter', 'Noto Sans SC', sans-serif;
+  }
 }
 
 ::selection {

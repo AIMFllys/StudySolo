@@ -58,7 +58,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between h-16 px-6 md:px-12 lg:px-24">
           <div className="flex items-center gap-2">
             <PenTool className="w-5 h-5 text-blue-600" />
-            <span className="text-lg font-bold tracking-tight text-slate-900">
+            <span className="text-lg font-bold tracking-tight text-slate-900 font-serif">
               StudySolo
             </span>
           </div>
@@ -98,7 +98,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.8 }}
-            className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight text-slate-900 leading-[1.15]"
+            className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight text-slate-900 leading-[1.15] font-serif"
           >
             重塑你的<br />
             <span className="text-blue-600 relative">
@@ -163,7 +163,7 @@ export default function LandingPage() {
               </div>
               
               <div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3 tracking-tight">
+                <h3 className="text-xl font-bold text-slate-900 mb-3 tracking-tight font-serif">
                   {feature.title}
                 </h3>
                 <p className="text-slate-600 leading-relaxed font-serif">

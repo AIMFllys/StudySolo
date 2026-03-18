@@ -197,7 +197,7 @@ export default function Sidebar({ workflows }: SidebarProps) {
             >
               {/* Panel header */}
               <div className="shrink-0 border-b border-border px-3 py-3 flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground font-serif">
                   {getPanelLabel(activeSidebarPanel!)}
                 </span>
 
