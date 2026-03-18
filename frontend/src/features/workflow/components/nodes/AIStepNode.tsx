@@ -1,11 +1,12 @@
 'use client';
 
-import { createElement, memo, useState } from 'react';
+import { createElement, memo, useState, useCallback } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Loader2 } from 'lucide-react';
 import type { AIStepNodeData } from '@/types';
 import { getNodePreview, getNodeTypeMeta, getStatusMeta } from '@/features/workflow/constants/workflow-meta';
 import { getRenderer } from './index';
+import { useWorkflowStore } from '@/stores/use-workflow-store';
 
 function getNodeTheme(nodeType: string) {
   // 1. RAW_DATA (数据源/输入) - 灰色打孔纸质感
@@ -120,6 +121,38 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Click-to-connect
+  const clickConnectState = useWorkflowStore((s) => s.clickConnectState);
+  const isWaitingTarget = clickConnectState.phase === 'waiting-target';
+  const isSourceOfCurrentConnect = isWaitingTarget && clickConnectState.sourceNodeId === id;
+
+  const handleHandleClick = useCallback(
+    (e: React.MouseEvent, handleId: string, handleType: 'source' | 'target') => {
+      e.stopPropagation();
+      const store = useWorkflowStore.getState();
+      const state = store.clickConnectState;
+
+      if (handleType === 'source') {
+        // Click on source handle → start click-connect
+        if (state.phase === 'idle') {
+          store.startClickConnect(id, handleId);
+        } else if (state.phase === 'waiting-target' && state.sourceNodeId === id) {
+          // Re-click same source → cancel
+          store.cancelClickConnect();
+        } else {
+          // Click a different source → restart
+          store.startClickConnect(id, handleId);
+        }
+      } else {
+        // Click on target handle → complete connection or start from source
+        if (state.phase === 'waiting-target') {
+          store.completeClickConnect(id, handleId);
+        }
+      }
+    },
+    [id]
+  );
+
   return (
     <div
       className={`${cardShadow} node-paper-bg relative w-[22rem] transition-all duration-200 ${nodeTheme.borderClass}`}
@@ -128,10 +161,23 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
     >
       <div className={`absolute inset-1 pointer-events-none z-0 ${nodeTheme.innerBorderClass}`} />
 
-      <Handle
-        type="target"
-        position={Position.Left}
-        className={`!h-3.5 !w-3.5 !-left-[9px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor}`}
+      {/* ── 8 Handles: 4 方位 × source/target ── */}
+      {/* Target Handles (输入) */}
+      <Handle type="target" id="target-left" position={Position.Left}
+        className={`node-handle node-handle-target !h-3 !w-3 !-left-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isWaitingTarget && !isSourceOfCurrentConnect ? 'node-handle-click-target' : ''}`}
+        onClick={(e) => handleHandleClick(e, 'target-left', 'target')}
+      />
+      <Handle type="target" id="target-top" position={Position.Top}
+        className={`node-handle node-handle-target !h-3 !w-3 !-top-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isWaitingTarget && !isSourceOfCurrentConnect ? 'node-handle-click-target' : ''}`}
+        onClick={(e) => handleHandleClick(e, 'target-top', 'target')}
+      />
+      <Handle type="target" id="target-right" position={Position.Right}
+        className={`node-handle node-handle-target !h-3 !w-3 !-right-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isWaitingTarget && !isSourceOfCurrentConnect ? 'node-handle-click-target' : ''}`}
+        onClick={(e) => handleHandleClick(e, 'target-right', 'target')}
+      />
+      <Handle type="target" id="target-bottom" position={Position.Bottom}
+        className={`node-handle node-handle-target !h-3 !w-3 !-bottom-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isWaitingTarget && !isSourceOfCurrentConnect ? 'node-handle-click-target' : ''}`}
+        onClick={(e) => handleHandleClick(e, 'target-bottom', 'target')}
       />
 
       <div className="relative z-10 p-6 flex flex-col h-full min-h-[14rem]">
@@ -182,7 +228,7 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
                 output: output || '',
                 format: output_format || 'markdown',
                 nodeType,
-                isStreaming: status === 'running',
+                isStreaming: false,
               })}
             </div>
           ) : (
@@ -218,10 +264,22 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
         )}
       </div>
 
-      <Handle
-        type="source"
-        position={Position.Right}
-        className={`!h-3.5 !w-3.5 !-right-[9px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor}`}
+      {/* Source Handles (输出) */}
+      <Handle type="source" id="source-right" position={Position.Right}
+        className={`node-handle node-handle-source !h-3 !w-3 !-right-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isSourceOfCurrentConnect && clickConnectState.sourceHandleId === 'source-right' ? 'node-handle-click-source-active' : ''}`}
+        onClick={(e) => handleHandleClick(e, 'source-right', 'source')}
+      />
+      <Handle type="source" id="source-bottom" position={Position.Bottom}
+        className={`node-handle node-handle-source !h-3 !w-3 !-bottom-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isSourceOfCurrentConnect && clickConnectState.sourceHandleId === 'source-bottom' ? 'node-handle-click-source-active' : ''}`}
+        onClick={(e) => handleHandleClick(e, 'source-bottom', 'source')}
+      />
+      <Handle type="source" id="source-left" position={Position.Left}
+        className={`node-handle node-handle-source !h-3 !w-3 !-left-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isSourceOfCurrentConnect && clickConnectState.sourceHandleId === 'source-left' ? 'node-handle-click-source-active' : ''}`}
+        onClick={(e) => handleHandleClick(e, 'source-left', 'source')}
+      />
+      <Handle type="source" id="source-top" position={Position.Top}
+        className={`node-handle node-handle-source !h-3 !w-3 !-top-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isSourceOfCurrentConnect && clickConnectState.sourceHandleId === 'source-top' ? 'node-handle-click-source-active' : ''}`}
+        onClick={(e) => handleHandleClick(e, 'source-top', 'source')}
       />
     </div>
   );

@@ -13,6 +13,9 @@ import {
   useReactFlow,
   SelectionMode,
   ReactFlowProvider,
+  reconnectEdge,
+  type Edge,
+  type EdgeMouseHandler,
 } from '@xyflow/react';
 import type { Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -21,13 +24,19 @@ import BottomDrawer from '@/features/workflow/components/panel/BottomDrawer';
 import FloatingToolbar from '@/features/workflow/components/toolbar/FloatingToolbar';
 import type { CanvasTool } from '@/features/workflow/components/toolbar/FloatingToolbar';
 import AnimatedEdge from '@/features/workflow/components/canvas/edges/AnimatedEdge';
+import SequentialEdge from '@/features/workflow/components/canvas/edges/SequentialEdge';
+import ConditionalEdge from '@/features/workflow/components/canvas/edges/ConditionalEdge';
+import LoopEdge from '@/features/workflow/components/canvas/edges/LoopEdge';
 import AIStepNode from '@/features/workflow/components/nodes/AIStepNode';
 import GeneratingNode from '@/features/workflow/components/nodes/GeneratingNode';
 import AnnotationNode from '@/features/workflow/components/nodes/AnnotationNode';
+import LoopRegionNode from '@/features/workflow/components/nodes/LoopRegionNode';
 import CanvasModal from '@/features/workflow/components/canvas/CanvasModal';
 import CanvasMiniMap from '@/features/workflow/components/canvas/CanvasMiniMap';
 import CanvasContextMenu, { buildCanvasMenuItems } from '@/features/workflow/components/canvas/CanvasContextMenu';
 import NodeContextMenu, { buildNodeMenuGroups } from '@/features/workflow/components/canvas/NodeContextMenu';
+import EdgeContextMenu from '@/features/workflow/components/canvas/EdgeContextMenu';
+import { useLoopRegion } from '@/features/workflow/hooks/use-loop-region';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import type { AIStepNodeData } from '@/types';
 
@@ -65,10 +74,15 @@ const nodeTypes: NodeTypes = {
   generating: GeneratingNode,
   // ── 标注节点 ──
   annotation: AnnotationNode,
+  // ── 循环区域节点 ──
+  loop_region: LoopRegionNode,
 };
 
 const edgeTypes: EdgeTypes = {
   default: AnimatedEdge,
+  sequential: SequentialEdge,
+  conditional: ConditionalEdge,
+  loop: LoopEdge,
 };
 
 function HistoryControls() {
@@ -100,6 +114,7 @@ function HistoryControls() {
 }
 
 function WorkflowCanvasInner() {
+  useLoopRegion(); // Auto-manage loop region nodes
   const {
     edges,
     nodes,
@@ -166,6 +181,9 @@ function WorkflowCanvasInner() {
     setSelectedNodeId(null);
     setCanvasMenu(null);
     setNodeMenu(null);
+    setEdgeMenu(null);
+    // Cancel click-to-connect if active
+    useWorkflowStore.getState().cancelClickConnect();
   }, [setSelectedNodeId]);
 
   const handleSelectionChange = useCallback(
@@ -196,6 +214,49 @@ function WorkflowCanvasInner() {
       setNodeMenu({ x: event.clientX, y: event.clientY, nodeId: node.id });
     },
     [setSelectedNodeId]
+  );
+  // ── Edge reconnection handler ──────────────────────────────────────────────
+  const edgeReconnectSuccessful = useRef(false);
+
+  const handleEdgeReconnect = useCallback(
+    (oldEdge: Edge, newConnection: { source: string; target: string; sourceHandle: string | null; targetHandle: string | null }) => {
+      edgeReconnectSuccessful.current = true;
+      useWorkflowStore.getState().takeSnapshot();
+      const currentEdges = useWorkflowStore.getState().edges;
+      const updatedEdges = reconnectEdge(oldEdge, newConnection, currentEdges);
+      useWorkflowStore.getState().setEdges(updatedEdges);
+    },
+    []
+  );
+
+  const handleReconnectEnd = useCallback((_event: MouseEvent | TouchEvent, edge: Edge) => {
+    if (!edgeReconnectSuccessful.current) {
+      // Dropped on empty space - delete the edge
+      useWorkflowStore.getState().takeSnapshot();
+      const currentEdges = useWorkflowStore.getState().edges;
+      useWorkflowStore.getState().setEdges(currentEdges.filter((e) => e.id !== edge.id));
+    }
+    edgeReconnectSuccessful.current = false;
+  }, []);
+
+  // ── Edge click handler ────────────────────────────────────────────────────
+  const handleEdgeClick: EdgeMouseHandler = useCallback((_event, _edge) => {
+    // Edge selection is handled natively by React Flow
+    setCanvasMenu(null);
+    setNodeMenu(null);
+  }, []);
+
+  // ── Edge right-click handler ──────────────────────────────────────────────
+  const [edgeMenu, setEdgeMenu] = useState<{ x: number; y: number; edgeId: string } | null>(null);
+
+  const handleEdgeContextMenu = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      event.preventDefault();
+      setCanvasMenu(null);
+      setNodeMenu(null);
+      setEdgeMenu({ x: event.clientX, y: event.clientY, edgeId: edge.id });
+    },
+    []
   );
 
   // ── Toggle background ─────────────────────────────────────────────────────
@@ -307,6 +368,16 @@ function WorkflowCanvasInner() {
       const isCmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
       const activeTagName = document.activeElement?.tagName.toLowerCase();
       if (activeTagName === 'input' || activeTagName === 'textarea') return;
+
+      // Escape: cancel click-to-connect
+      if (e.key === 'Escape') {
+        const store = useWorkflowStore.getState();
+        if (store.clickConnectState.phase !== 'idle') {
+          store.cancelClickConnect();
+          e.preventDefault();
+          return;
+        }
+      }
 
       if (isCmdOrCtrl && e.key.toLowerCase() === 'z') {
         if (e.shiftKey) {
@@ -480,6 +551,12 @@ function WorkflowCanvasInner() {
         defaultEdgeOptions={defaultEdgeOptions}
         fitView
         fitViewOptions={fitViewOptions}
+        edgesReconnectable
+        reconnectRadius={25}
+        onReconnect={handleEdgeReconnect}
+        onReconnectEnd={handleReconnectEnd}
+        onEdgeClick={handleEdgeClick}
+        onEdgeContextMenu={handleEdgeContextMenu}
         onNodeDragStart={() => {
           useWorkflowStore.getState().takeSnapshot();
         }}
@@ -545,6 +622,16 @@ function WorkflowCanvasInner() {
             onDelete: () => handleDeleteNode(nodeMenu.nodeId),
           })}
           onClose={() => setNodeMenu(null)}
+        />
+      )}
+
+      {/* ── Edge right-click context menu ── */}
+      {edgeMenu && (
+        <EdgeContextMenu
+          x={edgeMenu.x}
+          y={edgeMenu.y}
+          edgeId={edgeMenu.edgeId}
+          onClose={() => setEdgeMenu(null)}
         />
       )}
     </div>

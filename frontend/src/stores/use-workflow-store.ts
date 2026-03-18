@@ -1,9 +1,17 @@
 import { create } from 'zustand';
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/react';
-import type { AIStepNodeData } from '@/types';
+import type { AIStepNodeData, EdgeType } from '@/types';
 
 type NodeData = AIStepNodeData;
+
+/** Click-to-connect 状态 */
+export interface ClickConnectState {
+  /** idle: 未激活 | waiting-target: 已选源，等待点击目标 */
+  phase: 'idle' | 'waiting-target';
+  sourceNodeId?: string;
+  sourceHandleId?: string;
+}
 
 interface WorkflowStore {
   nodes: Node[];
@@ -13,6 +21,8 @@ interface WorkflowStore {
   lastPrompt: string;
   lastImplicitContext: Record<string, unknown> | null;
   isDirty: boolean;
+  activeEdgeType: EdgeType;
+  clickConnectState: ClickConnectState;
 
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
@@ -25,6 +35,10 @@ interface WorkflowStore {
   ) => void;
   setSelectedNodeId: (nodeId: string | null) => void;
   replaceWorkflowGraph: (nodes: Node[], edges: Edge[]) => void;
+  setActiveEdgeType: (edgeType: EdgeType) => void;
+  startClickConnect: (sourceNodeId: string, sourceHandleId: string) => void;
+  completeClickConnect: (targetNodeId: string, targetHandleId: string) => void;
+  cancelClickConnect: () => void;
   setGenerationContext: (prompt: string, implicitContext: Record<string, unknown> | null) => void;
   setCurrentWorkflow: (id: string, nodes: Node[], edges: Edge[], dirty?: boolean) => void;
   markClean: () => void;
@@ -59,6 +73,8 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
   lastPrompt: '',
   lastImplicitContext: null,
   isDirty: false,
+  activeEdgeType: 'sequential' as EdgeType,
+  clickConnectState: { phase: 'idle' } as ClickConnectState,
 
   takeSnapshot: () =>
     set((state) => {
@@ -146,6 +162,9 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
     set((state) => {
       const newPast = [...state.past, { nodes: state.nodes, edges: state.edges }];
       if (newPast.length > 50) newPast.shift();
+
+      const edgeType = state.activeEdgeType;
+      const edgeId = `edge-${edgeType}-${connection.source ?? 'u'}-${connection.target ?? 'u'}-${Date.now().toString(36)}`;
       
       return {
         past: newPast,
@@ -153,15 +172,59 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
         edges: addEdge(
         {
           ...connection,
-          id: `edge-${connection.source ?? 'unknown'}-${connection.target ?? 'unknown'}-${state.edges.length + 1}`,
-          type: 'default',
+          id: edgeId,
+          type: edgeType,
           animated: false,
+          data: edgeType === 'conditional' ? { label: '条件' } : {},
         },
         state.edges
       ),
       isDirty: true,
       };
     }),
+
+  setActiveEdgeType: (edgeType) => set({ activeEdgeType: edgeType }),
+
+  startClickConnect: (sourceNodeId, sourceHandleId) =>
+    set({ clickConnectState: { phase: 'waiting-target', sourceNodeId, sourceHandleId } }),
+
+  completeClickConnect: (targetNodeId, targetHandleId) =>
+    set((state) => {
+      const { clickConnectState, activeEdgeType } = state;
+      if (clickConnectState.phase !== 'waiting-target' || !clickConnectState.sourceNodeId) {
+        return { clickConnectState: { phase: 'idle' } };
+      }
+      // Prevent self-connection
+      if (clickConnectState.sourceNodeId === targetNodeId) {
+        return { clickConnectState: { phase: 'idle' } };
+      }
+
+      const newPast = [...state.past, { nodes: state.nodes, edges: state.edges }];
+      if (newPast.length > 50) newPast.shift();
+
+      const edgeId = `edge-${activeEdgeType}-${clickConnectState.sourceNodeId}-${targetNodeId}-${Date.now().toString(36)}`;
+      return {
+        past: newPast,
+        future: [],
+        edges: addEdge(
+          {
+            id: edgeId,
+            source: clickConnectState.sourceNodeId,
+            target: targetNodeId,
+            sourceHandle: clickConnectState.sourceHandleId,
+            targetHandle: targetHandleId,
+            type: activeEdgeType,
+            animated: false,
+            data: activeEdgeType === 'conditional' ? { label: '条件' } : {},
+          },
+          state.edges
+        ),
+        isDirty: true,
+        clickConnectState: { phase: 'idle' },
+      };
+    }),
+
+  cancelClickConnect: () => set({ clickConnectState: { phase: 'idle' } }),
 
   updateNodeData: (nodeId, data) =>
     set((state) => ({
@@ -195,7 +258,13 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
     set({
       currentWorkflowId: id,
       nodes,
-      edges,
+      edges: edges.map((e) => ({
+        ...e,
+        type: (e as { type?: string }).type || 'sequential',
+        sourceHandle: (e as { sourceHandle?: string }).sourceHandle || 'source-right',
+        targetHandle: (e as { targetHandle?: string }).targetHandle || 'target-left',
+        data: (e as { data?: Record<string, unknown> }).data || {},
+      })),
       selectedNodeId: resolveSelectedNodeId(nodes, null),
       isDirty: dirty,
     }),

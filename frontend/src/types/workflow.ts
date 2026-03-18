@@ -72,11 +72,55 @@ export interface WorkflowNode {
   data: AIStepNodeData;
 }
 
+/**
+ * 连线类型
+ * sequential  — 顺序流: 做完 A → 接着做 B (实心手绘线)
+ * conditional — 条件分支: 满足条件走此路径 (虚线+标签)
+ * loop        — 循环迭代: 对集合中每项重复处理 (波浪线)
+ */
+export type EdgeType = 'sequential' | 'conditional' | 'loop';
+
+/** Handle 方位 ID (4 方位 × source/target = 8 个) */
+export type HandlePosition =
+  | 'source-top'
+  | 'source-right'
+  | 'source-bottom'
+  | 'source-left'
+  | 'target-top'
+  | 'target-right'
+  | 'target-bottom'
+  | 'target-left';
+
+/** 连线附加数据 */
+export interface WorkflowEdgeData {
+  /** 连线标签文字 (条件线必填，其他可选) */
+  label?: string;
+  /** 条件分支名 (后端 executor 使用) */
+  branch?: string;
+  /** 循环迭代次数上限 */
+  maxIterations?: number;
+}
+
 /** 工作流连线（存储在 edges_json JSONB 中） */
 export interface WorkflowEdge {
   id: string;
   source: string;
   target: string;
+  sourceHandle?: HandlePosition;
+  targetHandle?: HandlePosition;
+  type?: EdgeType;
+  data?: WorkflowEdgeData;
+}
+
+/** 兼容旧数据 — 为缺失字段补充默认值 */
+export function normalizeEdge(edge: Partial<WorkflowEdge> & { id: string; source: string; target: string }): WorkflowEdge {
+  return {
+    ...edge,
+    type: edge.type || 'sequential',
+    sourceHandle: edge.sourceHandle || 'source-right',
+    targetHandle: edge.targetHandle || 'target-left',
+    data: edge.data || {},
+  };
 }
 
 export interface WorkflowMeta {

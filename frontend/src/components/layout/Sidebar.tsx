@@ -196,23 +196,25 @@ export default function Sidebar({ workflows }: SidebarProps) {
               style={{ width: leftPanelWidth }}
             >
               {/* Panel header */}
-              <div className="shrink-0 border-b border-border px-3 py-3 flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground font-serif">
-                  {getPanelLabel(activeSidebarPanel!)}
-                </span>
+              {activeSidebarPanel !== 'ai-chat' && (
+                <div className="shrink-0 border-b border-border px-3 py-3 flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground font-serif">
+                    {getPanelLabel(activeSidebarPanel!)}
+                  </span>
 
-                {/* Undock button — only for execution panel */}
-                {activeSidebarPanel === 'execution' && (
-                  <button
-                    type="button"
-                    onClick={toggleRightPanelDock}
-                    className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
-                    title="移回右侧"
-                  >
-                    <PanelRightDashed className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
+                  {/* Undock button — only for execution panel */}
+                  {activeSidebarPanel === 'execution' && (
+                    <button
+                      type="button"
+                      onClick={toggleRightPanelDock}
+                      className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                      title="移回右侧"
+                    >
+                      <PanelRightDashed className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Panel body */}
               {activeSidebarPanel === 'workflows' && (

@@ -15,6 +15,7 @@ import { useWorkflowExecution } from '@/features/workflow/hooks/use-workflow-exe
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import SearchBar from '@/features/workflow/components/toolbar/SearchBar';
 import EmojiPicker from '@/features/workflow/components/toolbar/EmojiPicker';
+import EdgeTypePanel from '@/features/workflow/components/toolbar/EdgeTypePanel';
 
 export type CanvasTool = 'select' | 'edit' | 'pan' | 'search';
 
@@ -36,22 +37,18 @@ export default function FloatingToolbar({ className = '' }: FloatingToolbarProps
   const [activeTool, setActiveTool] = useState<CanvasTool>('pan');
   const [showSearch, setShowSearch] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [showEdgePanel, setShowEdgePanel] = useState(false);
   const { status, start, stop } = useWorkflowExecution();
   const nodes = useWorkflowStore((s) => s.nodes);
   const hasNodes = nodes.length > 0;
   const isRunning = status === 'running';
 
   const handleToolChange = useCallback((tool: CanvasTool) => {
-    // Special behavior for edit tool — show dialog, don't switch
+    // Special behavior for edit tool — toggle edge type panel
     if (tool === 'edit') {
-      window.dispatchEvent(
-        new CustomEvent('canvas:show-modal', {
-          detail: {
-            title: '编辑工作流专业模式',
-            message: '编辑工作流专业模式暂未上线，敬请期待未来版本更新。',
-          },
-        })
-      );
+      setShowEdgePanel((prev) => !prev);
+      setShowSearch(false);
+      setShowEmoji(false);
       return;
     }
 
@@ -137,14 +134,19 @@ export default function FloatingToolbar({ className = '' }: FloatingToolbarProps
           <MousePointer2 className="h-[18px] w-[18px]" />
         </button>
 
-        <button
-          type="button"
-          className=""
-          onClick={() => handleToolChange('edit')}
-          title="编辑工具 (E) — 专业模式"
-        >
-          <Pencil className="h-[18px] w-[18px]" />
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            className={showEdgePanel ? 'active' : ''}
+            onClick={() => handleToolChange('edit')}
+            title="连线工具 (E) — 选择连线类型"
+          >
+            <Pencil className="h-[18px] w-[18px]" />
+          </button>
+          {showEdgePanel && (
+            <EdgeTypePanel onClose={() => setShowEdgePanel(false)} />
+          )}
+        </div>
 
         <button
           type="button"

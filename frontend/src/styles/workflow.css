@@ -1419,3 +1419,279 @@
 .light .canvas-context-menu-divider {
   background: rgba(0, 0, 0, 0.06);
 }
+
+/* ─── Node Handle: 智能显隐 ─── */
+.node-handle {
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+/* Hover 时显示所有 Handle */
+.react-flow__node:hover .node-handle {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+/* 选中节点时显示所有 Handle */
+.react-flow__node.selected .node-handle {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+/* 正在拖拽连线时显示所有节点的 Handle */
+.react-flow__node.connecting .node-handle,
+.react-flow.connecting .node-handle {
+  opacity: 0.7;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+/* Handle hover 放大效果 */
+.node-handle:hover {
+  transform: scale(1.5) !important;
+  opacity: 1 !important;
+  box-shadow: 0 0 8px currentColor;
+  transition: transform 0.15s ease, opacity 0.1s ease, box-shadow 0.15s ease;
+}
+
+/* 已连接的 Handle 始终可见 (通过 React Flow 内部类) */
+.react-flow__handle.connected.node-handle {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+/* ─── Click-to-Connect 视觉反馈 ─── */
+/* 激活的源 Handle — 脉冲动画 */
+.node-handle-click-source-active {
+  opacity: 1 !important;
+  transform: scale(1.4) !important;
+  pointer-events: auto !important;
+  box-shadow: 0 0 12px currentColor, 0 0 4px currentColor;
+  animation: handlePulse 1.2s ease-in-out infinite;
+}
+
+@keyframes handlePulse {
+  0%, 100% { box-shadow: 0 0 6px currentColor; transform: scale(1.3); }
+  50% { box-shadow: 0 0 16px currentColor, 0 0 6px currentColor; transform: scale(1.6); }
+}
+
+/* 等待点击的目标 Handle — 高亮显示 */
+.node-handle-click-target {
+  opacity: 0.8 !important;
+  transform: scale(1.2) !important;
+  pointer-events: auto !important;
+  box-shadow: 0 0 6px #22c55e;
+  border-color: #22c55e !important;
+  animation: targetGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes targetGlow {
+  0%, 100% { box-shadow: 0 0 4px #22c55e; }
+  50% { box-shadow: 0 0 10px #22c55e, 0 0 4px #22c55e; }
+}
+
+/* ─── Edge 类型基础样式 ─── */
+/* Sequential Edge — 实心手绘 */
+.react-flow__edge.sequential-edge .react-flow__edge-path {
+  stroke: var(--edge-color-sequential, #78716c);
+  stroke-width: 2;
+}
+
+/* Conditional Edge — 虚线 amber */
+.react-flow__edge.conditional-edge .react-flow__edge-path {
+  stroke: var(--edge-color-conditional, #d97706);
+  stroke-width: 2;
+  stroke-dasharray: 8 5;
+}
+
+/* Loop Edge — 波浪 emerald */
+.react-flow__edge.loop-edge .react-flow__edge-path {
+  stroke: var(--edge-color-loop, #059669);
+  stroke-width: 2.5;
+}
+
+/* Edge 选中态 */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 3.5;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+/* Edge label 基础样式 */
+.edge-label-container {
+  font-family: var(--font-serif), 'Noto Serif SC', serif;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dark .edge-label-container {
+  background: rgba(30, 30, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #d1d5db;
+}
+
+.edge-label-container:hover {
+  border-style: solid;
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.dark .edge-label-container:hover {
+  background: rgba(40, 40, 40, 1);
+}
+
+/* Edge label 编辑态 */
+.edge-label-editing {
+  border-style: solid;
+  border-color: #6366f1;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+/* ─── Edge Type Panel ─── */
+.edge-type-panel {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 200px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  z-index: 100;
+  animation: edgePanelIn 0.2s ease-out;
+}
+
+.dark .edge-type-panel {
+  background: rgba(25, 25, 30, 0.95);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes edgePanelIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.edge-type-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.edge-type-option:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.dark .edge-type-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.edge-type-option-active {
+  background: rgba(0, 0, 0, 0.06) !important;
+  border-color: var(--option-color, #78716c) !important;
+  border-style: dashed;
+}
+
+.dark .edge-type-option-active {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ─── Loop Region Node ─── */
+.loop-region-node {
+  min-width: 200px;
+  min-height: 150px;
+  border: 2px dashed rgba(5, 150, 105, 0.4);
+  border-radius: 12px;
+  background: rgba(5, 150, 105, 0.03);
+  position: relative;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.dark .loop-region-node {
+  background: rgba(5, 150, 105, 0.05);
+  border-color: rgba(5, 150, 105, 0.3);
+}
+
+.loop-region-selected {
+  border-color: rgba(5, 150, 105, 0.7) !important;
+  background: rgba(5, 150, 105, 0.06) !important;
+  box-shadow: 0 0 20px rgba(5, 150, 105, 0.1);
+}
+
+.loop-region-header {
+  position: absolute;
+  top: -1px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px dashed rgba(5, 150, 105, 0.4);
+  border-radius: 0 0 6px 6px;
+  font-family: var(--font-serif), 'Noto Serif SC', serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #059669;
+  letter-spacing: 0.5px;
+}
+
+.dark .loop-region-header {
+  background: rgba(25, 25, 30, 0.95);
+  color: #34d399;
+  border-color: rgba(5, 150, 105, 0.3);
+}
+
+.loop-region-delete {
+  margin-left: 6px;
+  padding: 1px;
+  border-radius: 4px;
+  color: #059669;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: none;
+  border: none;
+}
+
+.loop-region-delete:hover {
+  opacity: 1;
+  background: rgba(5, 150, 105, 0.1);
+}

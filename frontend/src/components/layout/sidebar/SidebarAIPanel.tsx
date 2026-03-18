@@ -1,7 +1,19 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Sparkles } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Loader2,
+  Sparkles,
+  Plus,
+  MoreHorizontal,
+  History,
+  ChevronDown,
+  X,
+  Trash2,
+  ArrowRight,
+  Mic,
+  ChevronUp
+} from 'lucide-react';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import type { Edge, Node } from '@xyflow/react';
 
@@ -17,14 +29,54 @@ interface HistoryEntry {
   timestamp: number;
 }
 
+interface ConversationRecord {
+  id: string;
+  title: string;
+  preview: string;
+  timestamp: number;
+}
+
+/* ─── Thinking Intensity Levels ─── */
+const THINKING_LEVELS = [
+  { value: 'quick', label: '快速' },
+  { value: 'balanced', label: '均衡' },
+  { value: 'deep', label: '深度' },
+] as const;
+
+/* ─── Node Complexity Levels ─── */
+const COMPLEXITY_LEVELS = [
+  { value: 'simple', label: '精简' },
+  { value: 'standard', label: '标准' },
+  { value: 'complex', label: '复杂' },
+] as const;
+
 export function SidebarAIPanel() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [thinkingLevel, setThinkingLevel] = useState<string>('balanced');
+  const [complexityLevel, setComplexityLevel] = useState<string>('standard');
+  const [showThinkingPicker, setShowThinkingPicker] = useState(false);
+  const [showComplexityPicker, setShowComplexityPicker] = useState(false);
+
   const scrollRef = useRef<HTMLDivElement>(null);
+  const historyDropdownRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const thinkingPickerRef = useRef<HTMLDivElement>(null);
+  const complexityPickerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { replaceWorkflowGraph, setGenerationContext, lastPrompt } = useWorkflowStore();
+
+  /* ─── Mock conversation records (replace with API) ─── */
+  const [conversations] = useState<ConversationRecord[]>([
+    { id: '1', title: '英语学习工作流', preview: '帮我创建一个英语四级学习流程...', timestamp: Date.now() - 86400000 },
+    { id: '2', title: '数据分析管道', preview: '我需要一个数据清洗和分析的...', timestamp: Date.now() - 172800000 },
+    { id: '3', title: '论文写作框架', preview: '设计一个学术论文写作的工作流...', timestamp: Date.now() - 259200000 },
+  ]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -32,16 +84,58 @@ export function SidebarAIPanel() {
     }
   }, [history]);
 
+  /* ─── Click outside to close dropdowns ─── */
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (historyDropdownRef.current && !historyDropdownRef.current.contains(e.target as HTMLElement)) {
+        setShowHistoryDropdown(false);
+      }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as HTMLElement)) {
+        setShowMoreMenu(false);
+      }
+      if (thinkingPickerRef.current && !thinkingPickerRef.current.contains(e.target as HTMLElement)) {
+        setShowThinkingPicker(false);
+      }
+      if (complexityPickerRef.current && !complexityPickerRef.current.contains(e.target as HTMLElement)) {
+        setShowComplexityPicker(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  /* ─── Auto-resize textarea ─── */
+  const handleTextareaChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, []);
+
+  const handleNewConversation = useCallback(() => {
+    setHistory([]);
+    setError(null);
+    setInput('');
+  }, []);
+
+  const handleClearHistory = useCallback(() => {
+    setHistory([]);
+    setError(null);
+    setShowMoreMenu(false);
+  }, []);
+
   const handleGenerate = async () => {
     if (!input.trim() || loading) return;
     const userInput = input.trim();
 
     setHistory((prev) => [...prev, { role: 'user', content: userInput, timestamp: Date.now() }]);
     setInput('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
     setLoading(true);
     setError(null);
 
-    // Show generating loader node on the canvas while waiting
     replaceWorkflowGraph(
       [{
         id: 'generating-node',
@@ -56,7 +150,11 @@ export function SidebarAIPanel() {
       const res = await fetch('/api/ai/generate-workflow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_input: userInput }),
+        body: JSON.stringify({
+          user_input: userInput,
+          thinking_level: thinkingLevel,
+          complexity_level: complexityLevel,
+        }),
       });
 
       if (!res.ok) {
@@ -89,78 +187,295 @@ export function SidebarAIPanel() {
     }
   };
 
+  const currentThinking = THINKING_LEVELS.find((l) => l.value === thinkingLevel) ?? THINKING_LEVELS[1];
+  const currentComplexity = COMPLEXITY_LEVELS.find((l) => l.value === complexityLevel) ?? COMPLEXITY_LEVELS[1];
+
   return (
-    <div className="flex h-full flex-col">
-      {/* Chat history */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide p-3 space-y-3">
+    <div className="flex h-full flex-col overflow-hidden bg-background">
+      {/* ═══════════════ TOP BAR (Merged with Header) ═══════════════ */}
+      <div className="shrink-0 flex items-center justify-between px-3 py-3 border-b border-border/50">
+        
+        {/* Title */}
+        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground font-serif">
+          AI 对话
+        </span>
+
+        {/* Right side controls */}
+        <div className="flex items-center gap-1">
+          {/* History Dropdown */}
+          <div className="relative" ref={historyDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
+              className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition-all hover:bg-white/5 hover:text-foreground"
+              title="对话记录"
+            >
+              <History className="h-3 w-3" />
+              <span className="font-medium text-[10px]">记录</span>
+              <ChevronDown className={`h-2.5 w-2.5 transition-transform duration-200 opacity-70 ${showHistoryDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showHistoryDropdown && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-border/60 bg-background/95 p-1.5 shadow-lg backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  最近对话
+                </div>
+                {conversations.length === 0 ? (
+                  <p className="px-2 py-3 text-center text-xs text-muted-foreground/50">暂无记录</p>
+                ) : (
+                  <div className="max-h-56 overflow-y-auto scrollbar-hide">
+                    {conversations.map((conv) => (
+                      <button
+                        key={conv.id}
+                        type="button"
+                        onClick={() => {
+                          setShowHistoryDropdown(false);
+                        }}
+                        className="group flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left transition-all hover:bg-white/5"
+                      >
+                        <span className="text-[11px] font-medium text-foreground/90 group-hover:text-foreground truncate">
+                          {conv.title}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground/50 truncate">
+                          {conv.preview}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="h-3 w-px bg-border/50 mx-0.5" />
+
+          {/* New Chat */}
+          <button
+            type="button"
+            onClick={handleNewConversation}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-white/5 hover:text-foreground"
+            title="新建对话"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+
+          {/* More Menu */}
+          <div className="relative" ref={moreMenuRef}>
+            <button
+              type="button"
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-white/5 hover:text-foreground"
+              title="更多选项"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </button>
+
+            {showMoreMenu && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-xl border border-border/60 bg-background/95 p-1 shadow-lg backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                <button
+                  type="button"
+                  onClick={handleClearHistory}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[11px] text-muted-foreground transition-all hover:bg-white/5 hover:text-destructive"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  清空对话
+                </button>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+
+      {/* ═══════════════ CHAT BODY ═══════════════ */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide">
         {history.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <Sparkles className="h-5 w-5 text-primary" />
+          /* ─── Empty State ─── */
+          <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+            <div className="relative mb-5">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10">
+                <Sparkles className="h-5 w-5 text-primary/80" />
+              </div>
             </div>
-            <p className="text-sm font-medium text-foreground">AI 工作流生成</p>
-            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed max-w-[200px]">
-              描述你的学习目标，AI 将自动生成对应的工作流节点。
+            <h3 className="text-[13px] font-semibold text-foreground/90 font-serif">准备就绪</h3>
+            <p className="mt-1.5 max-w-[200px] text-[11px] leading-relaxed text-muted-foreground/60">
+              描述你的学习或工作目标，我将为你构建专属工作流。
             </p>
             {lastPrompt ? (
-              <p className="mt-3 text-[11px] text-muted-foreground/70">
-                上次: {lastPrompt.slice(0, 40)}{lastPrompt.length > 40 ? '...' : ''}
-              </p>
+              <div className="mt-4 flex items-center gap-1.5 rounded-lg bg-white/3 px-2.5 py-1.5 border border-white/5">
+                <History className="h-3 w-3 text-muted-foreground/40" />
+                <span className="text-[10px] text-muted-foreground/40 truncate max-w-[180px]">
+                  {lastPrompt.slice(0, 40)}{lastPrompt.length > 40 ? '...' : ''}
+                </span>
+              </div>
             ) : null}
           </div>
         ) : (
-          history.map((entry) => (
-            <div
-              key={entry.timestamp}
-              className={`rounded-xl px-3 py-2 text-sm leading-relaxed ${
-                entry.role === 'user'
-                  ? 'ml-4 bg-primary/15 text-foreground'
-                  : 'mr-4 bg-muted/50 text-muted-foreground'
-              }`}
-            >
-              {entry.content}
-            </div>
-          ))
-        )}
+          /* ─── Chat Messages ─── */
+          <div className="space-y-4 p-4">
+            {history.map((entry) => (
+              <div
+                key={entry.timestamp}
+                className={`group relative max-w-[92%] ${
+                  entry.role === 'user' ? 'ml-auto' : 'mr-auto'
+                }`}
+              >
+                <div
+                  className={`rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
+                    entry.role === 'user'
+                      ? 'bg-muted/40 text-foreground/90 rounded-br-sm'
+                      : 'bg-transparent text-foreground/90 pr-2'
+                  }`}
+                >
+                  {entry.content}
+                </div>
+              </div>
+            ))}
 
-        {loading && (
-          <div className="mr-4 flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            生成中...
+            {loading && (
+              <div className="mr-auto flex max-w-[85%] items-center gap-2 rounded-2xl px-3.5 py-2.5">
+                <div className="flex gap-1">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:0ms]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:150ms]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:300ms]" />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Input area */}
-      {error && !loading ? (
-        <p className="px-3 text-xs text-destructive">{error}</p>
-      ) : null}
+      {/* ═══════════════ BOTTOM INPUT AREA ═══════════════ */}
+      <div className="shrink-0 p-3 pt-1">
+        
+        {/* Error message */}
+        {error && !loading ? (
+          <div className="mb-2 flex items-center justify-between px-2 py-1 rounded-md bg-destructive/10">
+            <p className="text-[11px] text-destructive/80 truncate flex-1">{error}</p>
+            <button type="button" onClick={() => setError(null)} className="ml-2 text-destructive/50 hover:text-destructive">
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ) : null}
 
-      <div className="shrink-0 border-t border-border p-3">
-        <div className="flex gap-2">
+        {/* Unified Input Box (Replicating Reference Design) */}
+        <div className="flex flex-col overflow-hidden rounded-[14px] border border-border/40 bg-muted/20 focus-within:border-primary/30 focus-within:bg-muted/30 transition-all">
+          
           <textarea
-            className="min-h-[40px] max-h-[120px] flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-            placeholder="描述学习目标..."
+            ref={textareaRef}
+            className="min-h-[40px] max-h-[120px] w-full resize-none bg-transparent px-3.5 py-3 text-[13px] text-foreground/90 placeholder:text-muted-foreground/40 focus:outline-none"
+            placeholder="可以发送消息..."
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleTextareaChange}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 void handleGenerate();
               }
             }}
             disabled={loading}
-            rows={2}
+            rows={1}
           />
-          <button
-            onClick={() => void handleGenerate()}
-            disabled={loading || !input.trim()}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 self-end"
-            title="生成工作流 (Ctrl+Enter)"
-          >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </button>
+
+          <div className="flex items-center justify-between px-2 pb-2">
+            {/* Left Controls */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground"
+                title="附加上下文"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+
+              {/* Thinking Intensity */}
+              <div className="relative" ref={thinkingPickerRef}>
+                <button
+                  type="button"
+                  onClick={() => { setShowThinkingPicker(!showThinkingPicker); setShowComplexityPicker(false); }}
+                  className="flex h-7 items-center gap-1 rounded-lg px-2 text-[11px] text-muted-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground"
+                >
+                  <ChevronUp className="h-3 w-3 opacity-60" />
+                  <span className="whitespace-nowrap">{currentThinking.label}</span>
+                </button>
+
+                {showThinkingPicker && (
+                  <div className="absolute bottom-full left-0 z-50 mb-1 w-24 rounded-xl border border-border/60 bg-background/95 p-1 shadow-lg backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    {THINKING_LEVELS.map((level) => (
+                      <button
+                        key={level.value}
+                        type="button"
+                        onClick={() => { setThinkingLevel(level.value); setShowThinkingPicker(false); }}
+                        className={`flex w-full items-center justify-center rounded-lg px-2 py-1.5 text-center text-[11px] transition-all ${
+                          thinkingLevel === level.value
+                            ? 'bg-primary/10 text-foreground'
+                            : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+                        }`}
+                      >
+                        {level.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Node Complexity */}
+              <div className="relative" ref={complexityPickerRef}>
+                <button
+                  type="button"
+                  onClick={() => { setShowComplexityPicker(!showComplexityPicker); setShowThinkingPicker(false); }}
+                  className="flex h-7 items-center gap-1 rounded-lg px-2 text-[11px] text-muted-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground"
+                >
+                  <ChevronUp className="h-3 w-3 opacity-60" />
+                  <span className="whitespace-nowrap">{currentComplexity.label}</span>
+                </button>
+
+                {showComplexityPicker && (
+                  <div className="absolute bottom-full left-0 z-50 mb-1 w-24 rounded-xl border border-border/60 bg-background/95 p-1 shadow-lg backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    {COMPLEXITY_LEVELS.map((level) => (
+                      <button
+                        key={level.value}
+                        type="button"
+                        onClick={() => { setComplexityLevel(level.value); setShowComplexityPicker(false); }}
+                        className={`flex w-full items-center justify-center rounded-lg px-2 py-1.5 text-center text-[11px] transition-all ${
+                          complexityLevel === level.value
+                            ? 'bg-primary/10 text-foreground'
+                            : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+                        }`}
+                      >
+                        {level.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Controls */}
+            <div className="flex items-center gap-1.5 pr-0.5">
+              <button
+                type="button"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground"
+                title="语音输入"
+              >
+                <Mic className="h-4 w-4" />
+              </button>
+              
+              <button
+                onClick={() => void handleGenerate()}
+                disabled={loading || !input.trim()}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-[#007AFF] text-white transition-all hover:bg-[#007AFF]/90 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                title="发送"
+              >
+                {loading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-        <p className="mt-1.5 text-[10px] text-muted-foreground">Ctrl + Enter 快速生成</p>
+        
       </div>
     </div>
   );
