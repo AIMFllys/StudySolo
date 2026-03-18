@@ -93,16 +93,94 @@
   animation: border-pulse 2s ease-in-out infinite;
 }
 
-/* ─── Edge paths ─── */
-.workflow-canvas .react-flow__edge-path {
-  stroke: #6366f1;
-  stroke-opacity: 0.45;
+/* ═══════════════════════════════════════════════════════════════════════════
+   Pencil-style Edge Paths — ink/hand-drawn aesthetic
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Edge marker (arrowhead) color custom property */
+.workflow-canvas {
+  --edge-marker-color: #78716c;
+}
+
+.light .workflow-canvas {
+  --edge-marker-color: #57534e;
+}
+
+/* Main pencil stroke */
+.pencil-edge-main {
+  stroke: #78716c;
   stroke-width: 2.5;
+  stroke-opacity: 0.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.light .pencil-edge-main {
+  stroke: #57534e;
+  stroke-opacity: 0.6;
+}
+
+/* Background shadow stroke for depth */
+.pencil-edge-bg {
+  stroke: #78716c;
+  stroke-width: 5;
+  stroke-opacity: 0.08;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.light .pencil-edge-bg {
+  stroke: #44403c;
+  stroke-opacity: 0.06;
+}
+
+/* Active edge — slight glow */
+.pencil-edge-active {
+  stroke: #6366f1;
+  stroke-opacity: 0.85;
+  animation: edge-pulse 2s ease-in-out infinite;
+}
+
+.light .pencil-edge-active {
+  stroke: #4f46e5;
+  stroke-opacity: 0.75;
+}
+
+/* Glow layer for running edges */
+.pencil-edge-glow {
+  stroke: #6366f1;
+  stroke-width: 8;
+  stroke-opacity: 0.12;
+  stroke-linecap: round;
+  animation: edge-pulse 2s ease-in-out infinite;
+}
+
+.light .pencil-edge-glow {
+  stroke: #4f46e5;
+  stroke-opacity: 0.08;
+}
+
+/* Override default React Flow edge-path */
+.workflow-canvas .react-flow__edge-path {
+  stroke: #78716c;
+  stroke-opacity: 0.7;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .light .workflow-canvas .react-flow__edge-path {
-  stroke: #4f46e5;
-  stroke-opacity: 0.35;
+  stroke: #57534e;
+  stroke-opacity: 0.6;
+}
+
+/* Arrowhead marker color override */
+.workflow-canvas .react-flow__edge .react-flow__arrowhead {
+  fill: #78716c;
+}
+
+.light .workflow-canvas .react-flow__edge .react-flow__arrowhead {
+  fill: #57534e;
 }
 
 /* ─── MiniMap ─── */
@@ -208,6 +286,418 @@
   height: 20px;
   background: rgba(255, 255, 255, 0.12);
   margin: 0 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Canvas Search Bar — appears above toolbar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.canvas-search-bar {
+  position: absolute;
+  bottom: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 21;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  animation: search-bar-in 0.2s ease-out;
+}
+
+.light .canvas-search-bar {
+  background: rgba(28, 25, 23, 0.9);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+@keyframes search-bar-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.canvas-search-input {
+  width: 200px;
+  height: 30px;
+  padding: 0 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-family: 'Noto Serif SC', 'Georgia', serif;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.canvas-search-input:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.canvas-search-input::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.canvas-search-count {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: 'Noto Serif SC', 'Georgia', serif;
+  white-space: nowrap;
+  min-width: 40px;
+  text-align: center;
+}
+
+.canvas-search-nav,
+.canvas-search-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.canvas-search-nav:hover,
+.canvas-search-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.canvas-search-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Canvas Emoji Picker — appears above toolbar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.canvas-emoji-picker {
+  position: absolute;
+  bottom: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 21;
+  width: 260px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  animation: search-bar-in 0.2s ease-out;
+}
+
+.light .canvas-emoji-picker {
+  background: rgba(28, 25, 23, 0.9);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.canvas-emoji-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.canvas-emoji-title {
+  font-size: 12px;
+  color: #94a3b8;
+  font-family: 'Noto Serif SC', 'Georgia', serif;
+  letter-spacing: 0.5px;
+}
+
+.canvas-emoji-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.canvas-emoji-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.canvas-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+}
+
+.canvas-emoji-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.canvas-emoji-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Canvas Modal — overlay dialog for info messages
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.canvas-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.5);
+  backdrop-filter: blur(4px);
+  animation: modal-fade-in 0.15s ease-out;
+}
+
+.light .canvas-modal-backdrop {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.canvas-modal-content {
+  width: 340px;
+  padding: 24px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  animation: modal-scale-in 0.2s ease-out;
+}
+
+.light .canvas-modal-content {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+@keyframes modal-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.canvas-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.canvas-modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+
+.light .canvas-modal-icon {
+  background: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+}
+
+.canvas-modal-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #e2e8f0;
+  font-family: 'Noto Serif SC', 'Georgia', serif;
+}
+
+.light .canvas-modal-title {
+  color: #1c1917;
+}
+
+.canvas-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.canvas-modal-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+.light .canvas-modal-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #44403c;
+}
+
+.canvas-modal-message {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin-bottom: 18px;
+  font-family: 'Noto Serif SC', 'Georgia', serif;
+}
+
+.light .canvas-modal-message {
+  color: #78716c;
+}
+
+.canvas-modal-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Noto Serif SC', 'Georgia', serif;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.canvas-modal-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
+}
+
+.light .canvas-modal-btn {
+  background: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+}
+
+.light .canvas-modal-btn:hover {
+  background: rgba(79, 70, 229, 0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Canvas Annotation Node — emoji annotation on canvas
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.canvas-annotation-node {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  cursor: grab;
+  transition: transform 0.15s ease;
+}
+
+.canvas-annotation-node:hover {
+  transform: scale(1.1);
+}
+
+.canvas-annotation-node.selected {
+  transform: scale(1.15);
+}
+
+.canvas-annotation-emoji {
+  font-size: 28px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  user-select: none;
+}
+
+.canvas-annotation-delete {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.85);
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.canvas-annotation-delete:hover {
+  background: rgba(220, 38, 38, 1);
+  transform: scale(1.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Selection Box — rectangle selection in arrow/select mode
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.workflow-canvas .react-flow__selection {
+  border: 1.5px dashed rgba(99, 102, 241, 0.6) !important;
+  background: rgba(99, 102, 241, 0.06) !important;
+  border-radius: 4px;
+}
+
+.light .workflow-canvas .react-flow__selection {
+  border-color: rgba(79, 70, 229, 0.5) !important;
+  background: rgba(79, 70, 229, 0.04) !important;
+}
+
+/* crosshair cursor for select mode */
+.cursor-crosshair .react-flow__pane {
+  cursor: crosshair !important;
+}
+
+.cursor-crosshair .react-flow__pane:active {
+  cursor: crosshair !important;
 }
 
 /* ─── Node Paper Texture (Notebook School Aesthetic) ─── */

@@ -1,11 +1,12 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { BaseEdge, getBezierPath, type EdgeProps } from '@xyflow/react';
 
 /**
- * Custom animated edge with primary color gradient and pulse animation.
- * Active edges (animated=true) get a flowing gradient effect.
+ * Pencil-style edge with hand-drawn ink aesthetic.
+ * Uses an SVG turbulence filter for a sketchy, organic feel.
+ * Active edges (animated=true) get a subtle pulse glow.
  */
 function AnimatedEdge({
   id,
@@ -28,37 +29,64 @@ function AnimatedEdge({
     targetPosition,
   });
 
-  const gradientId = `edge-gradient-${id}`;
+  const filterId = `pencil-filter-${id}`;
+
+  // Pencil-style SVG filter — slight jitter for hand-drawn look
+  const pencilFilter = useMemo(
+    () => (
+      <defs>
+        <filter id={filterId} x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence
+            type="turbulence"
+            baseFrequency="0.03"
+            numOctaves="3"
+            seed={Math.abs(id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 100}
+            result="noise"
+          />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="noise"
+            scale="1.2"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </defs>
+    ),
+    [filterId, id]
+  );
 
   return (
     <>
-      <defs>
-        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#6366F1" stopOpacity={animated ? 0.8 : 0.3} />
-          <stop offset="50%" stopColor="#818CF8" stopOpacity={animated ? 1 : 0.4} />
-          <stop offset="100%" stopColor="#10B981" stopOpacity={animated ? 0.8 : 0.3} />
-        </linearGradient>
-      </defs>
+      {pencilFilter}
+
+      {/* Background stroke — thicker, softer for depth */}
+      <path
+        d={edgePath}
+        fill="none"
+        className="pencil-edge-bg"
+        filter={`url(#${filterId})`}
+      />
+
+      {/* Main ink stroke */}
       <BaseEdge
         id={id}
         path={edgePath}
         markerEnd={markerEnd}
         style={{
-          stroke: `url(#${gradientId})`,
-          strokeWidth: 2,
+          filter: `url(#${filterId})`,
           ...style,
         }}
-        className={animated ? 'edge-animated-pulse' : ''}
+        className={`pencil-edge-main ${animated ? 'pencil-edge-active' : ''}`}
       />
-      {/* Glow layer for active edges */}
+
+      {/* Glow layer for active/running edges */}
       {animated && (
         <path
           d={edgePath}
           fill="none"
-          stroke="#6366F1"
-          strokeWidth={6}
-          strokeOpacity={0.15}
-          className="edge-animated-pulse"
+          className="pencil-edge-glow"
+          filter={`url(#${filterId})`}
         />
       )}
     </>

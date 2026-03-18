@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   MousePointer2,
   Pencil,
@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 import { useWorkflowExecution } from '@/features/workflow/hooks/use-workflow-execution';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
+import SearchBar from '@/features/workflow/components/toolbar/SearchBar';
+import EmojiPicker from '@/features/workflow/components/toolbar/EmojiPicker';
 
-type CanvasTool = 'select' | 'edit' | 'pan' | 'search';
+export type CanvasTool = 'select' | 'edit' | 'pan' | 'search';
 
 interface FloatingToolbarProps {
   className?: string;
@@ -22,116 +24,190 @@ interface FloatingToolbarProps {
 
 /**
  * Floating toolbar at bottom-center of the canvas.
- * Mirrors the reference design: cursor, edit, hand, search, emoji, upload
- * Plus integrated run/stop control.
+ * Each tool has real behavior:
+ *  - Arrow: selection mode (drag draws selection box, no canvas pan)
+ *  - Pencil: future pro mode dialog
+ *  - Hand: pan mode (default)
+ *  - Search: node search overlay
+ *  - Emoji: annotation picker
+ *  - Upload: not supported modal
  */
 export default function FloatingToolbar({ className = '' }: FloatingToolbarProps) {
-  const [activeTool, setActiveTool] = useState<CanvasTool>('select');
+  const [activeTool, setActiveTool] = useState<CanvasTool>('pan');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
   const { status, start, stop } = useWorkflowExecution();
   const nodes = useWorkflowStore((s) => s.nodes);
   const hasNodes = nodes.length > 0;
   const isRunning = status === 'running';
 
   const handleToolChange = useCallback((tool: CanvasTool) => {
-    setActiveTool(tool);
+    // Special behavior for edit tool — show dialog, don't switch
+    if (tool === 'edit') {
+      window.dispatchEvent(
+        new CustomEvent('canvas:show-modal', {
+          detail: {
+            title: '编辑工作流专业模式',
+            message: '编辑工作流专业模式暂未上线，敬请期待未来版本更新。',
+          },
+        })
+      );
+      return;
+    }
 
-    // Dispatch custom event for canvas to change interaction mode
+    // Close overlays when switching away
+    if (tool !== 'search') setShowSearch(false);
+    setShowEmoji(false);
+
+    // Search tool: toggle search bar
+    if (tool === 'search') {
+      setShowSearch((prev) => !prev);
+      setActiveTool('search');
+      window.dispatchEvent(
+        new CustomEvent('canvas:tool-change', { detail: { tool: 'pan' } })
+      );
+      return;
+    }
+
+    setActiveTool(tool);
     window.dispatchEvent(
       new CustomEvent('canvas:tool-change', { detail: { tool } })
     );
   }, []);
 
   const handleUpload = useCallback(() => {
-    // Dispatch file upload trigger
-    window.dispatchEvent(new CustomEvent('canvas:upload-file'));
+    window.dispatchEvent(
+      new CustomEvent('canvas:show-modal', {
+        detail: {
+          title: '上传文件到画布',
+          message: '暂不支持上传文件到画布功能，敬请期待未来版本更新。',
+        },
+      })
+    );
   }, []);
 
-  const handleEmoji = useCallback(() => {
-    // Placeholder for emoji/annotation picker
-    window.dispatchEvent(new CustomEvent('canvas:add-annotation'));
+  const handleEmojiToggle = useCallback(() => {
+    setShowEmoji((prev) => !prev);
+    setShowSearch(false);
+  }, []);
+
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    window.dispatchEvent(
+      new CustomEvent('canvas:add-annotation', { detail: { emoji } })
+    );
+    setShowEmoji(false);
+  }, []);
+
+  const handleSearchClose = useCallback(() => {
+    setShowSearch(false);
+    if (activeTool === 'search') {
+      setActiveTool('pan');
+    }
+  }, [activeTool]);
+
+  // Global Ctrl+P shortcut for search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        setShowSearch((prev) => !prev);
+        setActiveTool('search');
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, []);
 
   return (
-    <div className={`canvas-floating-toolbar ${className}`}>
-      {/* Tool group */}
-      <button
-        type="button"
-        className={activeTool === 'select' ? 'active' : ''}
-        onClick={() => handleToolChange('select')}
-        title="选择工具 (V)"
-      >
-        <MousePointer2 className="h-[18px] w-[18px]" />
-      </button>
-
-      <button
-        type="button"
-        className={activeTool === 'edit' ? 'active' : ''}
-        onClick={() => handleToolChange('edit')}
-        title="编辑工具 (E)"
-      >
-        <Pencil className="h-[18px] w-[18px]" />
-      </button>
-
-      <button
-        type="button"
-        className={activeTool === 'pan' ? 'active' : ''}
-        onClick={() => handleToolChange('pan')}
-        title="平移工具 (H)"
-      >
-        <Hand className="h-[18px] w-[18px]" />
-      </button>
-
-      <button
-        type="button"
-        className={activeTool === 'search' ? 'active' : ''}
-        onClick={() => handleToolChange('search')}
-        title="搜索节点 (F)"
-      >
-        <Search className="h-[18px] w-[18px]" />
-      </button>
-
-      <div className="toolbar-divider" />
-
-      {/* Action group */}
-      <button
-        type="button"
-        onClick={handleEmoji}
-        title="添加标注"
-      >
-        <Smile className="h-[18px] w-[18px]" />
-      </button>
-
-      <button
-        type="button"
-        onClick={handleUpload}
-        title="上传文件到画布"
-      >
-        <ImagePlus className="h-[18px] w-[18px]" />
-      </button>
-
-      <div className="toolbar-divider" />
-
-      {/* Run/Stop */}
-      {isRunning ? (
-        <button
-          type="button"
-          onClick={stop}
-          className="!text-rose-400"
-          title="停止运行"
-        >
-          <Square className="h-4 w-4 fill-current" />
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => start()}
-          disabled={!hasNodes}
-          className={hasNodes ? '!text-emerald-400' : '!text-muted-foreground/30 !cursor-not-allowed'}
-          title="运行全部"
-        >
-          <Play className="h-4 w-4 fill-current" />
-        </button>
+    <>
+      {/* Overlays above toolbar */}
+      {showSearch && <SearchBar onClose={handleSearchClose} />}
+      {showEmoji && (
+        <EmojiPicker onSelect={handleEmojiSelect} onClose={() => setShowEmoji(false)} />
       )}
-    </div>
+
+      <div className={`canvas-floating-toolbar ${className}`}>
+        {/* Tool group */}
+        <button
+          type="button"
+          className={activeTool === 'select' ? 'active' : ''}
+          onClick={() => handleToolChange('select')}
+          title="选择工具 (V) — 框选节点"
+        >
+          <MousePointer2 className="h-[18px] w-[18px]" />
+        </button>
+
+        <button
+          type="button"
+          className=""
+          onClick={() => handleToolChange('edit')}
+          title="编辑工具 (E) — 专业模式"
+        >
+          <Pencil className="h-[18px] w-[18px]" />
+        </button>
+
+        <button
+          type="button"
+          className={activeTool === 'pan' ? 'active' : ''}
+          onClick={() => handleToolChange('pan')}
+          title="平移工具 (H) — 拖拽画布"
+        >
+          <Hand className="h-[18px] w-[18px]" />
+        </button>
+
+        <button
+          type="button"
+          className={showSearch || activeTool === 'search' ? 'active' : ''}
+          onClick={() => handleToolChange('search')}
+          title="搜索节点 (Ctrl+P)"
+        >
+          <Search className="h-[18px] w-[18px]" />
+        </button>
+
+        <div className="toolbar-divider" />
+
+        {/* Action group */}
+        <button
+          type="button"
+          className={showEmoji ? 'active' : ''}
+          onClick={handleEmojiToggle}
+          title="添加标注"
+        >
+          <Smile className="h-[18px] w-[18px]" />
+        </button>
+
+        <button
+          type="button"
+          onClick={handleUpload}
+          title="上传文件到画布"
+        >
+          <ImagePlus className="h-[18px] w-[18px]" />
+        </button>
+
+        <div className="toolbar-divider" />
+
+        {/* Run/Stop */}
+        {isRunning ? (
+          <button
+            type="button"
+            onClick={stop}
+            className="!text-rose-400"
+            title="停止运行"
+          >
+            <Square className="h-4 w-4 fill-current" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => start()}
+            disabled={!hasNodes}
+            className={hasNodes ? '!text-emerald-400' : '!text-muted-foreground/30 !cursor-not-allowed'}
+            title="运行全部"
+          >
+            <Play className="h-4 w-4 fill-current" />
+          </button>
+        )}
+      </div>
+    </>
   );
 }

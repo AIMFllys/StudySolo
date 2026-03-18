@@ -1,9 +1,7 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import {
-  Background,
-  BackgroundVariant,
   Controls,
   MiniMap,
   type ConnectionLineType,
@@ -12,14 +10,20 @@ import {
   type EdgeTypes,
   type NodeMouseHandler,
   type NodeTypes,
+  useReactFlow,
+  SelectionMode,
+  ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import BottomDrawer from '@/features/workflow/components/panel/BottomDrawer';
 import FloatingToolbar from '@/features/workflow/components/toolbar/FloatingToolbar';
+import type { CanvasTool } from '@/features/workflow/components/toolbar/FloatingToolbar';
 import AnimatedEdge from '@/features/workflow/components/canvas/edges/AnimatedEdge';
 import AIStepNode from '@/features/workflow/components/nodes/AIStepNode';
 import GeneratingNode from '@/features/workflow/components/nodes/GeneratingNode';
+import AnnotationNode from '@/features/workflow/components/nodes/AnnotationNode';
+import CanvasModal from '@/features/workflow/components/canvas/CanvasModal';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import type { AIStepNodeData } from '@/types';
 
@@ -47,13 +51,15 @@ const nodeTypes: NodeTypes = {
   loop_map: AIStepNode,
   // ── 状态节点 (1) ──
   generating: GeneratingNode,
+  // ── 标注节点 ──
+  annotation: AnnotationNode,
 };
 
 const edgeTypes: EdgeTypes = {
   default: AnimatedEdge,
 };
 
-export default function WorkflowCanvas() {
+function WorkflowCanvasInner() {
   const {
     edges,
     nodes,
@@ -62,8 +68,13 @@ export default function WorkflowCanvas() {
     onNodesChange,
     selectedNodeId,
     setSelectedNodeId,
+    setNodes,
   } = useWorkflowStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [canvasTool, setCanvasTool] = useState<CanvasTool>('pan');
+  const [modal, setModal] = useState<{ title: string; message: string } | null>(null);
+  const reactFlowInstance = useReactFlow();
+  const annotationCountRef = useRef(0);
 
   const selectedNodeData = useMemo(
     () =>
@@ -79,9 +90,9 @@ export default function WorkflowCanvas() {
       animated: false,
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        width: 18,
-        height: 18,
-        color: '#818cf8',
+        width: 16,
+        height: 16,
+        color: 'var(--edge-marker-color, #78716c)',
       },
     }),
     []
@@ -116,8 +127,92 @@ export default function WorkflowCanvas() {
     setDrawerOpen(false);
   }, []);
 
+  // ── Listen for tool change events ──────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { tool: CanvasTool };
+      setCanvasTool(detail.tool);
+    };
+    window.addEventListener('canvas:tool-change', handler);
+    return () => window.removeEventListener('canvas:tool-change', handler);
+  }, []);
+
+  // ── Listen for modal events ────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { title: string; message: string };
+      setModal(detail);
+    };
+    window.addEventListener('canvas:show-modal', handler);
+    return () => window.removeEventListener('canvas:show-modal', handler);
+  }, []);
+
+  // ── Listen for focus-node events (from search) ────────────────────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { nodeId } = (e as CustomEvent).detail as { nodeId: string };
+      const node = nodes.find((n) => n.id === nodeId);
+      if (node && reactFlowInstance) {
+        reactFlowInstance.setCenter(
+          node.position.x + 160,
+          node.position.y + 60,
+          { zoom: 1.2, duration: 400 }
+        );
+      }
+    };
+    window.addEventListener('canvas:focus-node', handler);
+    return () => window.removeEventListener('canvas:focus-node', handler);
+  }, [nodes, reactFlowInstance]);
+
+  // ── Listen for annotation add events ───────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { emoji } = (e as CustomEvent).detail as { emoji: string };
+      annotationCountRef.current += 1;
+
+      // Place annotation at viewport center
+      const canvasCenter = reactFlowInstance.screenToFlowPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      });
+
+      const newNode = {
+        id: `annotation-${Date.now()}-${annotationCountRef.current}`,
+        type: 'annotation',
+        position: { x: canvasCenter.x, y: canvasCenter.y - 100 },
+        data: { emoji, label: emoji },
+        draggable: true,
+        selectable: true,
+      };
+
+      const currentNodes = useWorkflowStore.getState().nodes;
+      setNodes([...currentNodes, newNode]);
+    };
+    window.addEventListener('canvas:add-annotation', handler);
+    return () => window.removeEventListener('canvas:add-annotation', handler);
+  }, [reactFlowInstance, setNodes]);
+
+  // ── Listen for annotation delete events ────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { nodeId } = (e as CustomEvent).detail as { nodeId: string };
+      const currentNodes = useWorkflowStore.getState().nodes;
+      setNodes(currentNodes.filter((n) => n.id !== nodeId));
+    };
+    window.addEventListener('canvas:delete-annotation', handler);
+    return () => window.removeEventListener('canvas:delete-annotation', handler);
+  }, [setNodes]);
+
+  // ── Compute React Flow props based on active tool ──────────────────────────
+  const isSelectMode = canvasTool === 'select';
+
   return (
-    <div className="workflow-canvas relative h-full w-full bg-background bg-grid-pattern-canvas" style={{ touchAction: 'none' }}>
+    <div
+      className={`workflow-canvas relative h-full w-full bg-background bg-grid-pattern-canvas ${
+        isSelectMode ? 'cursor-crosshair' : ''
+      }`}
+      style={{ touchAction: 'none' }}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -133,9 +228,15 @@ export default function WorkflowCanvas() {
         defaultEdgeOptions={defaultEdgeOptions}
         fitView
         fitViewOptions={fitViewOptions}
+        // Interaction mode:
+        //   select: panOnDrag=false, selectionOnDrag=true, nodesDraggable=true
+        //   pan:    panOnDrag=true, selectionOnDrag=false, nodesDraggable=true
         panOnScroll={false}
         zoomOnPinch
-        panOnDrag
+        panOnDrag={!isSelectMode}
+        nodesDraggable
+        selectionOnDrag={isSelectMode}
+        selectionMode={isSelectMode ? SelectionMode.Partial : SelectionMode.Full}
         nodeDragThreshold={4}
         minZoom={0.2}
         maxZoom={2}
@@ -161,6 +262,27 @@ export default function WorkflowCanvas() {
         nodeId={selectedNodeId}
         nodeData={selectedNodeData}
       />
+
+      {/* Canvas modal for edit/upload messages */}
+      {modal && (
+        <CanvasModal
+          title={modal.title}
+          message={modal.message}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * WorkflowCanvas with ReactFlowProvider wrapper.
+ * Required so useReactFlow() hook works inside.
+ */
+export default function WorkflowCanvas() {
+  return (
+    <ReactFlowProvider>
+      <WorkflowCanvasInner />
+    </ReactFlowProvider>
   );
 }
