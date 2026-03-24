@@ -81,7 +81,7 @@ export function useActionExecutor() {
                 : { x: calcSafeX(nodes, anchorX), y: anchorY };
 
               const newNode: Node = {
-                id: `ai-node-${Date.now().toString(36)}`,
+                id: `ai-node-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
                 type: 'ai_step',
                 position: finalPos,
                 data: {

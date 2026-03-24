@@ -154,7 +154,7 @@ export default function RightPanelContent() {
 
               return (
                 <button
-                  key={node.id}
+                  key={`${node.id}-${index}`}
                   type="button"
                   onClick={() => setSelectedNodeId(node.id)}
                   className={`group w-full rounded-xl px-4 py-3 text-left transition-all ${

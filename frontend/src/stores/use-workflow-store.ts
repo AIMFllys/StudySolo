@@ -61,6 +61,13 @@ function resolveSelectedNodeId(nodes: Node[], selectedNodeId: string | null) {
   return nodes[0]?.id ?? null;
 }
 
+/** Deduplicate nodes by id — React Flow MiniMap uses node.id as key internally */
+function deduplicateNodes(nodes: Node[]): Node[] {
+  const seen = new Map<string, Node>();
+  for (const node of nodes) seen.set(node.id, node);
+  return seen.size === nodes.length ? nodes : [...seen.values()];
+}
+
 /** Auto-assign branch label when source is logic_switch */
 function buildEdgeData(
   sourceId: string,
@@ -132,11 +139,14 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
     }),
 
   setNodes: (nodes) =>
-    set((state) => ({
-      nodes,
-      selectedNodeId: resolveSelectedNodeId(nodes, state.selectedNodeId),
-      isDirty: true,
-    })),
+    set((state) => {
+      const deduped = deduplicateNodes(nodes);
+      return {
+        nodes: deduped,
+        selectedNodeId: resolveSelectedNodeId(deduped, state.selectedNodeId),
+        isDirty: true,
+      };
+    }),
 
   setEdges: (edges) => set({ edges, isDirty: true }),
 
@@ -258,12 +268,15 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
     set((state) => (state.selectedNodeId === selectedNodeId ? state : { selectedNodeId })),
 
   replaceWorkflowGraph: (nodes, edges) =>
-    set((state) => ({
-      nodes,
-      edges,
-      selectedNodeId: resolveSelectedNodeId(nodes, state.selectedNodeId),
-      isDirty: true,
-    })),
+    set((state) => {
+      const deduped = deduplicateNodes(nodes);
+      return {
+        nodes: deduped,
+        edges,
+        selectedNodeId: resolveSelectedNodeId(deduped, state.selectedNodeId),
+        isDirty: true,
+      };
+    }),
 
   setGenerationContext: (lastPrompt, lastImplicitContext) =>
     set({
@@ -271,10 +284,11 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
       lastImplicitContext,
     }),
 
-  setCurrentWorkflow: (id, nodes, edges, dirty = false) =>
+  setCurrentWorkflow: (id, nodes, edges, dirty = false) => {
+    const deduped = deduplicateNodes(nodes);
     set({
       currentWorkflowId: id,
-      nodes,
+      nodes: deduped,
       edges: edges.map((e) => ({
         ...e,
         type: 'sequential' as const,
@@ -282,9 +296,10 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
         targetHandle: (e as { targetHandle?: string }).targetHandle || 'target-left',
         data: (e as { data?: Record<string, unknown> }).data || {},
       })),
-      selectedNodeId: resolveSelectedNodeId(nodes, null),
+      selectedNodeId: resolveSelectedNodeId(deduped, null),
       isDirty: dirty,
-    }),
+    });
+  },
 
   markClean: () => set({ isDirty: false }),
 }));
