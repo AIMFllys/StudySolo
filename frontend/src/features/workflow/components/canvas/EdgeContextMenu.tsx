@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { Pencil, ArrowLeftRight, Trash2 } from 'lucide-react';
+import { Pencil, ArrowLeftRight, Trash2, Timer, GitBranch } from 'lucide-react';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 
 interface EdgeContextMenuProps {
@@ -36,22 +36,61 @@ export default function EdgeContextMenu({ x, y, edgeId, onClose }: EdgeContextMe
     return useWorkflowStore.getState().edges.find((e) => e.id === edgeId);
   }, [edgeId]);
 
+  /** 是否为 logic_switch 出发的分支线 */
+  const isBranchEdge = useCallback(() => {
+    const edge = getEdge();
+    if (!edge) return false;
+    const sourceNode = useWorkflowStore.getState().nodes.find((n) => n.id === edge.source);
+    const sourceType = (sourceNode?.data as Record<string, unknown>)?.type ?? sourceNode?.type;
+    return sourceType === 'logic_switch';
+  }, [getEdge]);
+
   const handleEditNote = useCallback(() => {
     const edge = getEdge();
     if (!edge) return;
-    const currentNote = ((edge.data as Record<string, unknown>)?.note as string) || '';
-    const newNote = prompt('编辑备注:', currentNote);
-    if (newNote !== null) {
-      const edges = useWorkflowStore.getState().edges;
-      useWorkflowStore.getState().takeSnapshot();
-      useWorkflowStore.getState().setEdges(
-        edges.map((e) =>
-          e.id === edgeId
-            ? { ...e, data: { ...((e.data || {}) as Record<string, unknown>), note: newNote } }
-            : e
-        )
-      );
+    const edgeData = (edge.data || {}) as Record<string, unknown>;
+
+    if (isBranchEdge()) {
+      const current = (edgeData.branch as string) || '';
+      const newVal = prompt('编辑分支标签:', current);
+      if (newVal !== null) {
+        useWorkflowStore.getState().takeSnapshot();
+        useWorkflowStore.getState().setEdges(
+          useWorkflowStore.getState().edges.map((e) =>
+            e.id === edgeId ? { ...e, data: { ...edgeData, branch: newVal } } : e
+          )
+        );
+      }
+    } else {
+      const current = (edgeData.note as string) || '';
+      const newVal = prompt('编辑备注:', current);
+      if (newVal !== null) {
+        useWorkflowStore.getState().takeSnapshot();
+        useWorkflowStore.getState().setEdges(
+          useWorkflowStore.getState().edges.map((e) =>
+            e.id === edgeId ? { ...e, data: { ...edgeData, note: newVal } } : e
+          )
+        );
+      }
     }
+    onClose();
+  }, [edgeId, getEdge, isBranchEdge, onClose]);
+
+  const handleSetWait = useCallback(() => {
+    const edge = getEdge();
+    if (!edge) return;
+    const edgeData = (edge.data || {}) as Record<string, unknown>;
+    const current = (edgeData.waitSeconds as number) || 0;
+    const input = prompt('等待时间 (秒, 0~300):', String(current));
+    if (input === null) { onClose(); return; }
+
+    const seconds = Math.max(0, Math.min(300, parseFloat(input) || 0));
+    useWorkflowStore.getState().takeSnapshot();
+    useWorkflowStore.getState().setEdges(
+      useWorkflowStore.getState().edges.map((e) =>
+        e.id === edgeId ? { ...e, data: { ...edgeData, waitSeconds: seconds } } : e
+      )
+    );
     onClose();
   }, [edgeId, getEdge, onClose]);
 
@@ -87,6 +126,8 @@ export default function EdgeContextMenu({ x, y, edgeId, onClose }: EdgeContextMe
     onClose();
   }, [edgeId, onClose]);
 
+  const branchMode = isBranchEdge();
+
   return (
     <div
       ref={menuRef}
@@ -98,12 +139,24 @@ export default function EdgeContextMenu({ x, y, edgeId, onClose }: EdgeContextMe
         zIndex: 1000,
       }}
     >
-      {/* Edit note */}
+      {/* Edit note / branch label */}
       <button className="canvas-context-menu-item" onClick={handleEditNote}>
-        <Pencil size={13} className="canvas-context-menu-icon" />
-        <span>编辑备注</span>
+        {branchMode ? (
+          <GitBranch size={13} className="canvas-context-menu-icon" />
+        ) : (
+          <Pencil size={13} className="canvas-context-menu-icon" />
+        )}
+        <span>{branchMode ? '编辑分支标签' : '编辑备注'}</span>
         <span className="canvas-context-menu-shortcut">双击</span>
       </button>
+
+      {/* Set wait time (only for non-branch edges) */}
+      {!branchMode && (
+        <button className="canvas-context-menu-item" onClick={handleSetWait}>
+          <Timer size={13} className="canvas-context-menu-icon" />
+          <span>设置等待时间</span>
+        </button>
+      )}
 
       <div className="canvas-context-menu-divider" />
 

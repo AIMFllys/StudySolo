@@ -1799,6 +1799,17 @@
   padding: 0;
 }
 
+.edge-label-wait {
+  font-size: 9px;
+  color: #d97706;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.light .edge-label-wait {
+  color: #b45309;
+}
+
 /* ─── Loop Group Node ─── */
 .loop-group-container {
   width: 100%;

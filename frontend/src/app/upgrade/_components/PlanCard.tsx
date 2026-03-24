@@ -110,7 +110,7 @@ export default function PlanCard({ plan, cycle, region }: PlanCardProps) {
       {plan.badge && plan.badge.variant === 'red' && (
         <div className="absolute -top-3 right-4 bg-[#9b2c2c] text-white text-[9px] font-mono font-bold px-2 py-0.5 tracking-tighter uppercase flex items-center gap-1 z-10">
           <Sparkles className="w-2.5 h-2.5" />
-          {region === 'domestic' ? plan.badge.text : 'New user: $0.5 first month'}
+          {region === 'domestic' ? plan.badge.text : (plan.badge.textOverseas || plan.badge.text)}
         </div>
       )}
       {plan.badge && plan.badge.variant === 'blue' && (

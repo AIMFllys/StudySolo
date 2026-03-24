@@ -34,6 +34,7 @@ import CanvasMiniMap from '@/features/workflow/components/canvas/CanvasMiniMap';
 import CanvasContextMenu, { buildCanvasMenuItems } from '@/features/workflow/components/canvas/CanvasContextMenu';
 import NodeContextMenu, { buildNodeMenuGroups } from '@/features/workflow/components/canvas/NodeContextMenu';
 import EdgeContextMenu from '@/features/workflow/components/canvas/EdgeContextMenu';
+import { useLoopGroupDrop } from '@/features/workflow/hooks/use-loop-group-drop';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import type { AIStepNodeData } from '@/types';
 
@@ -126,6 +127,7 @@ function WorkflowCanvasInner() {
   const [placementMode, setPlacementMode] = useState<string | null>(null);
   const reactFlowInstance = useReactFlow();
   const annotationCountRef = useRef(0);
+  const handleNodeDragStop = useLoopGroupDrop();
 
   // ── Context menu state ────────────────────────────────────────────────────
   const [canvasMenu, setCanvasMenu] = useState<{ x: number; y: number } | null>(null);
@@ -602,6 +604,7 @@ function WorkflowCanvasInner() {
         onNodeDragStart={() => {
           useWorkflowStore.getState().takeSnapshot();
         }}
+        onNodeDragStop={handleNodeDragStop}
         // Interaction mode:
         //   select: panOnDrag=false, selectionOnDrag=true, nodesDraggable=true
         //   pan:    panOnDrag=true, selectionOnDrag=false, nodesDraggable=true

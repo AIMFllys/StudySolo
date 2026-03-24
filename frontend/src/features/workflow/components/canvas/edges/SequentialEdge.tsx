@@ -31,6 +31,7 @@ function SequentialEdge({
   const edgeData = data as Record<string, unknown> | undefined;
   const note = (edgeData?.note as string) || '';
   const branch = edgeData?.branch as string | undefined;
+  const waitSeconds = (edgeData?.waitSeconds as number) || 0;
 
   // Check if source is a logic_switch node for branch-style rendering
   const sourceNodeType = useWorkflowStore(
@@ -90,15 +91,16 @@ function SequentialEdge({
       setIsEditing(false);
       const store = useWorkflowStore.getState();
       store.takeSnapshot();
+      const field = isBranchEdge ? 'branch' : 'note';
       store.setEdges(
         store.edges.map((e) =>
           e.id === id
-            ? { ...e, data: { ...((e.data || {}) as Record<string, unknown>), note: value } }
+            ? { ...e, data: { ...((e.data || {}) as Record<string, unknown>), [field]: value } }
             : e
         )
       );
     },
-    [id]
+    [id, isBranchEdge]
   );
 
   // Auto-focus input when editing starts
@@ -111,7 +113,8 @@ function SequentialEdge({
 
   // Display text: branch label for logic_switch, note for others
   const displayText = isBranchEdge ? (branch || '默认') : note;
-  const showLabel = displayText || isEditing;
+  const hasWaitBadge = !isBranchEdge && waitSeconds > 0;
+  const showLabel = displayText || isEditing || hasWaitBadge;
 
   return (
     <>
@@ -179,7 +182,12 @@ function SequentialEdge({
                 }}
               />
             ) : (
-              <span className="text-[10px]">{displayText}</span>
+              <span className="text-[10px] flex items-center gap-1">
+                {displayText}
+                {hasWaitBadge && (
+                  <span className="edge-label-wait">⏱ {waitSeconds}s</span>
+                )}
+              </span>
             )}
           </div>
         </EdgeLabelRenderer>

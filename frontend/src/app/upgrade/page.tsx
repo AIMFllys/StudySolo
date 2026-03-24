@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { TIER_PLANS, type PaymentRegion, type BillingCycle } from './_data/plans';
+import UpgradeHeader from './_components/UpgradeHeader';
 import StudentVerification from './_components/StudentVerification';
 import PaymentToggles from './_components/PaymentToggles';
 import PlanCard from './_components/PlanCard';
 import AddonsSection from './_components/AddonsSection';
 import ComparisonTable from './_components/ComparisonTable';
-import ContactFooter from './_components/ContactFooter';
+import RedeemCodeSection from './_components/RedeemCodeSection';
+import UpgradeFooter from './_components/UpgradeFooter';
 import './upgrade.css';
 
 export default function SubscriptionPage() {
@@ -16,7 +18,11 @@ export default function SubscriptionPage() {
 
   return (
     <div className="graph-paper-bg text-[#1a202c] min-h-screen flex flex-col selection:bg-[#2c5282]/10 selection:text-[#2c5282]">
-      <main className="flex-1 relative z-10 flex flex-col items-center py-16 px-4 w-full">
+
+      {/* ── Header: banner + nav ── */}
+      <UpgradeHeader />
+
+      <main className="flex-1 relative z-10 flex flex-col items-center py-12 px-4 w-full">
 
         {/* ── Hero ── */}
         <div className="text-center max-w-3xl mx-auto mb-12">
@@ -57,10 +63,13 @@ export default function SubscriptionPage() {
         {/* ── Comparison Table ── */}
         <ComparisonTable />
 
-        {/* ── Contact Footer ── */}
-        <ContactFooter />
+        {/* ── Redeem Code ── */}
+        <RedeemCodeSection />
 
       </main>
+
+      {/* ── Footer ── */}
+      <UpgradeFooter />
     </div>
   );
 }
