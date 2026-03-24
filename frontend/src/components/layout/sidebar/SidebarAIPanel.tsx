@@ -216,8 +216,8 @@ export function SidebarAIPanel() {
             </button>
 
             {showHistoryDropdown && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-border/60 bg-background/95 p-1.5 shadow-lg backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border-[1.5px] border-border/50 node-paper-bg p-1.5 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80 font-serif">
                   最近对话
                 </div>
                 {conversations.length === 0 ? (
@@ -271,7 +271,7 @@ export function SidebarAIPanel() {
             </button>
 
             {showMoreMenu && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-xl border border-border/60 bg-background/95 p-1 shadow-lg backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-xl border-[1.5px] border-border/50 node-paper-bg p-1 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
                 <button
                   type="button"
                   onClick={handleClearHistory}
@@ -293,12 +293,12 @@ export function SidebarAIPanel() {
           /* ─── Empty State ─── */
           <div className="flex h-full flex-col items-center justify-center px-6 text-center">
             <div className="relative mb-5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl border-[1.5px] border-border/50 bg-background/50 shadow-sm">
+              <div className="node-paper-bg flex h-12 w-12 items-center justify-center rounded-xl border-[1.5px] border-border/50 shadow-sm">
                 <Sparkles className="h-5 w-5 text-primary stroke-[1.5]" />
               </div>
             </div>
-            <h3 className="text-[13px] font-semibold text-foreground/90 font-serif">准备就绪</h3>
-            <p className="mt-1.5 max-w-[200px] text-[11px] leading-relaxed text-muted-foreground/60">
+            <h3 className="text-[13px] font-bold text-foreground/90 font-serif">准备就绪</h3>
+            <p className="mt-1.5 max-w-[200px] text-[11px] leading-relaxed text-muted-foreground/80 font-serif">
               描述你的学习或工作目标，我将为你构建专属工作流。
             </p>
             {lastPrompt ? (
@@ -321,10 +321,10 @@ export function SidebarAIPanel() {
                 }`}
               >
                 <div
-                  className={`rounded-xl border-[1.5px] px-3.5 py-2.5 text-[13px] leading-relaxed shadow-sm ${
+                  className={`node-paper-bg rounded-xl border-[1.5px] px-3.5 py-2.5 text-[13px] leading-relaxed shadow-sm font-serif ${
                     entry.role === 'user'
-                      ? 'border-primary/20 bg-primary/5 text-foreground'
-                      : 'border-border/50 bg-background/50 text-foreground'
+                      ? 'border-primary/30 text-foreground/90'
+                      : 'border-border/50 text-foreground/90'
                   }`}
                 >
                   {entry.content}
@@ -359,12 +359,12 @@ export function SidebarAIPanel() {
         ) : null}
 
         {/* Unified Input Box (Replicating Reference Design) */}
-        <div className="flex flex-col rounded-xl border-[1.5px] border-border/50 bg-background/50 shadow-sm focus-within:border-primary/30 focus-within:shadow-md focus-within:bg-background/80 transition-all">
+        <div className="node-paper-bg flex flex-col rounded-xl border-[1.5px] border-border/50 shadow-sm focus-within:border-primary/40 focus-within:shadow-md transition-all">
           
           <textarea
             ref={textareaRef}
-            className="min-h-[40px] max-h-[120px] w-full resize-none bg-transparent px-3.5 py-3 text-[13px] text-foreground/90 placeholder:text-muted-foreground/40 focus:outline-none"
-            placeholder="可以发送消息..."
+            className="min-h-[40px] max-h-[120px] w-full resize-none bg-transparent px-3.5 py-3 text-[13px] text-foreground/90 placeholder:text-muted-foreground/50 focus:outline-none font-serif"
+            placeholder="描述你需要的工作流..."
             value={input}
             onChange={handleTextareaChange}
             onKeyDown={(e) => {
@@ -399,9 +399,9 @@ export function SidebarAIPanel() {
                 </button>
 
                 {showThinkingPicker && (
-                  <div className="absolute bottom-full left-0 z-50 mb-2 w-40 rounded-[10px] border border-border/60 bg-background p-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    <div className="px-2 pb-1.5 pt-1 text-[11px] text-muted-foreground font-medium">思考深度</div>
-                    <div className="mx-1 mb-1 border-t border-border/40" />
+                  <div className="node-paper-bg absolute bottom-full left-0 z-50 mb-2 w-40 rounded-[10px] border-[1.5px] border-border/50 p-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="px-2 pb-1.5 pt-1 text-[11px] text-muted-foreground font-serif font-bold">思考深度</div>
+                    <div className="mx-1 mb-1 border-t border-dashed border-border/40" />
                     {THINKING_LEVELS.map((level) => (
                       <button
                         key={level.value}
@@ -432,9 +432,9 @@ export function SidebarAIPanel() {
                 </button>
 
                 {showComplexityPicker && (
-                  <div className="absolute bottom-full left-0 z-50 mb-2 w-44 rounded-[10px] border border-border/60 bg-background p-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    <div className="px-2 pb-1.5 pt-1 text-[11px] text-muted-foreground font-medium">节点复杂度</div>
-                    <div className="mx-1 mb-1 border-t border-border/40" />
+                  <div className="node-paper-bg absolute bottom-full left-0 z-50 mb-2 w-44 rounded-[10px] border-[1.5px] border-border/50 p-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="px-2 pb-1.5 pt-1 text-[11px] text-muted-foreground font-serif font-bold">节点复杂度</div>
+                    <div className="mx-1 mb-1 border-t border-dashed border-border/40" />
                     {COMPLEXITY_LEVELS.map((level) => (
                       <button
                         key={level.value}

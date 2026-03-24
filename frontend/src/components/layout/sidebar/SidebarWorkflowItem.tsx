@@ -21,7 +21,7 @@ export function SidebarWorkflowItem({
       onContextMenu={(event) => onContextMenu(event, workflow.id)}
       className={`group relative mx-2 my-1 flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 border-[1.5px] ${
         active
-          ? 'bg-primary/5 border-primary/20 text-primary shadow-sm'
+          ? 'node-paper-bg border-primary/30 text-primary shadow-sm'
           : 'border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground'
       }`}
     >

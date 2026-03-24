@@ -48,10 +48,10 @@ export default function SettingsPanel() {
               <button
                 key={opt.value}
                 onClick={() => handleChange('外观模式', () => setTheme(opt.value as ThemeMode))}
-                className={`flex flex-1 flex-col items-center gap-1.5 rounded-lg border-[1.5px] px-1.5 py-2 text-[10px] font-medium transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+                className={`node-paper-bg flex flex-1 flex-col items-center gap-1.5 rounded-lg border-[1.5px] px-1.5 py-2 text-[10px] font-medium transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
                   theme === opt.value
-                    ? 'border-primary/30 bg-primary/5 text-primary'
-                    : 'border-border/50 bg-background/50 text-muted-foreground hover:border-border/80 hover:bg-muted/30 hover:text-foreground'
+                    ? 'border-primary/40 text-primary scale-[1.02] ring-2 ring-primary/10'
+                    : 'border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground'
                 }`}
               >
                 <opt.icon className={`h-4 w-4 stroke-[1.5] ${theme === opt.value ? 'text-primary' : ''}`} />
@@ -71,7 +71,7 @@ export default function SettingsPanel() {
                 className="group flex flex-col items-center gap-1"
               >
                 <div
-                  className={`h-7 w-7 rounded-full border-[1.5px] transition-all shadow-sm ${
+                  className={`node-paper-bg h-7 w-7 rounded-full border-[1.5px] transition-all shadow-sm ${
                     accentColor === opt.value ? 'scale-110 border-primary/50 ring-2 ring-primary/20 ring-offset-1 ring-offset-background' : 'border-border/50 hover:scale-105 hover:shadow-md'
                   }`}
                   style={{
@@ -88,15 +88,15 @@ export default function SettingsPanel() {
 
         {/* Font size */}
         <Section title="字体大小">
-          <div className="flex gap-1.5 rounded-lg border-[1.5px] border-border/50 bg-background/50 p-1 shadow-sm">
+          <div className="node-paper-bg flex gap-1.5 rounded-lg border-[1.5px] border-border/50 p-1 shadow-sm">
             {FONT_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => handleChange('字体大小', () => setFontSize(opt.value as FontSize))}
-                className={`flex-1 rounded-md py-1.5 text-[10px] font-medium transition-colors ${
+                className={`flex-1 rounded-md py-1.5 text-[10px] transition-all ${
                   fontSize === opt.value
-                    ? 'bg-primary/10 text-primary border-[1.5px] border-primary/20 shadow-sm'
-                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-[1.5px] border-transparent'
+                    ? 'font-bold bg-primary/10 text-primary border-[1.5px] border-primary/30 shadow-sm'
+                    : 'font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground border-[1.5px] border-transparent'
                 }`}
               >
                 {opt.label}
@@ -124,10 +124,10 @@ export default function SettingsPanel() {
               <button
                 key={opt.value}
                 onClick={() => handleChange('菜单栏位置', () => setSidebarPosition(opt.value))}
-                className={`flex flex-1 flex-col items-center gap-1.5 rounded-lg border-[1.5px] px-1.5 py-2 text-[10px] font-medium transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
+                className={`node-paper-bg flex flex-1 flex-col items-center gap-1.5 rounded-lg border-[1.5px] px-1.5 py-2 text-[10px] font-medium transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
                   sidebarPosition === opt.value
-                    ? 'border-primary/30 bg-primary/5 text-primary'
-                    : 'border-border/50 bg-background/50 text-muted-foreground hover:border-border/80 hover:bg-muted/30 hover:text-foreground'
+                    ? 'border-primary/40 text-primary scale-[1.02] ring-2 ring-primary/10'
+                    : 'border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground'
                 }`}
               >
                 <opt.icon className={`h-4 w-4 stroke-[1.5] ${sidebarPosition === opt.value ? 'text-primary' : ''}`} />
@@ -174,12 +174,12 @@ function Toggle({
     >
       {label}
       <div
-        className={`relative h-[22px] w-[38px] rounded-full border-[1.5px] transition-colors shadow-sm ${
-          checked ? 'border-primary/40 bg-primary/10' : 'border-border/60 bg-background/50'
+        className={`node-paper-bg relative h-[22px] w-[38px] rounded-full border-[1.5px] transition-all shadow-sm ${
+          checked ? 'border-primary/40' : 'border-border/60'
         }`}
       >
         <div
-          className={`absolute top-[2px] h-[14px] w-[14px] rounded-full border-[1.5px] bg-background shadow-sm transition-transform ${
+          className={`absolute top-[1.5px] h-[15px] w-[15px] rounded-full border-[1.5px] bg-background shadow-sm transition-transform ${
             checked ? 'translate-x-[18px] border-primary' : 'translate-x-[2px] border-border/60'
           }`}
         />

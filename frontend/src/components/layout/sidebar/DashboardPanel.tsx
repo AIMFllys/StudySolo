@@ -27,7 +27,7 @@ function StatCard({
   subtext?: string;
 }) {
   return (
-    <div className="rounded-xl border-[1.5px] border-border/50 bg-background/50 p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="node-paper-bg rounded-xl border-[1.5px] border-border/50 p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
           <Icon className="h-3.5 w-3.5 stroke-[1.5]" />
@@ -57,7 +57,7 @@ function StatCard({
 function UsageBar({ used, total, label }: { used: number; total: number; label: string }) {
   const pct = Math.min(100, (used / total) * 100);
   return (
-    <div className="rounded-xl border-[1.5px] border-border/50 bg-background/50 p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="node-paper-bg rounded-xl border-[1.5px] border-border/50 p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex items-center justify-between font-medium tracking-wide uppercase text-[10px] text-muted-foreground">
         <span>{label}</span>
         <span>{pct.toFixed(1)}%</span>

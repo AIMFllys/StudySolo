@@ -50,7 +50,7 @@ export default function WorkflowExamplesPanel() {
             <button
               key={example.id}
               type="button"
-              className="group flex w-full flex-col gap-1.5 rounded-xl border-[1.5px] border-border/50 bg-background/50 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all p-3 text-left"
+              className="node-paper-bg group flex w-full flex-col gap-1.5 rounded-xl border-[1.5px] border-border/50 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all p-3 text-left"
             >
               <div className="flex items-start justify-between gap-2 w-full">
                 <div className="flex items-center gap-2">

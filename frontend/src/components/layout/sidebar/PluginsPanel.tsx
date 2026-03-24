@@ -49,11 +49,11 @@ export default function PluginsPanel() {
           {MOCK_PLUGINS.map((plugin) => (
             <div
               key={plugin.id}
-              className="rounded-xl border-[1.5px] border-border/50 bg-background/50 p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+              className="node-paper-bg rounded-xl border-[1.5px] border-border/50 p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-[1.5px] border-border/60 bg-muted/40 text-muted-foreground shadow-sm">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-[1.5px] border-border/60 bg-background text-muted-foreground shadow-sm">
                     <Puzzle className="h-3.5 w-3.5 stroke-[1.5]" />
                   </div>
                   <div className="min-w-0">

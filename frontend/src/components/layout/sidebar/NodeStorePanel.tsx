@@ -88,7 +88,7 @@ function NodeTooltip({
   return createPortal(
     <div
       style={style}
-      className="animate-in fade-in slide-in-from-left-1 duration-150 rounded-xl border border-border bg-background/98 p-3 shadow-lg backdrop-blur-sm"
+      className="node-paper-bg animate-in fade-in slide-in-from-left-1 duration-150 rounded-xl border border-border p-3 shadow-lg backdrop-blur-sm"
     >
       <div className="mb-2 flex items-center gap-2">
         <div
@@ -141,12 +141,12 @@ function TagFilterBar({ selectedCategoryId, onSelect }: TagFilterBarProps) {
               onClick={() => onSelect(tag.id)}
               className={`relative overflow-hidden inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors border ${
                 isActive
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                  ? 'node-paper-bg text-primary border-primary/30 shadow-sm'
                   : 'bg-muted/60 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground'
               }`}
             >
               <div className="tag-paper-texture absolute inset-0 z-0 pointer-events-none opacity-60" />
-              <tag.icon className={`relative z-10 w-[14px] h-[14px] ${isActive ? 'text-primary-foreground' : 'text-slate-500'}`} />
+              <tag.icon className={`relative z-10 w-[14px] h-[14px] ${isActive ? 'text-primary' : 'text-slate-500'}`} />
               <span className="relative z-10 hidden sm:inline">{tag.id === ALL_TAG ? '全部' : tag.label.split(' ')[0]}</span>
             </button>
           );

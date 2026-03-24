@@ -43,11 +43,11 @@ const getTierBorder = (tier: string) => {
 
 const getTierCardStyle = (tier: string) => {
   switch(tier) {
-    case 'Free': return 'bg-background border-border/50 text-foreground';
-    case 'Pro': return 'bg-slate-50/50 dark:bg-slate-900/30 border-slate-200/60 dark:border-slate-800 text-foreground';
-    case 'Plus': return 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-950 dark:text-emerald-50';
-    case 'Ultra': return 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/40 text-amber-950 dark:text-amber-50';
-    default: return 'bg-background border-border/50 text-foreground';
+    case 'Free': return 'node-paper-bg border-border/50 text-foreground';
+    case 'Pro': return 'node-paper-bg border-slate-300 dark:border-slate-800 text-foreground';
+    case 'Plus': return 'node-paper-bg border-emerald-300 dark:border-emerald-900/40 text-emerald-950 dark:text-emerald-50';
+    case 'Ultra': return 'node-paper-bg border-amber-300 dark:border-amber-900/40 text-amber-950 dark:text-amber-50';
+    default: return 'node-paper-bg border-border/50 text-foreground';
   }
 }
 
@@ -88,7 +88,7 @@ function InternalApiKeyDisplay() {
   const toggleReveal = useCallback(() => setRevealed((v) => !v), []);
 
   return (
-    <div className="relative mt-2 overflow-hidden rounded-lg border-[1.5px] border-dashed border-border/60 bg-white/40 dark:bg-black/20 text-foreground font-mono text-[11px]">
+    <div className="relative mt-2 overflow-hidden rounded-lg border-[1.5px] border-dashed border-border/60 node-paper-bg text-foreground font-mono text-[11px]">
       <div className="flex items-center justify-between border-b border-dashed border-border/40 px-2.5 py-2 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
         <div className="flex items-center gap-1.5">
           <BrainCircuit className="h-3.5 w-3.5 text-primary opacity-80" />
@@ -135,7 +135,7 @@ export default function WalletPanel() {
             className={`relative flex flex-col rounded-xl border-[1.5px] p-4 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 shadow-sm hover:shadow-md group ${getTierCardStyle(USER_TIER)}`}
           >
             <div className="flex items-center gap-3 relative z-10">
-              <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center bg-background rounded-xl border-[1.5px] border-dashed ${getTierBorder(USER_TIER)}`}>
+              <div className={`node-paper-bg relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed ${getTierBorder(USER_TIER)}`}>
                 <User className="h-4.5 w-4.5 stroke-[1.5]" />
                 {/* 排名指示点 - 手绘墨点感 */}
                 <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-[1.5px] border-background bg-current" />
@@ -161,7 +161,7 @@ export default function WalletPanel() {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); /* 充值逻辑 */ }}
-                className="rounded-lg text-[11px] font-mono font-medium tracking-wide px-3 py-1.5 border-[1.5px] border-current/30 shadow-sm hover:-translate-y-0.5 hover:shadow transition-all bg-background text-foreground"
+                className="node-paper-bg rounded-lg text-[11px] font-mono font-medium tracking-wide px-3 py-1.5 border-[1.5px] border-current/30 shadow-sm hover:-translate-y-0.5 hover:shadow hover:border-current/50 transition-all text-foreground"
               >
                 前往充值
               </button>
@@ -191,7 +191,7 @@ export default function WalletPanel() {
             </span>
           </div>
           
-          <div className="border-[1.5px] border-border/50 bg-background/50 rounded-xl overflow-hidden shadow-sm">
+          <div className="node-paper-bg border-[1.5px] border-border/50 rounded-xl overflow-hidden shadow-sm">
             {EXTERNAL_PROVIDERS.map((item, idx) => (
               <ExternalApiItem key={idx} item={item} />
             ))}
@@ -235,7 +235,7 @@ export default function WalletPanel() {
           <p className="text-[11px] text-muted-foreground leading-relaxed px-1 font-serif mt-2">
             集成 Model Context Protocol (MCP) 以扩展节点执行能力，支持接入外部本地数据与系统级 API。
           </p>
-          <div className="relative mt-2 overflow-hidden rounded-xl border-[1.5px] border-border/50 bg-background/50 shadow-sm font-mono text-[11px]">
+          <div className="node-paper-bg relative mt-2 overflow-hidden rounded-xl border-[1.5px] border-border/50 shadow-sm font-mono text-[11px]">
             <div className="flex items-center justify-between px-2.5 py-3 border-b border-dashed border-border/50">
                <span className="font-semibold text-foreground text-xs">本地 MCP 服务器</span>
                <button className="flex h-6 items-center justify-center rounded-md border-[1.5px] border-border/60 bg-muted/50 px-3 text-[10px] font-medium text-foreground shadow-sm hover:-translate-y-0.5 hover:shadow transition-all active:scale-95">
