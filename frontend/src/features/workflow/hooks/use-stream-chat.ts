@@ -5,13 +5,14 @@
  *
  * 对 /api/ai/chat-stream 端点使用 ReadableStream 解析 SSE token,
  * 实时 append 到 message content 生成流式打字效果。
- * 支持中止 (AbortController)。
+ * 支持中止 (AbortController) + 思考深度。
  */
 
 import { useState, useRef, useCallback } from 'react';
 import type { CanvasContext } from './use-canvas-context';
 import type { AIModelOption } from '@/features/workflow/constants/ai-models';
 import type { ChatEntry } from './use-conversation-store';
+import type { ThinkingDepth } from '@/components/layout/sidebar/SidebarAIPanel';
 
 export interface StreamChatOptions {
   userInput: string;
@@ -19,6 +20,7 @@ export interface StreamChatOptions {
   history: ChatEntry[];
   intentHint?: string | null;
   selectedModel: AIModelOption;
+  thinkingDepth?: ThinkingDepth;
   onToken: (token: string) => void;
   onDone: (fullText: string, intent: string) => void;
   onError: (err: string) => void;
@@ -31,7 +33,7 @@ export function useStreamChat() {
   const send = useCallback(async (opts: StreamChatOptions) => {
     const {
       userInput, canvasContext, history, intentHint,
-      selectedModel, onToken, onDone, onError,
+      selectedModel, thinkingDepth, onToken, onDone, onError,
     } = opts;
 
     abortRef.current?.abort();
@@ -62,6 +64,7 @@ export function useStreamChat() {
       intent_hint: intentHint,
       selected_model: selectedModel.model,
       selected_platform: selectedModel.platform,
+      thinking_level: thinkingDepth ?? 'balanced',
     };
 
     let fullText = '';
@@ -71,12 +74,12 @@ export function useStreamChat() {
       const res = await fetch('/api/ai/chat-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(body),
         signal: ctrl.signal,
       });
 
       if (!res.ok || !res.body) {
-        // Fallback: non-streaming
         const data = await res.json().catch(() => ({})) as { response?: string; intent?: string; detail?: string };
         if (data.detail) throw new Error(data.detail);
         fullText = data.response ?? '';
@@ -104,13 +107,13 @@ export function useStreamChat() {
             try {
               const parsed = JSON.parse(raw) as Record<string, unknown>;
               if (parsed.intent) intent = parsed.intent as string;
-              // MODIFY/BUILD: 单次完整 JSON event → 直接传递完整 payload
+              // MODIFY/BUILD: single JSON event
               if (parsed.done && (intent === 'MODIFY' || intent === 'BUILD')) {
                 fullText = JSON.stringify(parsed);
                 await reader.cancel();
                 break;
               }
-              // CHAT: 流式 token append
+              // CHAT: stream tokens
               if (parsed.token) {
                 fullText += parsed.token as string;
                 onToken(parsed.token as string);

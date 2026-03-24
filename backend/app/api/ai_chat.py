@@ -18,7 +18,7 @@ from app.models.ai_chat import (
     AIChatResponse,
     CanvasAction,
 )
-from app.prompts.ai_chat_prompts import (
+from app.prompts import (
     get_intent_system_prompt,
     get_modify_system_prompt,
     get_chat_system_prompt,

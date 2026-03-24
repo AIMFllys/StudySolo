@@ -52,6 +52,7 @@ class AIChatRequest(BaseModel):
     intent_hint: str | None = None
     selected_model: str | None = None
     selected_platform: str | None = None
+    thinking_level: Literal["fast", "balanced", "deep"] = "balanced"
 
 
 # ── Canvas Action ────────────────────────────────────────────────────

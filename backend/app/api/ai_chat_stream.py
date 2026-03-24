@@ -13,7 +13,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from app.core.deps import get_current_user
 from app.models.ai_chat import AIChatRequest
-from app.prompts.ai_chat_prompts import (
+from app.prompts import (
     get_intent_system_prompt,
     get_modify_system_prompt,
     get_chat_system_prompt,
@@ -24,11 +24,19 @@ from app.api.ai_chat import _build_canvas_summary, _call_with_model, _extract_js
 logger = logging.getLogger(__name__)
 stream_router = APIRouter()
 
+# 思考深度 → prompt 前缀
+_DEPTH_INSTRUCTIONS: dict[str, str] = {
+    "fast": "请快速简洁地回答, 不需要展开细节。",
+    "balanced": "请给出完整但有条理的回答。",
+    "deep": "请深入思考, 从多角度详细分析, 给出专业级回答。",
+}
+
 
 async def _chat_stream_generator(body: AIChatRequest):
     """SSE 事件生成器 — CHAT 意图流式, 其他意图单次 JSON。"""
     canvas_summary = _build_canvas_summary(body.canvas_context)
     has_canvas = bool(body.canvas_context and body.canvas_context.nodes)
+    depth_instruction = _DEPTH_INSTRUCTIONS.get(body.thinking_level, "")
 
     history_msgs = [
         {"role": m.role, "content": m.content}
@@ -68,8 +76,11 @@ async def _chat_stream_generator(body: AIChatRequest):
         return
 
     if intent == "MODIFY":
+        system_content = get_modify_system_prompt(canvas_summary)
+        if depth_instruction:
+            system_content = f"{depth_instruction}\n\n{system_content}"
         modify_msgs = [
-            {"role": "system", "content": get_modify_system_prompt(canvas_summary)},
+            {"role": "system", "content": system_content},
             *history_msgs,
             {"role": "user", "content": body.user_input},
         ]
@@ -100,18 +111,21 @@ async def _chat_stream_generator(body: AIChatRequest):
         return
 
     # ── CHAT: stream tokens ──────────────────────────────
+    system_content = get_chat_system_prompt(canvas_summary)
+    if depth_instruction:
+        system_content = f"{depth_instruction}\n\n{system_content}"
+
     chat_msgs = [
-        {"role": "system", "content": get_chat_system_prompt(canvas_summary)},
+        {"role": "system", "content": system_content},
         *history_msgs,
         {"role": "user", "content": body.user_input},
     ]
 
     try:
-        # First yield intent metadata
         yield {"data": json.dumps({"intent": "CHAT"}, ensure_ascii=False)}
 
-        # call_llm(stream=True) returns AsyncIterator[str] directly (NOT awaitable)
-        token_iter: AsyncIterator[str] = call_llm(
+        # call_llm is async def → must await even for stream=True
+        token_iter: AsyncIterator[str] = await call_llm(
             "chat_response", chat_msgs, stream=True,
         )
 
