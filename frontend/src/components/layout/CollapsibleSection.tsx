@@ -8,7 +8,6 @@ interface CollapsibleSectionProps {
   title: string;
   badge?: React.ReactNode;
   children: React.ReactNode;
-  defaultCollapsed?: boolean;
 }
 
 export function CollapsibleSection({ id, title, badge, children }: CollapsibleSectionProps) {

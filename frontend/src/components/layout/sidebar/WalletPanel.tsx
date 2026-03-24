@@ -53,7 +53,6 @@ const getTierCardStyle = (tier: string) => {
 
 /** -------- 子组件 -------- */
 function ExternalApiItem({ item }: { item: ApiKeyInfo }) {
-  const [, setConnecting] = useState(false);
   const Icon = item.connected ? CheckCircle2 : Plus;
 
   return (
@@ -69,7 +68,7 @@ function ExternalApiItem({ item }: { item: ApiKeyInfo }) {
         )}
       </div>
       <button
-        onClick={() => !item.connected && setConnecting(true)}
+        onClick={() => !item.connected && console.log('TODO: configure', item.provider)}
         className={`flex h-6 w-6 items-center justify-center rounded transition-all focus:outline-none focus:ring-1 focus:ring-primary ${
           item.connected 
             ? 'text-primary' 
@@ -136,7 +135,7 @@ export default function WalletPanel() {
           >
             <div className="flex items-center gap-3 relative z-10">
               <div className={`node-paper-bg relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed ${getTierBorder(USER_TIER)}`}>
-                <User className="h-4.5 w-4.5 stroke-[1.5]" />
+                <User className="h-[18px] w-[18px] stroke-[1.5]" />
                 {/* 排名指示点 - 手绘墨点感 */}
                 <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-[1.5px] border-background bg-current" />
               </div>
@@ -144,7 +143,7 @@ export default function WalletPanel() {
                 <span className="text-sm font-serif font-semibold opacity-90 tracking-wide">学习记录者</span>
                 <div className="flex items-center gap-1.5 font-mono text-[10px] mt-0.5 opacity-70">
                   <span className="uppercase">等级:</span>
-                  <span className="font-bold border border-current/20 px-1 py-0.5 rounded-sm line-height-none tracking-widest">{USER_TIER}</span>
+                  <span className="font-bold border border-current/20 px-1 py-0.5 rounded-sm leading-none tracking-widest">{USER_TIER}</span>
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-1 group-hover:opacity-100" />
@@ -193,7 +192,7 @@ export default function WalletPanel() {
           
           <div className="node-paper-bg border-[1.5px] border-border/50 rounded-xl overflow-hidden shadow-sm">
             {EXTERNAL_PROVIDERS.map((item, idx) => (
-              <ExternalApiItem key={idx} item={item} />
+              <ExternalApiItem key={item.provider} item={item} />
             ))}
           </div>
         </div>
@@ -238,7 +237,7 @@ export default function WalletPanel() {
           <div className="node-paper-bg relative mt-2 overflow-hidden rounded-xl border-[1.5px] border-border/50 shadow-sm font-mono text-[11px]">
             <div className="flex items-center justify-between px-2.5 py-3 border-b border-dashed border-border/50">
                <span className="font-semibold text-foreground text-xs">本地 MCP 服务器</span>
-               <button className="flex h-6 items-center justify-center rounded-md border-[1.5px] border-border/60 bg-muted/50 px-3 text-[10px] font-medium text-foreground shadow-sm hover:-translate-y-0.5 hover:shadow transition-all active:scale-95">
+               <button className="node-paper-bg flex h-6 items-center justify-center rounded-md border-[1.5px] border-border/60 px-3 text-[10px] font-medium text-foreground shadow-sm hover:-translate-y-0.5 hover:shadow transition-all active:scale-95">
                  配置
                </button>
             </div>

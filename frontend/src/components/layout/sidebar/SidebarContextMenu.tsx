@@ -27,7 +27,7 @@ export function SidebarContextMenu({
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
-        className="fixed z-50 w-36 overflow-hidden rounded-xl border-[1.5px] border-border/50 bg-background/95 py-1.5 text-sm shadow-md backdrop-blur-md"
+        className="fixed z-50 w-36 overflow-hidden rounded-xl border-[1.5px] border-border/50 node-paper-bg py-1.5 text-sm shadow-md backdrop-blur-sm"
         style={{ top: contextMenu.y, left: contextMenu.x }}
       >
         <button

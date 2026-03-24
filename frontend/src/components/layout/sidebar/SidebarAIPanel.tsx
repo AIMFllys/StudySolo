@@ -24,6 +24,7 @@ interface GenerateResponse {
 }
 
 interface HistoryEntry {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
@@ -128,7 +129,7 @@ export function SidebarAIPanel() {
     if (!input.trim() || loading) return;
     const userInput = input.trim();
 
-    setHistory((prev) => [...prev, { role: 'user', content: userInput, timestamp: Date.now() }]);
+    setHistory((prev) => [...prev, { id: crypto.randomUUID(), role: 'user', content: userInput, timestamp: Date.now() }]);
     setInput('');
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -170,6 +171,7 @@ export function SidebarAIPanel() {
       setHistory((prev) => [
         ...prev,
         {
+          id: crypto.randomUUID(),
           role: 'assistant',
           content: `已生成 ${nodeCount} 个工作流节点。`,
           timestamp: Date.now(),
@@ -180,7 +182,7 @@ export function SidebarAIPanel() {
       setError(message);
       setHistory((prev) => [
         ...prev,
-        { role: 'assistant', content: `❌ ${message}`, timestamp: Date.now() },
+        { id: crypto.randomUUID(), role: 'assistant', content: `❌ ${message}`, timestamp: Date.now() },
       ]);
     } finally {
       setLoading(false);
@@ -302,7 +304,7 @@ export function SidebarAIPanel() {
               描述你的学习或工作目标，我将为你构建专属工作流。
             </p>
             {lastPrompt ? (
-              <div className="mt-4 flex items-center gap-1.5 rounded-lg border-[1.5px] border-border/50 bg-background/50 px-2.5 py-1.5 shadow-sm">
+              <div className="mt-4 flex items-center gap-1.5 rounded-lg border-[1.5px] border-border/50 node-paper-bg px-2.5 py-1.5 shadow-sm">
                 <History className="h-3 w-3 text-muted-foreground stroke-[1.5]" />
                 <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[180px]">
                   {lastPrompt.slice(0, 40)}{lastPrompt.length > 40 ? '...' : ''}
@@ -315,7 +317,7 @@ export function SidebarAIPanel() {
           <div className="space-y-4 p-4">
             {history.map((entry) => (
               <div
-                key={entry.timestamp}
+                key={entry.id}
                 className={`group relative max-w-[92%] ${
                   entry.role === 'user' ? 'ml-auto' : 'mr-auto'
                 }`}
@@ -333,7 +335,7 @@ export function SidebarAIPanel() {
             ))}
 
             {loading && (
-              <div className="mr-auto flex max-w-[85%] items-center gap-2 rounded-xl border-[1.5px] border-border/50 bg-background/50 shadow-sm px-3.5 py-2.5">
+              <div className="mr-auto flex max-w-[85%] items-center gap-2 rounded-xl border-[1.5px] border-border/50 node-paper-bg shadow-sm px-3.5 py-2.5">
                 <div className="flex gap-1.5">
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:0ms]" />
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:150ms]" />

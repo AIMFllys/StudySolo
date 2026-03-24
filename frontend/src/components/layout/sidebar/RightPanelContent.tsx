@@ -21,7 +21,7 @@ function getNodeData(node: Node | null | undefined) {
 function StatusItem({ count, status }: { count: number; status: keyof typeof STATUS_META }) {
   const meta = STATUS_META[status];
   return (
-    <div className="rounded-xl border-[1.5px] border-border/50 bg-background/50 px-3 py-2 shadow-sm font-mono">
+    <div className="node-paper-bg rounded-xl border-[1.5px] border-border/50 px-3 py-2 shadow-sm font-mono">
       <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
         <span className={`inline-block h-2 w-2 rounded-sm ${meta.dotClassName}`} />
         {meta.label}
@@ -67,7 +67,7 @@ export default function RightPanelContent() {
     : null;
   const selectedEdges = selectedNode ? getEdgeSummary(selectedNode, edges) : null;
 
-  // Removed redundant isSectionCollapsed logic
+
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -102,17 +102,17 @@ export default function RightPanelContent() {
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground font-mono">
-              <div className="rounded-xl border-[1.5px] border-border/50 bg-background/50 px-3 py-2 text-center shadow-sm">
+              <div className="node-paper-bg rounded-xl border-[1.5px] border-border/50 px-3 py-2 text-center shadow-sm">
                 <p className="text-[10px] uppercase font-medium">进入连接</p>
                 <p className="mt-1 text-sm font-semibold text-foreground">{selectedEdges.incoming}</p>
               </div>
-              <div className="rounded-xl border-[1.5px] border-border/50 bg-background/50 px-3 py-2 text-center shadow-sm">
+              <div className="node-paper-bg rounded-xl border-[1.5px] border-border/50 px-3 py-2 text-center shadow-sm">
                 <p className="text-[10px] uppercase font-medium">输出连接</p>
                 <p className="mt-1 text-sm font-semibold text-foreground">{selectedEdges.outgoing}</p>
               </div>
             </div>
 
-            <div className="mt-3 rounded-xl border-[1.5px] border-border/50 bg-background/50 px-3 py-3 shadow-sm">
+            <div className="node-paper-bg mt-3 rounded-xl border-[1.5px] border-border/50 px-3 py-3 shadow-sm">
               <p className="font-mono text-[10px] uppercase tracking-wider font-medium text-muted-foreground">输出预览</p>
               <p className="mt-2 text-sm leading-6 text-foreground font-serif">
                 {getNodePreview(getNodeData(selectedNode)?.output, '该步骤还没有生成可展示内容')}
@@ -160,7 +160,7 @@ export default function RightPanelContent() {
                   className={`group w-full rounded-xl px-4 py-3 text-left transition-all ${
                     isSelected
                       ? 'bg-background border-[1.5px] border-border shadow-md'
-                      : 'bg-background/50 border-[1.5px] border-border/50 hover:bg-background/80 hover:shadow-md hover:-translate-y-0.5 shadow-sm'
+                      : 'node-paper-bg border-[1.5px] border-border/50 hover:shadow-md hover:-translate-y-0.5 shadow-sm'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">

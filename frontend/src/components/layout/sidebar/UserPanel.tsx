@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Mail, Calendar, Shield, ExternalLink, ChevronRight } from 'lucide-react';
+import { Mail, UserCheck, Shield, ExternalLink, ChevronRight } from 'lucide-react';
 import { getUser, type UserInfo } from '@/services/auth.service';
 
 export default function UserPanel() {
@@ -23,9 +23,9 @@ export default function UserPanel() {
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className={`node-paper-bg flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-base font-semibold text-foreground overflow-hidden shadow-sm border-[1.5px] ${
-                user?.tier === 'Ultra' ? 'border-amber-400 text-amber-900' :
-                user?.tier === 'Pro' ? 'border-slate-400 text-slate-900' :
-                user?.tier === 'Plus' ? 'border-emerald-400 text-emerald-900' :
+                user?.tier === 'Ultra' ? 'border-amber-400 text-amber-900 dark:text-amber-200' :
+                user?.tier === 'Pro' ? 'border-slate-400 text-slate-900 dark:text-slate-200' :
+                user?.tier === 'Plus' ? 'border-emerald-400 text-emerald-900 dark:text-emerald-200' :
                 'border-border/50 text-foreground'
               }`}>
                 {user?.avatar_url ? (
@@ -38,9 +38,9 @@ export default function UserPanel() {
               
               {/* Tier Badge */}
               <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 rounded px-1.5 py-[1px] text-[9px] font-medium uppercase tracking-widest shadow-sm z-10 whitespace-nowrap border-[1.5px] font-mono node-paper-bg
-                ${user?.tier === 'Ultra' ? 'text-amber-900 border-amber-300' :
-                  user?.tier === 'Pro' ? 'text-slate-900 border-slate-300' :
-                  user?.tier === 'Plus' ? 'text-emerald-900 border-emerald-300' :
+                ${user?.tier === 'Ultra' ? 'text-amber-900 dark:text-amber-200 border-amber-300' :
+                  user?.tier === 'Pro' ? 'text-slate-900 dark:text-slate-200 border-slate-300' :
+                  user?.tier === 'Plus' ? 'text-emerald-900 dark:text-emerald-200 border-emerald-300' :
                   'text-foreground border-border/50'
                 }
               `}>
@@ -65,7 +65,7 @@ export default function UserPanel() {
             <span className="truncate text-[11px]">{user?.email || '–'}</span>
           </div>
           <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5 shrink-0" />
+            <UserCheck className="h-3.5 w-3.5 shrink-0" />
             <span className="text-[11px]">角色：{user?.role || '用户'}</span>
           </div>
           <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-muted-foreground">
