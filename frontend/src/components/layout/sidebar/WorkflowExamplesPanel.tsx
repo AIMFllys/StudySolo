@@ -50,28 +50,28 @@ export default function WorkflowExamplesPanel() {
             <button
               key={example.id}
               type="button"
-              className="group flex w-full flex-col gap-1.5 rounded-md border-2 border-stone-800 dark:border-stone-400 bg-stone-50/90 dark:bg-zinc-900/90 shadow-[2px_2px_0px_rgba(28,25,23,0.15)] hover:-translate-y-[1px] hover:shadow-[3px_3px_0px_rgba(28,25,23,1)] dark:hover:shadow-[3px_3px_0px_rgba(168,162,158,1)] transition-all node-paper-bg p-3 text-left"
+              className="group flex w-full flex-col gap-1.5 rounded-xl border-[1.5px] border-border/50 bg-background/50 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all p-3 text-left"
             >
               <div className="flex items-start justify-between gap-2 w-full">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 shrink-0 text-stone-800 dark:text-stone-300 stroke-[2.5]" />
-                  <span className="text-xs font-bold font-serif text-stone-800 dark:text-stone-200">{example.name}</span>
+                  <FileText className="h-4 w-4 shrink-0 text-foreground stroke-[1.5]" />
+                  <span className="text-xs font-semibold font-serif text-foreground">{example.name}</span>
                 </div>
-                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-stone-600 dark:text-stone-400 opacity-0 transition-opacity group-hover:opacity-100 stroke-[2.5]" />
+                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 stroke-[1.5]" />
               </div>
-              <p className="text-[10.5px] leading-snug text-stone-600 dark:text-stone-400 font-serif">{example.description}</p>
-              <div className="mt-1 pt-1.5 border-t-[1.5px] border-dashed border-stone-300 dark:border-stone-700 flex items-center justify-between w-full text-[10px] text-stone-500 font-mono tracking-tight">
+              <p className="text-[10.5px] leading-snug text-muted-foreground font-serif">{example.description}</p>
+              <div className="mt-1 pt-1.5 border-t border-dashed border-border/50 flex items-center justify-between w-full text-[10px] text-muted-foreground font-mono tracking-tight">
                 <div className="flex items-center gap-2">
                   <span className="flex items-center gap-0.5">
-                    <Clock className="h-2.5 w-2.5 stroke-[2]" />
+                    <Clock className="h-2.5 w-2.5 stroke-[1.5]" />
                     {example.author}
                   </span>
                   <span className="flex items-center gap-0.5">
-                    <Star className="h-2.5 w-2.5 stroke-[2]" />
+                    <Star className="h-2.5 w-2.5 stroke-[1.5]" />
                     {example.stars}
                   </span>
                 </div>
-                <span className="rounded-sm border-2 border-stone-800 dark:border-stone-600 bg-stone-200 dark:bg-zinc-800 px-1.5 py-0.5 text-[9px] font-bold text-stone-700 dark:text-stone-300 tracking-wider shadow-[1px_1px_0px_rgba(28,25,23,1)]">
+                <span className="rounded-lg border-[1.5px] border-border/50 bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground tracking-wider shadow-sm">
                   {example.category}
                 </span>
               </div>

@@ -49,40 +49,40 @@ export default function PluginsPanel() {
           {MOCK_PLUGINS.map((plugin) => (
             <div
               key={plugin.id}
-              className="rounded-md border-2 border-stone-800 dark:border-stone-400 bg-stone-50/90 dark:bg-zinc-900/90 p-3 shadow-[2px_2px_0px_rgba(28,25,23,0.15)] transition-all hover:-translate-y-[1px] hover:shadow-[3px_3px_0px_rgba(28,25,23,1)] dark:hover:shadow-[3px_3px_0px_rgba(168,162,158,1)] node-paper-bg"
+              className="rounded-xl border-[1.5px] border-border/50 bg-background/50 p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border-2 border-stone-800 dark:border-stone-400 bg-stone-200 dark:bg-zinc-800 shadow-[1px_1px_0px_rgba(28,25,23,1)] dark:shadow-[1px_1px_0px_rgba(168,162,158,1)] text-stone-800 dark:text-stone-300">
-                    <Puzzle className="h-3.5 w-3.5 stroke-[2.5]" />
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-[1.5px] border-border/60 bg-muted/40 text-muted-foreground shadow-sm">
+                    <Puzzle className="h-3.5 w-3.5 stroke-[1.5]" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-bold font-serif text-stone-800 dark:text-stone-200">{plugin.name}</p>
-                    <p className="text-[10px] font-mono tracking-wider text-stone-500">v{plugin.version} <span className="opacity-50">·</span> {plugin.author}</p>
+                    <p className="truncate text-xs font-semibold font-serif text-foreground">{plugin.name}</p>
+                    <p className="text-[10px] font-mono tracking-wide text-muted-foreground">v{plugin.version} <span className="opacity-50">·</span> {plugin.author}</p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  className={`flex shrink-0 items-center gap-1.5 rounded-sm px-2.5 py-1 text-[10px] font-bold font-mono tracking-widest border-2 shadow-[2px_2px_0px_rgba(28,25,23,1)] transition-all hover:translate-y-[1px] hover:shadow-[1px_1px_0px_rgba(28,25,23,1)] active:translate-y-[2px] active:shadow-none ${
+                  className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-medium tracking-wide border-[1.5px] shadow-sm transition-all hover:-translate-y-0.5 hover:shadow active:translate-y-[1px] active:shadow-none ${
                     plugin.installed
-                      ? 'border-emerald-700 bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-400'
-                      : 'border-stone-800 dark:border-stone-400 bg-stone-100 dark:bg-zinc-800 text-stone-800 dark:text-stone-200'
+                      ? 'border-emerald-500/30 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30'
+                      : 'border-border/60 bg-background hover:bg-muted/50 text-foreground'
                   }`}
                 >
                   {plugin.installed ? (
                     <>
-                      <Check className="h-2.5 w-2.5 stroke-[3]" />
+                      <Check className="h-2.5 w-2.5 stroke-[2]" />
                       已安装
                     </>
                   ) : (
                     <>
-                      <Download className="h-2.5 w-2.5 stroke-[2.5]" />
+                      <Download className="h-2.5 w-2.5 stroke-[2]" />
                       安装
                     </>
                   )}
                 </button>
               </div>
-              <p className="mt-2 pt-2 border-t-[1.5px] border-dashed border-stone-300 dark:border-stone-700 text-[10px] font-serif leading-snug text-stone-600 dark:text-stone-400">{plugin.description}</p>
+              <p className="mt-2 pt-2 border-t border-dashed border-border/50 text-[10px] text-muted-foreground/90">{plugin.description}</p>
             </div>
           ))}
         </div>

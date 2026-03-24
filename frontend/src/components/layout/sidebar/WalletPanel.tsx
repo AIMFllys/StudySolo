@@ -43,11 +43,11 @@ const getTierBorder = (tier: string) => {
 
 const getTierCardStyle = (tier: string) => {
   switch(tier) {
-    case 'Free': return 'bg-stone-50 dark:bg-stone-900 border-stone-800 dark:border-stone-400 text-foreground';
-    case 'Pro': return 'bg-stone-200 dark:bg-stone-800 border-stone-900 dark:border-stone-300 text-foreground';
-    case 'Plus': return 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-800 dark:border-emerald-600 text-emerald-950 dark:text-emerald-50';
-    case 'Ultra': return 'bg-amber-50 dark:bg-amber-950/40 border-amber-800 dark:border-amber-600 text-amber-950 dark:text-amber-50';
-    default: return 'bg-stone-50 border-stone-800 text-foreground';
+    case 'Free': return 'bg-background border-border/50 text-foreground';
+    case 'Pro': return 'bg-slate-50/50 dark:bg-slate-900/30 border-slate-200/60 dark:border-slate-800 text-foreground';
+    case 'Plus': return 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-950 dark:text-emerald-50';
+    case 'Ultra': return 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/40 text-amber-950 dark:text-amber-50';
+    default: return 'bg-background border-border/50 text-foreground';
   }
 }
 
@@ -125,23 +125,23 @@ export default function WalletPanel() {
         {/* --- 第一部分：个人钱包与通行证 --- */}
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <span className="text-[11px] font-bold tracking-[0.1em] text-muted-foreground font-serif">
+            <span className="text-[11px] font-medium tracking-[0.1em] text-muted-foreground font-serif">
               身份与资源
             </span>
           </div>
           
           <div 
             onClick={() => router.push('/upgrade')}
-            className={`relative flex flex-col rounded-md border-2 p-4 cursor-pointer transition-all duration-300 hover:-translate-y-[2px] shadow-[2px_2px_0px_rgba(28,25,23,0.1)] hover:shadow-[4px_4px_0px_rgba(28,25,23,1)] dark:hover:shadow-[4px_4px_0px_rgba(168,162,158,1)] group node-paper-bg ${getTierCardStyle(USER_TIER)}`}
+            className={`relative flex flex-col rounded-xl border-[1.5px] p-4 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 shadow-sm hover:shadow-md group ${getTierCardStyle(USER_TIER)}`}
           >
             <div className="flex items-center gap-3 relative z-10">
-              <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center bg-background border-2 border-dashed ${getTierBorder(USER_TIER)}`}>
+              <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center bg-background rounded-xl border-[1.5px] border-dashed ${getTierBorder(USER_TIER)}`}>
                 <User className="h-4.5 w-4.5 stroke-[1.5]" />
                 {/* 排名指示点 - 手绘墨点感 */}
-                <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 border-2 border-background bg-current" />
+                <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-[1.5px] border-background bg-current" />
               </div>
               <div className="flex flex-col flex-1 pl-1">
-                <span className="text-sm font-serif font-bold opacity-90 tracking-wide">学习记录者</span>
+                <span className="text-sm font-serif font-semibold opacity-90 tracking-wide">学习记录者</span>
                 <div className="flex items-center gap-1.5 font-mono text-[10px] mt-0.5 opacity-70">
                   <span className="uppercase">等级:</span>
                   <span className="font-bold border border-current/20 px-1 py-0.5 rounded-sm line-height-none tracking-widest">{USER_TIER}</span>
@@ -161,7 +161,7 @@ export default function WalletPanel() {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); /* 充值逻辑 */ }}
-                className="rounded-sm text-[11px] font-mono font-bold tracking-widest px-3 py-1.5 border-2 border-current shadow-[2px_2px_0px_currentColor] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_currentColor] transition-all bg-background text-foreground"
+                className="rounded-lg text-[11px] font-mono font-medium tracking-wide px-3 py-1.5 border-[1.5px] border-current/30 shadow-sm hover:-translate-y-0.5 hover:shadow transition-all bg-background text-foreground"
               >
                 前往充值
               </button>
@@ -186,12 +186,12 @@ export default function WalletPanel() {
         {/* --- 第二部分：模型厂商 API 导入 --- */}
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1 mb-1">
-            <span className="text-[11px] font-bold tracking-[0.1em] text-muted-foreground font-serif">
+            <span className="text-[11px] font-medium tracking-[0.1em] text-muted-foreground font-serif">
               模型厂商授权
             </span>
           </div>
           
-          <div className="border-2 border-stone-800 dark:border-stone-400 bg-stone-50/60 dark:bg-zinc-900/60 node-paper-bg rounded-md overflow-hidden shadow-[2px_2px_0px_rgba(28,25,23,1)] dark:shadow-[2px_2px_0px_rgba(168,162,158,1)]">
+          <div className="border-[1.5px] border-border/50 bg-background/50 rounded-xl overflow-hidden shadow-sm">
             {EXTERNAL_PROVIDERS.map((item, idx) => (
               <ExternalApiItem key={idx} item={item} />
             ))}
@@ -225,25 +225,25 @@ export default function WalletPanel() {
         </div>
 
         {/* --- 第四部分：应用能力与 MCP --- */}
-        <div className="space-y-2 pb-6 pt-4 border-t-2 border-dashed border-stone-300 dark:border-stone-700">
+        <div className="space-y-2 pb-6 pt-4 border-t border-dashed border-border/50">
           <div className="flex items-center justify-between px-1 mb-1">
-            <span className="text-[11px] font-bold tracking-[0.1em] text-stone-600 dark:text-stone-400 font-serif uppercase">
+            <span className="text-[11px] font-medium tracking-[0.1em] text-muted-foreground font-serif uppercase">
               MCP 集成配置
             </span>
-            <Plug className="h-3.5 w-3.5 text-stone-600 dark:text-stone-400 stroke-[1.5]" />
+            <Plug className="h-3.5 w-3.5 text-muted-foreground/80 stroke-[1.5]" />
           </div>
-          <p className="text-[11px] text-stone-500 leading-relaxed px-1 font-serif mt-2">
+          <p className="text-[11px] text-muted-foreground leading-relaxed px-1 font-serif mt-2">
             集成 Model Context Protocol (MCP) 以扩展节点执行能力，支持接入外部本地数据与系统级 API。
           </p>
-          <div className="relative mt-2 overflow-hidden rounded-md border-2 border-stone-800 dark:border-stone-400 bg-stone-50/80 dark:bg-zinc-900/80 shadow-[2px_2px_0px_rgba(28,25,23,1)] dark:shadow-[2px_2px_0px_rgba(168,162,158,1)] font-mono text-[11px] node-paper-bg">
-            <div className="flex items-center justify-between px-2.5 py-3 border-b-2 border-dashed border-stone-800 dark:border-stone-400">
-               <span className="font-semibold text-stone-800 dark:text-stone-200 text-xs">本地 MCP 服务器</span>
-               <button className="flex h-6 items-center justify-center rounded-sm border-2 border-stone-800 dark:border-stone-400 bg-stone-200 dark:bg-stone-700 px-3 text-[10px] font-bold text-stone-800 dark:text-stone-200 shadow-[2px_2px_0px_rgba(28,25,23,1)] dark:shadow-[2px_2px_0px_rgba(168,162,158,1)] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_rgba(28,25,23,1)] dark:hover:shadow-[1px_1px_0px_rgba(168,162,158,1)] transition-all active:scale-95">
+          <div className="relative mt-2 overflow-hidden rounded-xl border-[1.5px] border-border/50 bg-background/50 shadow-sm font-mono text-[11px]">
+            <div className="flex items-center justify-between px-2.5 py-3 border-b border-dashed border-border/50">
+               <span className="font-semibold text-foreground text-xs">本地 MCP 服务器</span>
+               <button className="flex h-6 items-center justify-center rounded-md border-[1.5px] border-border/60 bg-muted/50 px-3 text-[10px] font-medium text-foreground shadow-sm hover:-translate-y-0.5 hover:shadow transition-all active:scale-95">
                  配置
                </button>
             </div>
-            <div className="p-3 text-stone-500 dark:text-stone-400 tracking-wide">
-              <span>状态: <span className="font-bold border-b border-stone-400 border-dashed">未连接</span></span>
+            <div className="p-3 text-muted-foreground tracking-wide">
+              <span>状态: <span className="font-medium border-b border-muted-foreground/40 border-dashed">未连接</span></span>
             </div>
           </div>
         </div>

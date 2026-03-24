@@ -21,8 +21,8 @@ function getNodeData(node: Node | null | undefined) {
 function StatusItem({ count, status }: { count: number; status: keyof typeof STATUS_META }) {
   const meta = STATUS_META[status];
   return (
-    <div className="rounded-md border border-stone-200 dark:border-stone-800 bg-stone-50/80 dark:bg-stone-900/80 px-3 py-2 shadow-sm font-mono">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
+    <div className="rounded-xl border-[1.5px] border-border/50 bg-background/50 px-3 py-2 shadow-sm font-mono">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
         <span className={`inline-block h-2 w-2 rounded-sm ${meta.dotClassName}`} />
         {meta.label}
       </div>
@@ -91,7 +91,7 @@ export default function RightPanelContent() {
             id="right-focus"
             title="当前焦点"
             badge={
-              <span className={`rounded-sm px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide shadow-sm ${selectedStatus.badgeClassName}`}>
+              <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide shadow-sm ${selectedStatus.badgeClassName}`}>
                 {selectedStatus.label}
               </span>
             }
@@ -102,18 +102,18 @@ export default function RightPanelContent() {
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground font-mono">
-              <div className="rounded-md border border-stone-200 dark:border-stone-800 bg-stone-50/80 dark:bg-stone-900/80 px-3 py-2">
-                <p className="text-[10px] uppercase font-semibold">进入连接</p>
-                <p className="mt-1 text-sm font-bold text-foreground">{selectedEdges.incoming}</p>
+              <div className="rounded-xl border-[1.5px] border-border/50 bg-background/50 px-3 py-2 text-center shadow-sm">
+                <p className="text-[10px] uppercase font-medium">进入连接</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{selectedEdges.incoming}</p>
               </div>
-              <div className="rounded-md border border-stone-200 dark:border-stone-800 bg-stone-50/80 dark:bg-stone-900/80 px-3 py-2">
-                <p className="text-[10px] uppercase font-semibold">输出连接</p>
-                <p className="mt-1 text-sm font-bold text-foreground">{selectedEdges.outgoing}</p>
+              <div className="rounded-xl border-[1.5px] border-border/50 bg-background/50 px-3 py-2 text-center shadow-sm">
+                <p className="text-[10px] uppercase font-medium">输出连接</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{selectedEdges.outgoing}</p>
               </div>
             </div>
 
-            <div className="mt-3 rounded-md border border-stone-200 dark:border-stone-800 bg-stone-50/80 dark:bg-stone-900/80 px-3 py-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]">
-              <p className="font-mono text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">输出预览</p>
+            <div className="mt-3 rounded-xl border-[1.5px] border-border/50 bg-background/50 px-3 py-3 shadow-sm">
+              <p className="font-mono text-[10px] uppercase tracking-wider font-medium text-muted-foreground">输出预览</p>
               <p className="mt-2 text-sm leading-6 text-foreground font-serif">
                 {getNodePreview(getNodeData(selectedNode)?.output, '该步骤还没有生成可展示内容')}
               </p>
@@ -157,24 +157,23 @@ export default function RightPanelContent() {
                   key={node.id}
                   type="button"
                   onClick={() => setSelectedNodeId(node.id)}
-                  className={`group w-full rounded-md px-4 py-3 text-left transition-all ${
+                  className={`group w-full rounded-xl px-4 py-3 text-left transition-all ${
                     isSelected
-                      ? 'node-paper-bg bg-stone-50 dark:bg-zinc-900 border-2 border-stone-800 dark:border-stone-400 shadow-[3px_3px_0px_rgba(28,25,23,1)] dark:shadow-[3px_3px_0px_rgba(168,162,158,1)]'
-                      : 'node-paper-bg bg-stone-50/90 dark:bg-zinc-900/90 border border-stone-300 dark:border-stone-700 hover:border-stone-800 dark:hover:border-stone-400 opacity-90 hover:opacity-100 shadow-[1px_1px_0px_rgba(28,25,23,0.2)] hover:shadow-[3px_3px_0px_rgba(28,25,23,1)] dark:hover:shadow-[3px_3px_0px_rgba(168,162,158,1)]'
+                      ? 'bg-background border-[1.5px] border-border shadow-md'
+                      : 'bg-background/50 border-[1.5px] border-border/50 hover:bg-background/80 hover:shadow-md hover:-translate-y-0.5 shadow-sm'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-background shadow-sm transition-transform group-hover:scale-105 ${nodeTheme.borderClass} ${nodeTheme.headerTextColor}`}>
-                         <div className={`absolute inset-0 pointer-events-none ${nodeTheme.innerBorderClass} m-[1px]`} />
-                        <meta.icon className="z-10 h-4 w-4 stroke-[2.5]" />
+                      <div className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background shadow-sm transition-transform group-hover:scale-105 border-[1.5px] ${nodeTheme.borderClass} ${nodeTheme.headerTextColor}`}>
+                        <meta.icon className="z-10 h-4 w-4 stroke-[1.5]" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Step {index + 1}</p>
                         <p className="truncate text-sm font-medium text-foreground">{getNodeTitle(node)}</p>
                       </div>
                     </div>
-                    <span className={`shrink-0 rounded-sm px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm ${status.badgeClassName}`}>
+                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider shadow-sm ${status.badgeClassName}`}>
                       {status.label}
                     </span>
                   </div>

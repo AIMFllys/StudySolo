@@ -22,11 +22,11 @@ export default function UserPanel() {
         <div className="border-b border-border px-4 py-5">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-md text-base font-bold text-stone-800 dark:text-stone-200 overflow-hidden shadow-[3px_3px_0px_rgba(28,25,23,1)] dark:shadow-[3px_3px_0px_rgba(168,162,158,1)] border-2 font-serif node-paper-bg ${
-                user?.tier === 'Ultra' ? 'border-amber-600 bg-amber-50' :
-                user?.tier === 'Pro' ? 'border-stone-800 bg-stone-200' :
-                user?.tier === 'Plus' ? 'border-emerald-700 bg-emerald-50' :
-                'border-stone-800 bg-stone-50'
+              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-base font-semibold text-foreground overflow-hidden shadow-sm border-[1.5px] ${
+                user?.tier === 'Ultra' ? 'border-amber-500/50 bg-amber-50/50 text-amber-900' :
+                user?.tier === 'Pro' ? 'border-slate-300 bg-slate-50 text-slate-900' :
+                user?.tier === 'Plus' ? 'border-emerald-500/50 bg-emerald-50/50 text-emerald-900' :
+                'border-border/50 bg-background text-foreground'
               }`}>
                 {user?.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -37,11 +37,11 @@ export default function UserPanel() {
               </div>
               
               {/* Tier Badge */}
-              <div className={`absolute -bottom-2.5 left-1/2 -translate-x-1/2 rounded-sm px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-widest shadow-[1px_1px_0px_rgba(28,25,23,1)] dark:shadow-[1px_1px_0px_rgba(168,162,158,1)] z-10 whitespace-nowrap border-[1.5px] border-stone-800 dark:border-stone-400 font-mono
-                ${user?.tier === 'Ultra' ? 'bg-amber-100 text-amber-900 border-amber-700' :
-                  user?.tier === 'Pro' ? 'bg-stone-200 text-stone-900 border-stone-800' :
-                  user?.tier === 'Plus' ? 'bg-emerald-100 text-emerald-900 border-emerald-700' :
-                  'bg-stone-100 text-stone-700 border-stone-700'
+              <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 rounded px-1.5 py-[1px] text-[9px] font-medium uppercase tracking-widest shadow-sm z-10 whitespace-nowrap border-[1.5px] font-mono
+                ${user?.tier === 'Ultra' ? 'bg-amber-100 text-amber-900 border-amber-300/50' :
+                  user?.tier === 'Pro' ? 'bg-slate-100 text-slate-900 border-slate-300/50' :
+                  user?.tier === 'Plus' ? 'bg-emerald-100 text-emerald-900 border-emerald-300/50' :
+                  'bg-background text-foreground border-border/50'
                 }
               `}>
                 {user?.tier || 'Free'}
