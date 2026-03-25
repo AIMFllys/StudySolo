@@ -1,237 +1,268 @@
-﻿'use client';
+'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { adminFetch } from '@/services/admin.service';
-import type { PaginatedUserList, StatusFilter, TierFilter } from '@/types/admin';
-import {
-  PageHeader,
-  Pagination,
-  TableSkeletonRows,
-  buildPaginationParams,
-  formatDate,
-  maskEmail,
-} from '@/features/admin/shared';
-import { StatusBadgeWithDot, TierBadge } from './user-shared';
+import { useState } from 'react';
 
-const TIER_OPTIONS: { value: TierFilter; label: string }[] = [
-  { value: 'all', label: 'All Tiers' },
-  { value: 'free', label: 'Free' },
-  { value: 'pro', label: 'Pro' },
-  { value: 'pro_plus', label: 'Pro+' },
-  { value: 'ultra', label: 'Ultra' },
+/* ═══ MOCK DATA ═══ */
+const MOCK_USERS = [
+  {
+    name: '陈墨林 (Mo Lin Chen)',
+    email: 'm.chen@academic.edu',
+    avatar: '陈',
+    tiers: [{ label: '专', color: 'bg-[#002045]' }, { label: '业', color: 'bg-[#1A365D]' }, { label: '版', color: 'bg-[#002045]' }],
+    status: '已验证',
+    statusColor: 'text-green-700',
+    storage: 84.2,
+  },
+  {
+    name: '李思睿 (Siri Li)',
+    email: 'siri.li_22@gmail.com',
+    avatar: '李',
+    tiers: [{ label: '专', color: 'bg-stone-400' }, { label: '业', color: 'bg-stone-400' }, { label: '增', color: 'bg-stone-300' }, { label: '强', color: 'bg-stone-300' }, { label: '版', color: 'bg-stone-300' }],
+    status: '审核中',
+    statusColor: 'text-yellow-600',
+    storage: 12.5,
+  },
+  {
+    name: '王志华 (Zhihua Wang)',
+    email: 'w.zhihua@arch.com',
+    avatar: '王',
+    tiers: [{ label: '免', color: 'bg-stone-300' }, { label: '费', color: 'bg-stone-300' }, { label: '版', color: 'bg-stone-300' }],
+    status: '已验证',
+    statusColor: 'text-green-700',
+    storage: 98.9,
+  },
+  {
+    name: '张曼 (Man Zhang)',
+    email: 'zhangman@studio.cn',
+    avatar: '张',
+    tiers: [{ label: '专', color: 'bg-[#002045]' }, { label: '业', color: 'bg-[#1A365D]' }, { label: '版', color: 'bg-[#002045]' }],
+    status: '已验证',
+    statusColor: 'text-green-700',
+    storage: 45.0,
+  },
 ];
 
-const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'All Status' },
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
-];
-
-function useDebouncedValue(value: string, delayMs: number) {
-  const [debounced, setDebounced] = useState(value);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-
-    timerRef.current = setTimeout(() => {
-      setDebounced(value);
-    }, delayMs);
-
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, [value, delayMs]);
-
-  return debounced;
-}
+const SELECTED_USER = {
+  name: '陈墨林',
+  uuid: '88-XJ-9921-A',
+  lastActive: '2023.10.24 14:02',
+  joined: '2021.05.12',
+};
 
 export function AdminUsersPageView() {
-  const router = useRouter();
-
-  const [data, setData] = useState<PaginatedUserList | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [search, setSearch] = useState('');
-  const [tierFilter, setTierFilter] = useState<TierFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [page, setPage] = useState(1);
-
-  const debouncedSearch = useDebouncedValue(search, 400);
-
-  useEffect(() => {
-    setPage(1);
-  }, [tierFilter, statusFilter, debouncedSearch]);
-
-  const queryString = useMemo(() => {
-    const params = buildPaginationParams(page, 20);
-    if (debouncedSearch) {
-      params.set('search', debouncedSearch);
-    }
-    if (tierFilter !== 'all') {
-      params.set('tier', tierFilter);
-    }
-    if (statusFilter !== 'all') {
-      params.set('is_active', statusFilter === 'active' ? 'true' : 'false');
-    }
-    return params.toString();
-  }, [debouncedSearch, page, statusFilter, tierFilter]);
-
-  async function fetchUsers() {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await adminFetch<PaginatedUserList>(`/users?${queryString}`);
-      setData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load users');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryString]);
+  const [selectedIdx, setSelectedIdx] = useState(0);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="User Management"
-        description={data ? `${data.total.toLocaleString()} users total` : 'Loading users...'}
-      />
+    <div className="p-8 max-w-7xl mx-auto min-h-full millimeter-grid">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left: User List */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Page Header */}
+          <div className="flex justify-between items-end border-b border-[#c4c6cf]/20 pb-6">
+            <div>
+              <h2 className="font-serif text-4xl font-black text-[#002045] tracking-tight">
+                用户档案库
+              </h2>
+              <p className="font-mono text-sm text-stone-500 mt-2 uppercase tracking-[0.12em]">
+                Repository // TOTAL_USERS: 12,842
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <button className="px-5 py-2 border border-[#002045] text-[#002045] font-serif text-sm hover:bg-[#002045]/5 transition-all">
+                导出清单
+              </button>
+              <button className="px-5 py-2 bg-[#002045] text-white font-serif text-sm hover:opacity-90 transition-all">
+                新增档案
+              </button>
+            </div>
+          </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search by email..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-white text-sm placeholder-white/25 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition"
-          />
-        </div>
-
-        <select
-          value={tierFilter}
-          onChange={(event) => setTierFilter(event.target.value as TierFilter)}
-          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition cursor-pointer"
-        >
-          {TIER_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value} className="bg-[#0F172A]">
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition cursor-pointer"
-        >
-          {STATUS_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value} className="bg-[#0F172A]">
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {error ? (
-        <div className="rounded-xl px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={() => void fetchUsers()} className="text-red-300 hover:text-red-200 underline text-xs ml-4">
-            Retry
-          </button>
-        </div>
-      ) : null}
-
-      <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="px-4 py-3 text-left text-white/50 font-medium text-xs uppercase tracking-wider">Email</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium text-xs uppercase tracking-wider">Tier</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium text-xs uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium text-xs uppercase tracking-wider">Created</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium text-xs uppercase tracking-wider">Last Login</th>
-                <th className="px-4 py-3 text-left text-white/50 font-medium text-xs uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <TableSkeletonRows rows={8} cols={6} />
-              ) : !error && (data?.users.length ?? 0) === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-white/30 text-sm">
-                    No users found
-                  </td>
+          {/* User Table */}
+          <div className="bg-white border border-[#c4c6cf]/10 shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-stone-200">
+                  <th className="px-8 py-4 font-mono text-[10px] text-[#002045] uppercase tracking-[0.1em]">
+                    用户信息 / User Profile
+                  </th>
+                  <th className="px-4 py-4 font-mono text-[10px] text-[#002045] uppercase tracking-[0.1em]">
+                    订阅层级 / Tier
+                  </th>
+                  <th className="px-4 py-4 font-mono text-[10px] text-[#002045] uppercase tracking-[0.1em]">
+                    验证状态 / Status
+                  </th>
+                  <th className="px-4 py-4 font-mono text-[10px] text-[#002045] uppercase tracking-[0.1em]">
+                    存储配额 / Storage
+                  </th>
                 </tr>
-              ) : (
-                data?.users.map((user) => (
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {MOCK_USERS.map((user, i) => (
                   <tr
-                    key={user.id}
-                    onClick={() => router.push(`/admin-analysis/users/${user.id}`)}
-                    className="border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors group"
+                    key={user.email}
+                    onClick={() => setSelectedIdx(i)}
+                    className={`hover:bg-[#e3e2df] transition-colors cursor-pointer ${
+                      selectedIdx === i ? 'bg-[#f4f4f0]' : ''
+                    }`}
                   >
-                    <td className="px-4 py-3 text-white/80 group-hover:text-white transition-colors font-mono text-xs">
-                      {maskEmail(user.email)}
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-stone-200 flex items-center justify-center font-serif text-lg font-bold text-[#002045] border border-stone-300">
+                          {user.avatar}
+                        </div>
+                        <div>
+                          <p className="font-serif font-bold text-[#002045]">{user.name}</p>
+                          <p className="font-mono text-[10px] text-stone-400 mt-0.5">{user.email}</p>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <TierBadge tier={user.tier} />
+                    <td className="px-4 py-5">
+                      <div className="flex gap-0.5">
+                        {user.tiers.map((t, ti) => (
+                          <span key={ti} className={`${t.color} text-white text-[10px] px-1.5 py-0.5 font-bold`}>
+                            {t.label}
+                          </span>
+                        ))}
+                      </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <StatusBadgeWithDot isActive={user.is_active} />
+                    <td className="px-4 py-5">
+                      <span className={`text-xs font-bold ${user.statusColor}`}>
+                        {user.statusColor.includes('green') ? '●' : '◐'} {user.status}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-white/50 text-xs">{formatDate(user.created_at)}</td>
-                    <td className="px-4 py-3 text-white/50 text-xs">{formatDate(user.last_login)}</td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          router.push(`/admin-analysis/users/${user.id}`);
-                        }}
-                        className="text-indigo-400 hover:text-indigo-300 text-xs font-medium transition-colors"
-                      >
-                        View →
-                      </button>
+                    <td className="px-4 py-5">
+                      <div className="space-y-1.5">
+                        <span className="font-mono text-xs">{user.storage}%</span>
+                        <div className="h-1.5 w-24 bg-stone-200">
+                          <div className="h-full bg-[#002045]" style={{ width: `${user.storage}%` }} />
+                        </div>
+                      </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+            <div className="px-8 py-5 border-t border-stone-100 flex justify-between items-center">
+              <p className="font-mono text-[10px] text-stone-400">
+                显示第 1-10 条，共 12,842 条记录
+              </p>
+              <div className="flex gap-2">
+                <button className="px-3 py-1 border border-stone-300 font-mono text-[10px] hover:border-[#002045] transition-all">
+                  上一页
+                </button>
+                <button className="px-3 py-1 border border-stone-300 font-mono text-[10px] hover:border-[#002045] transition-all">
+                  下一页
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <Pagination
-          page={page}
-          totalPages={data?.total_pages ?? 1}
-          total={data?.total}
-          loading={loading}
-          onPageChange={setPage}
-        />
+        {/* Right: User Detail Panel */}
+        <div className="space-y-6">
+          <div className="bg-white border border-[#c4c6cf]/10 shadow-sm p-8 space-y-6">
+            {/* Avatar */}
+            <div className="flex flex-col items-center">
+              <div className="w-28 h-28 bg-stone-200 border border-stone-300 flex items-center justify-center relative">
+                <span className="font-serif text-4xl font-bold text-[#002045]">
+                  {SELECTED_USER.name[0]}
+                </span>
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
+              </div>
+              <h3 className="font-serif text-xl font-bold text-[#002045] mt-4">
+                {SELECTED_USER.name}
+              </h3>
+              <p className="font-mono text-[10px] text-stone-400 mt-1 uppercase tracking-[0.1em]">
+                UUID: {SELECTED_USER.uuid}
+              </p>
+            </div>
+
+            {/* Info Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="border border-stone-200 p-3">
+                <p className="font-mono text-[10px] text-stone-400 uppercase tracking-tight">
+                  最后活动 / LAST ACTIVE
+                </p>
+                <p className="font-mono text-sm font-bold mt-1">{SELECTED_USER.lastActive}</p>
+              </div>
+              <div className="border border-stone-200 p-3">
+                <p className="font-mono text-[10px] text-stone-400 uppercase tracking-tight">
+                  入驻日期 / JOINED
+                </p>
+                <p className="font-mono text-sm font-bold mt-1">{SELECTED_USER.joined}</p>
+              </div>
+            </div>
+
+            {/* Activity Chart placeholder */}
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <p className="font-mono text-[10px] text-stone-500 uppercase tracking-[0.1em]">
+                  活跃度分析 / ACTIVITY_PLOTTING
+                </p>
+                <span className="font-mono text-[10px] text-stone-400">过去 30 天</span>
+              </div>
+              <div className="h-28 bg-[#f4f4f0] border border-stone-200 relative overflow-hidden p-2">
+                <svg className="w-full h-full" viewBox="0 0 200 80" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="activityGrad" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="rgba(0,32,69,0.1)" />
+                      <stop offset="100%" stopColor="transparent" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M0 60 L30 55 L60 50 L90 65 L120 40 L150 35 L180 45 L200 25" fill="none" stroke="#002045" strokeWidth="2" />
+                  <path d="M0 60 L30 55 L60 50 L90 65 L120 40 L150 35 L180 45 L200 25 V80 H0 Z" fill="url(#activityGrad)" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Admin Commands */}
+          <div className="bg-white border border-[#c4c6cf]/10 shadow-sm p-6 space-y-1">
+            <p className="font-mono text-[10px] text-stone-500 uppercase tracking-[0.1em] mb-3">
+              管理操作 / ADMIN_CMDS
+            </p>
+            {[
+              { icon: 'history', label: '重置安全凭证' },
+              { icon: 'tune', label: '调整配额权限' },
+              { icon: 'block', label: '永久封禁此账户', danger: true },
+            ].map((cmd) => (
+              <button
+                key={cmd.label}
+                className={`w-full flex items-center gap-3 px-4 py-3 border border-stone-100 text-sm hover:bg-[#f4f4f0] transition-all text-left ${
+                  cmd.danger ? 'text-red-600 hover:bg-red-50' : 'text-stone-700'
+                }`}
+              >
+                <span className="material-symbols-outlined text-lg">{cmd.icon}</span>
+                {cmd.label}
+                <span className="material-symbols-outlined text-sm ml-auto text-stone-300">chevron_right</span>
+              </button>
+            ))}
+          </div>
+
+          {/* System Note */}
+          <div className="border-l-4 border-yellow-400 bg-yellow-50 p-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-yellow-700 font-bold mb-2">
+              系统注释 / SYS_NOTE
+            </p>
+            <p className="text-xs text-stone-600 leading-relaxed">
+              该用户近期频繁触及API限流阈值。建议观察其工作流是否存在异常自动化循环。—— 节点管理员 A-14
+            </p>
+          </div>
+        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="mt-10 pt-6 border-t border-[#c4c6cf]/10 flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-[#1A365D] text-white flex items-center justify-center font-mono text-xs font-bold">
+            管
+          </div>
+          <div>
+            <p className="text-xs font-bold text-stone-700">管理员</p>
+            <p className="font-mono text-[10px] text-stone-400 uppercase tracking-tight">ADMIN-0922</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -149,3 +149,68 @@
 .chat-markdown-body code {
   tab-size: 2;
 }
+
+/* ── AI Thinking Loader: Magic Wand Animation ─────────────────── */
+/* From Uiverse.io by elijahgummer — 1:1 replica                   */
+
+.analyze svg path.stick {
+  transform: translate(0);
+  animation: ai-wand-stick 2s ease infinite;
+}
+
+.analyze svg path.star-1 {
+  fill: #ff4500;
+  animation: ai-wand-sparkles 2s ease infinite,
+    ai-wand-scaleStars 2s ease infinite,
+    ai-wand-colorChange 2s ease infinite;
+  animation-delay: 150ms;
+}
+
+.analyze svg path.star-2 {
+  fill: #00ff00;
+  animation: ai-wand-sparkles 2s ease infinite,
+    ai-wand-scaleStars 2s ease infinite,
+    ai-wand-colorChange 2s ease infinite;
+}
+
+.analyze .board {
+  animation: ai-wand-bounce 2s ease infinite;
+}
+
+@keyframes ai-wand-sparkles {
+  0%   { opacity: 1; }
+  35%  { opacity: 1; }
+  55%  { opacity: 0; }
+  75%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@keyframes ai-wand-stick {
+  0%   { transform: translate3d(0, 0, 0) rotate(0); }
+  25%  { transform: translate3d(0, 0, 0) rotate(0); }
+  50%  { transform: translate3d(3px, -2px, 0) rotate(8deg); }
+  75%  { transform: translate3d(0, 0, 0) rotate(0); }
+  100% { transform: translate3d(0, 0, 0) rotate(0); }
+}
+
+@keyframes ai-wand-scaleStars {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ai-wand-bounce {
+  0%   { transform: translateY(0); }
+  25%  { transform: translateY(0); }
+  50%  { transform: translateY(0); }
+  75%  { transform: translateY(-1px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes ai-wand-colorChange {
+  0%   { fill: #ff4500; }
+  25%  { fill: #ffd700; }
+  50%  { fill: #00ff00; }
+  75%  { fill: #1e90ff; }
+  100% { fill: #ff4500; }
+}
