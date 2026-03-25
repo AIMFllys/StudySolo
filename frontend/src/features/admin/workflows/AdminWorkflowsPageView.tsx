@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useState } from 'react';
 import { adminFetch } from '@/services/admin.service';
@@ -44,18 +44,20 @@ export function AdminWorkflowsPageView() {
   const stats = statsData?.stats;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10 px-8 py-8 md:px-12 max-w-[1600px] mx-auto min-h-full">
       <PageHeader
-        title="Workflow Monitoring"
-        description={runningData ? `${runningData.total} running now` : 'Loading workflows...'}
+        title="Workflow Orchestration"
+        description={runningData ? `${runningData.total} NODE(S) RUNNING NOW` : 'FETCHING WORKFLOW METRY'}
         action={
-          <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg p-0.5">
+          <div className="flex items-center gap-2 bg-white border border-[#c4c6cf]/60 p-1 shadow-sm">
             {(['7d', '30d', '90d'] as WorkflowTimeRange[]).map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  timeRange === range ? 'bg-indigo-600 text-white' : 'text-white/50 hover:text-white'
+                className={`px-4 py-2 font-mono text-[10px] tracking-widest uppercase font-bold transition-all ${
+                  timeRange === range 
+                    ? 'bg-[#002045] text-white border-transparent' 
+                    : 'text-[#74777f] hover:text-[#002045] hover:bg-[#FAF9F5]'
                 }`}
               >
                 {range}
@@ -66,57 +68,63 @@ export function AdminWorkflowsPageView() {
       />
 
       {error ? (
-        <div className="rounded-xl px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={() => void fetchAll()} className="text-red-300 hover:text-red-200 underline text-xs ml-4">
-            Retry
+        <div className="p-4 bg-[#FAF9F5] border-l-4 border-l-red-600 border border-[#c4c6cf]/60 flex items-center justify-between font-mono text-sm shadow-sm">
+          <span className="text-red-700 font-bold tracking-wide">SYSTEM ERROR: {error}</span>
+          <button onClick={() => void fetchAll()} className="text-[#002045] hover:text-red-700 hover:underline underline-offset-4 tracking-widest uppercase text-[10px] font-bold">
+            Execute Retry
           </button>
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* KPI Stats Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {loading ? (
           Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="bg-white/5 border border-white/10 rounded-xl p-4 h-20 animate-pulse" />
+            <div key={index} className="bg-white border border-[#c4c6cf]/60 p-6 h-32 animate-pulse shadow-sm" />
           ))
         ) : stats ? (
           <>
-            <KpiCard label="Total Runs" value={stats.total_runs.toLocaleString()} sub={timeRange} />
-            <KpiCard label="Success Rate" value={`${(stats.success_rate * 100).toFixed(1)}%`} sub={`${stats.completed} completed`} />
-            <KpiCard label="Avg Duration" value={formatDuration(stats.avg_duration_seconds)} sub="completed runs" />
-            <KpiCard label="Tokens Used" value={stats.total_tokens_used.toLocaleString()} sub={timeRange} />
+            <KpiCard label="Total Executions" value={stats.total_runs.toLocaleString()} sub={`Range: ${timeRange}`} />
+            <KpiCard label="Success Index" value={`${(stats.success_rate * 100).toFixed(1)}%`} sub={`${stats.completed} Verified`} />
+            <KpiCard label="Time Avg (Seconds)" value={formatDuration(stats.avg_duration_seconds)} sub="Completed Only" />
+            <KpiCard label="LLM Token Output" value={stats.total_tokens_used.toLocaleString()} sub={`Range: ${timeRange}`} />
           </>
         ) : null}
       </div>
 
+      {/* State Ledger Row */}
       {stats ? (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
-            <p className="text-emerald-300 text-2xl font-bold">{stats.completed}</p>
-            <p className="text-emerald-400/60 text-xs mt-0.5 uppercase tracking-wider">Completed</p>
+        <div className="grid grid-cols-3 gap-6">
+          <div className="bg-white border border-[#c4c6cf]/60 border-t-8 border-t-emerald-700 p-6 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
+            <div className="absolute inset-0 hatched-pattern opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none" />
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#002045]/60 font-bold mb-4">Operations Completed</p>
+            <p className="font-serif text-5xl font-black text-[#002045]">{stats.completed}</p>
           </div>
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
-            <p className="text-blue-300 text-2xl font-bold">{stats.running}</p>
-            <p className="text-blue-400/60 text-xs mt-0.5 uppercase tracking-wider">Running</p>
+          <div className="bg-white border border-[#c4c6cf]/60 border-t-8 border-t-blue-600 p-6 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
+            <div className="absolute inset-0 hatched-pattern opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none" />
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#002045]/60 font-bold mb-4">Nodes Running</p>
+            <p className="font-serif text-5xl font-black text-[#002045]">{stats.running}</p>
           </div>
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center">
-            <p className="text-red-300 text-2xl font-bold">{stats.failed}</p>
-            <p className="text-red-400/60 text-xs mt-0.5 uppercase tracking-wider">Failed</p>
+          <div className="bg-white border border-[#c4c6cf]/60 border-t-8 border-t-red-600 p-6 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
+            <div className="absolute inset-0 hatched-pattern opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none" />
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#002045]/60 font-bold mb-4">Integrity Fails</p>
+            <p className="font-serif text-5xl font-black text-red-700">{stats.failed}</p>
           </div>
         </div>
       ) : null}
 
-      <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-          <h2 className="text-white text-sm font-semibold">Running Workflows</h2>
-          <span className="text-white/40 text-xs">{runningData?.total ?? 0} active</span>
+      {/* Running Workflows Table */}
+      <div className="bg-white border border-[#c4c6cf]/60 shadow-sm">
+        <div className="px-6 py-4 flex items-center justify-between border-b-2 border-[#002045] bg-[#FAF9F5]">
+          <h2 className="text-[#002045] text-sm font-bold font-mono tracking-widest uppercase">Active Node Stream</h2>
+          <span className="text-[#74777f] font-mono text-[10px] uppercase tracking-widest">{runningData?.total ?? 0} ACTIVE</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-white/10">
-                {['Run ID', 'Workflow', 'User', 'Started', 'Progress', 'Elapsed'].map((header) => (
-                  <th key={header} className="px-4 py-2.5 text-left text-white/40 text-xs uppercase tracking-wider font-medium">
+              <tr className="bg-white border-b border-[#002045]/20">
+                {['ID Hash', 'Blueprint', 'Entity', 'Timestamp', 'Progression', 'Elapsed'].map((header) => (
+                  <th key={header} className="px-6 py-4 font-mono text-[10px] uppercase tracking-[0.2em] font-bold text-[#002045]/60">
                     {header}
                   </th>
                 ))}
@@ -127,23 +135,27 @@ export function AdminWorkflowsPageView() {
                 <TableSkeletonRows rows={3} cols={6} />
               ) : (runningData?.running.length ?? 0) === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-white/30 text-sm">
-                    No workflows currently running
+                  <td colSpan={6} className="px-6 py-12 text-center text-[#74777f] font-mono tracking-widest text-xs uppercase bg-[#FAF9F5]/30">
+                    No active processes detected
                   </td>
                 </tr>
               ) : (
                 runningData?.running.map((workflow) => (
-                  <tr key={workflow.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="px-4 py-3 text-white/60 font-mono text-xs">{truncateId(workflow.id)}</td>
-                    <td className="px-4 py-3 text-white/60 font-mono text-xs">{truncateId(workflow.workflow_id)}</td>
-                    <td className="px-4 py-3 text-white/60 font-mono text-xs">{truncateId(workflow.user_id)}</td>
-                    <td className="px-4 py-3 text-white/50 text-xs">{formatDateTime(workflow.started_at)}</td>
-                    <td className="px-4 py-3 text-white/60 text-xs">
+                  <tr key={workflow.id} className="border-b border-[#c4c6cf]/30 hover:bg-[#FAF9F5] transition-colors group">
+                    <td className="px-6 py-4">
+                        <span className="font-mono text-xs text-[#002045] font-bold tracking-wider group-hover:text-blue-700 transition-colors uppercase cursor-pointer">
+                            #{truncateId(workflow.id)}
+                        </span>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-[#43474e] tracking-wider uppercase">{truncateId(workflow.workflow_id)}</td>
+                    <td className="px-6 py-4 font-mono text-xs text-[#43474e] tracking-wider uppercase">{truncateId(workflow.user_id)}</td>
+                    <td className="px-6 py-4 font-mono text-[11px] text-[#74777f] uppercase tracking-wider">{formatDateTime(workflow.started_at)}</td>
+                    <td className="px-6 py-4 font-mono text-xs text-[#002045] font-bold tracking-widest">
                       {workflow.total_steps
                         ? `${workflow.current_step ?? 0}/${workflow.total_steps}`
-                        : workflow.current_node ?? '—'}
+                        : workflow.current_node ?? 'AWAITING'}
                     </td>
-                    <td className="px-4 py-3 text-white/50 text-xs">{formatDuration(workflow.elapsed_seconds)}</td>
+                    <td className="px-6 py-4 font-mono text-[11px] text-[#74777f] tracking-wide">{formatDuration(workflow.elapsed_seconds)}</td>
                   </tr>
                 ))
               )}
@@ -152,17 +164,18 @@ export function AdminWorkflowsPageView() {
         </div>
       </div>
 
-      <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-          <h2 className="text-white text-sm font-semibold">Failed Workflows</h2>
-          <span className="text-white/40 text-xs">{errorsData?.total ?? 0} total</span>
+      {/* Failed Workflows Table */}
+      <div className="bg-white border border-[#c4c6cf]/60 shadow-sm">
+        <div className="px-6 py-4 flex items-center justify-between border-b-2 border-red-700 bg-red-50/30">
+          <h2 className="text-red-800 text-sm font-bold font-mono tracking-widest uppercase">System Fault Logs</h2>
+          <span className="text-red-700/60 font-mono text-[10px] uppercase tracking-widest">{errorsData?.total ?? 0} LOGGED</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-white/10">
-                {['Run ID', 'Workflow', 'User', 'Status', 'Started', 'Duration'].map((header) => (
-                  <th key={header} className="px-4 py-2.5 text-left text-white/40 text-xs uppercase tracking-wider font-medium">
+              <tr className="bg-white border-b border-[#002045]/20">
+                {['ID Hash', 'Blueprint', 'Entity', 'Fault Code', 'Timestamp', 'Duration'].map((header) => (
+                  <th key={header} className="px-6 py-4 font-mono text-[10px] uppercase tracking-[0.2em] font-bold text-[#002045]/60">
                     {header}
                   </th>
                 ))}
@@ -173,23 +186,27 @@ export function AdminWorkflowsPageView() {
                 <TableSkeletonRows rows={3} cols={6} />
               ) : (errorsData?.errors.length ?? 0) === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-white/30 text-sm">
-                    No failed workflows
+                  <td colSpan={6} className="px-6 py-12 text-center text-[#74777f] font-mono tracking-widest text-xs uppercase bg-[#FAF9F5]/30">
+                    No critical faults recorded
                   </td>
                 </tr>
               ) : (
                 errorsData?.errors.map((workflow) => (
-                  <tr key={workflow.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="px-4 py-3 text-white/60 font-mono text-xs">{truncateId(workflow.id)}</td>
-                    <td className="px-4 py-3 text-white/60 font-mono text-xs">{truncateId(workflow.workflow_id)}</td>
-                    <td className="px-4 py-3 text-white/60 font-mono text-xs">{truncateId(workflow.user_id)}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-500/20 text-red-300 border border-red-500/30">
+                  <tr key={workflow.id} className="border-b border-[#c4c6cf]/30 hover:bg-red-50/30 transition-colors group">
+                    <td className="px-6 py-4">
+                        <span className="font-mono text-xs text-[#002045] font-bold tracking-wider group-hover:text-red-700 transition-colors uppercase cursor-pointer">
+                            #{truncateId(workflow.id)}
+                        </span>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-[#43474e] tracking-wider uppercase">{truncateId(workflow.workflow_id)}</td>
+                    <td className="px-6 py-4 font-mono text-xs text-[#43474e] tracking-wider uppercase">{truncateId(workflow.user_id)}</td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2 py-1 rounded-none text-[10px] font-bold font-mono tracking-widest uppercase bg-red-50 border border-red-200 text-red-700">
                         {workflow.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-white/50 text-xs">{formatDateTime(workflow.started_at)}</td>
-                    <td className="px-4 py-3 text-white/50 text-xs">{formatDuration(workflow.elapsed_seconds)}</td>
+                    <td className="px-6 py-4 font-mono text-[11px] text-[#74777f] uppercase tracking-wider">{formatDateTime(workflow.started_at)}</td>
+                    <td className="px-6 py-4 font-mono text-[11px] text-[#74777f] tracking-wide">{formatDuration(workflow.elapsed_seconds)}</td>
                   </tr>
                 ))
               )}

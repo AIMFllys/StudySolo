@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { formatDate } from '@/utils/date';
 import type { WorkflowMeta } from '@/types/workflow';
-import { MoreVertical, Star, Heart, FileText, Globe, Trash2, Edit3, Tag } from 'lucide-react';
+import { Star, Heart, FileText, Globe } from 'lucide-react';
 import { SidebarContextMenu } from '@/components/layout/sidebar/SidebarContextMenu';
 
 interface WorkflowListProps {
@@ -75,10 +74,6 @@ export default function WorkflowList({ initialWorkflows, userName = 'StudySolo �
     toggleFavoriteHandler(id);
   };
 
-  const deleteWorkflow = (id: string) => {
-    deleteWorkflowHandler(id);
-  };
-
   const favorites = workflows.filter(w => w.is_favorite);
   const published = workflows.filter(w => !w.is_favorite && w.is_published);
   const uncategorized = workflows.filter(w => !w.is_favorite && !w.is_published);
@@ -142,19 +137,17 @@ export default function WorkflowList({ initialWorkflows, userName = 'StudySolo �
           </div>
           <div className="pl-[26px]">
             {isEditingDesc ? (
-               <div className="flex flex-col gap-2 relative z-20">
-                 <input
-                  autoFocus
-                  defaultValue={workflow.description || ''}
-                  placeholder="添加描述..."
-                  className="w-full pointer-events-auto text-[13px] text-muted-foreground bg-background border border-primary/40 rounded px-2 py-1 shadow-sm outline-none"
-                  onBlur={(e) => handleEditSubmit(workflow.id, 'desc', e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleEditSubmit(workflow.id, 'desc', e.currentTarget.value);
-                    if (e.key === 'Escape') setEditingCardId(null);
-                  }}
-                 />
-               </div>
+               <input
+                autoFocus
+                defaultValue={workflow.description || ''}
+                placeholder="添加描述..."
+                className="w-full pointer-events-auto text-[13px] text-muted-foreground bg-background border border-primary/40 rounded px-2 py-1 shadow-sm outline-none relative z-20"
+                onBlur={(e) => handleEditSubmit(workflow.id, 'desc', e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleEditSubmit(workflow.id, 'desc', e.currentTarget.value);
+                  if (e.key === 'Escape') setEditingCardId(null);
+                }}
+               />
             ) : (
               <p className="text-[13px] text-muted-foreground/80 line-clamp-1">
                 {workflow.description || "暂无描述"}
@@ -265,7 +258,7 @@ export default function WorkflowList({ initialWorkflows, userName = 'StudySolo �
           workflow={contextW}
           onClose={closeMenu}
           onRename={(id) => startEdit(id, 'name')}
-          onDelete={deleteWorkflow}
+          onDelete={deleteWorkflowHandler}
           onToggleFavorite={toggleFavoriteHandler}
           onTogglePublish={togglePublishHandler}
           onEditDescription={(id) => startEdit(id, 'desc')}

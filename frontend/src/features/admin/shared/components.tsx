@@ -10,10 +10,10 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-8">
       <div>
-        <h1 className="text-xl font-bold text-white">{title}</h1>
-        {description ? <p className="mt-0.5 text-sm text-white/40">{description}</p> : null}
+        <h1 className="text-3xl font-serif font-bold text-[#002045] tracking-tight">{title}</h1>
+        {description ? <p className="mt-2 text-sm font-mono text-[#74777f] uppercase tracking-widest">{description}</p> : null}
       </div>
       {action ? <div className="flex-shrink-0">{action}</div> : null}
     </div>
@@ -30,10 +30,14 @@ interface KpiCardProps {
 
 export function KpiCard({ label, value, sub }: KpiCardProps) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
-      <p className="text-xs font-medium uppercase tracking-wider text-white/40">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-white">{value}</p>
-      {sub ? <p className="mt-0.5 text-xs text-white/30">{sub}</p> : null}
+    <div className="rounded-none border border-[#c4c6cf]/60 bg-white p-6 shadow-sm relative overflow-hidden group">
+      {/* Hatched pattern overlay on hover */}
+      <div className="absolute inset-0 hatched-pattern opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="relative z-10">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#002045]/60 font-mono pb-2 border-b border-[#002045]/10 inline-block mb-3">{label}</p>
+        <p className="text-3xl font-serif font-black text-[#002045]">{value}</p>
+        {sub ? <p className="mt-2 text-[10px] font-mono tracking-widest text-[#74777f] uppercase">{sub}</p> : null}
+      </div>
     </div>
   );
 }
@@ -49,10 +53,10 @@ export function TableSkeletonRows({ rows, cols }: TableSkeletonRowsProps) {
   return (
     <>
       {Array.from({ length: rows }).map((_, rowIndex) => (
-        <tr key={rowIndex} className="border-b border-white/5">
+        <tr key={rowIndex} className="border-b border-[#c4c6cf]/30">
           {Array.from({ length: cols }).map((_, colIndex) => (
-            <td key={colIndex} className="px-4 py-3">
-              <div className="h-4 w-20 animate-pulse rounded bg-white/10" />
+            <td key={colIndex} className="px-5 py-4">
+              <div className="h-4 w-20 animate-pulse rounded bg-[#002045]/10" />
             </td>
           ))}
         </tr>
@@ -75,8 +79,8 @@ export function Pagination({ page, totalPages, total, loading, onPageChange }: P
   if (totalPages <= 1 && !total) return null;
 
   return (
-    <div className="flex items-center justify-between border-t border-white/10 px-4 py-3">
-      <span className="text-xs text-white/40">
+    <div className="flex items-center justify-between border-t border-[#c4c6cf]/60 px-5 py-4 bg-[#FAF9F5]">
+      <span className="font-mono text-[10px] uppercase tracking-widest text-[#74777f]">
         Page {page} of {totalPages}
         {total != null ? ` · ${total.toLocaleString()} total` : ''}
       </span>
@@ -84,14 +88,14 @@ export function Pagination({ page, totalPages, total, loading, onPageChange }: P
         <button
           disabled={page <= 1 || loading}
           onClick={() => onPageChange(page - 1)}
-          className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+          className="rounded-none border border-[#c4c6cf] bg-white px-4 py-2 font-mono text-[10px] tracking-widest uppercase text-[#002045] transition-colors hover:bg-[#002045]/5 hover:border-[#002045]/30 disabled:cursor-not-allowed disabled:opacity-30"
         >
           ← Prev
         </button>
         <button
           disabled={page >= totalPages || loading}
           onClick={() => onPageChange(page + 1)}
-          className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+          className="rounded-none border border-[#c4c6cf] bg-white px-4 py-2 font-mono text-[10px] tracking-widest uppercase text-[#002045] transition-colors hover:bg-[#002045]/5 hover:border-[#002045]/30 disabled:cursor-not-allowed disabled:opacity-30"
         >
           Next →
         </button>
@@ -104,13 +108,13 @@ export function Pagination({ page, totalPages, total, loading, onPageChange }: P
 
 interface StatusBadgeProps {
   label: string;
-  className: string;
+  className?: string; // made optional
 }
 
-export function StatusBadge({ label, className }: StatusBadgeProps) {
+export function StatusBadge({ label, className = '' }: StatusBadgeProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${className}`}
+      className={`inline-flex items-center rounded-none border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest ${className}`}
     >
       {label}
     </span>
@@ -134,24 +138,25 @@ export function ToastStack({ toasts, onDismiss }: ToastStackProps) {
   if (toasts.length === 0) return null;
 
   const colorMap = {
-    success: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300',
-    error: 'bg-red-500/20 border-red-500/30 text-red-300',
-    info: 'bg-blue-500/20 border-blue-500/30 text-blue-300',
+    success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    error: 'bg-red-50 border-red-200 text-red-800',
+    info: 'bg-blue-50 border-blue-200 text-[#002045]',
   };
 
   return (
-    <div className="fixed right-4 top-4 z-50 flex flex-col gap-2">
+    <div className="fixed right-6 bottom-6 z-50 flex flex-col gap-3">
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg backdrop-blur-md ${colorMap[toast.kind] ?? colorMap.info}`}
+          className={`flex items-center gap-4 rounded-none border border-l-4 p-4 text-sm shadow-md font-mono tracking-wide ${colorMap[toast.kind] ?? colorMap.info}`}
+          style={{ borderLeftColor: toast.kind === 'error' ? '#ef4444' : toast.kind === 'success' ? '#10b981' : '#002045' }}
         >
           <span className="flex-1">{toast.message}</span>
           <button
             onClick={() => onDismiss(toast.id)}
-            className="text-white/40 transition-colors hover:text-white"
+            className="text-current opacity-50 transition-opacity hover:opacity-100 material-symbols-outlined text-lg"
           >
-            ✕
+            close
           </button>
         </div>
       ))}
