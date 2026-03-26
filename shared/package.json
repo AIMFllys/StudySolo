@@ -1,0 +1,17 @@
+{
+    "name": "@1037solo/shared",
+    "version": "0.1.0",
+    "description": "Shared types, conventions, and documentation for 1037Solo ecosystem (Platform + StudySolo)",
+    "main": "src/index.ts",
+    "types": "src/index.ts",
+    "private": true,
+    "scripts": {
+        "typecheck": "tsc --noEmit"
+    },
+    "keywords": [
+        "1037solo",
+        "shared",
+        "types"
+    ],
+    "license": "UNLICENSED"
+}
