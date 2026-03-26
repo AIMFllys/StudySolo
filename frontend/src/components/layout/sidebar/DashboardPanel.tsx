@@ -13,10 +13,10 @@ function formatCompactNumber(value: number) {
   }).format(value);
 }
 
-function formatUsd(value: number) {
-  return new Intl.NumberFormat('en-US', {
+function formatCny(value: number) {
+  return new Intl.NumberFormat('zh-CN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CNY',
     minimumFractionDigits: value >= 1 ? 2 : 4,
     maximumFractionDigits: value >= 1 ? 2 : 4,
   }).format(value);
@@ -193,7 +193,7 @@ export default function DashboardPanel() {
     () =>
       (timeseries?.points ?? []).map((point) => ({
         ts: point.ts,
-        value: Number((point.assistant_cost_usd + point.workflow_cost_usd).toFixed(6)),
+        value: Number((point.assistant_cost_cny + point.workflow_cost_cny).toFixed(6)),
       })),
     [timeseries],
   );
@@ -243,8 +243,8 @@ export default function DashboardPanel() {
               <StatCard
                 icon={DollarSign}
                 label="总费用"
-                value={formatUsd(overview.all.total_cost_usd)}
-                subtext={`近 5 分钟 ${formatUsd(live?.summary.total_cost_usd ?? 0)}`}
+                value={formatCny(overview.all.total_cost_cny)}
+                subtext={`近 5 分钟 ${formatCny(live?.summary.total_cost_cny ?? 0)}`}
               />
               <StatCard
                 icon={AlertTriangle}
@@ -262,7 +262,7 @@ export default function DashboardPanel() {
 
             <div className="mt-3 space-y-2">
               <MiniChart title="近 24h 调用次数" data={callSeries} dataKey="value" color="#0f766e" />
-              <MiniChart title="近 24h 费用 USD" data={costSeries} dataKey="value" color="#0f4c81" />
+              <MiniChart title="近 24h 费用 CNY" data={costSeries} dataKey="value" color="#0f4c81" />
             </div>
           </>
         ) : null}

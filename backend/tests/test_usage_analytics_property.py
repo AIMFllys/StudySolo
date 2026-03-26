@@ -87,14 +87,18 @@ def _build_fake_db() -> _FakeDB:
                     "request_id": "assistant-request",
                     "source_type": "assistant",
                     "source_subtype": "chat",
+                    "sku_id": "sku_qiniu_qwen3_max_proxy",
+                    "family_id": "qwen_premium",
                     "provider": "qiniu",
+                    "vendor": "qwen",
                     "model": "Qwen3-Max",
+                    "billing_channel": "proxy",
                     "node_id": None,
                     "status": "error",
                     "is_fallback": False,
                     "latency_ms": 1200,
                     "total_tokens": 0,
-                    "cost_amount_usd": 0.0,
+                    "cost_amount_cny": 0.0,
                     "started_at": _iso(assistant_started),
                 },
                 {
@@ -102,14 +106,18 @@ def _build_fake_db() -> _FakeDB:
                     "request_id": "assistant-request",
                     "source_type": "assistant",
                     "source_subtype": "chat",
-                    "provider": "qiniu",
-                    "model": "DeepSeek-R1",
+                    "sku_id": "sku_deepseek_reasoner_native",
+                    "family_id": "deepseek_reasoning",
+                    "provider": "deepseek",
+                    "vendor": "deepseek",
+                    "model": "deepseek-reasoner",
+                    "billing_channel": "native",
                     "node_id": None,
                     "status": "success",
                     "is_fallback": True,
                     "latency_ms": 3400,
                     "total_tokens": 1500,
-                    "cost_amount_usd": 0.0017379,
+                    "cost_amount_cny": 0.0120002,
                     "started_at": _iso(assistant_started + timedelta(seconds=5)),
                 },
                 {
@@ -117,14 +125,18 @@ def _build_fake_db() -> _FakeDB:
                     "request_id": "workflow-request",
                     "source_type": "workflow",
                     "source_subtype": "workflow_execute",
+                    "sku_id": "sku_dashscope_qwen_turbo_native",
+                    "family_id": "qwen_budget_chat",
                     "provider": "dashscope",
+                    "vendor": "qwen",
                     "model": "qwen-turbo",
+                    "billing_channel": "native",
                     "node_id": "node-chat-1",
                     "status": "success",
                     "is_fallback": False,
                     "latency_ms": 800,
                     "total_tokens": 800,
-                    "cost_amount_usd": 0.00004777,
+                    "cost_amount_cny": 0.0003291,
                     "started_at": _iso(workflow_started),
                 },
             ],
@@ -135,7 +147,7 @@ def _build_fake_db() -> _FakeDB:
                     "provider_calls": 0,
                     "successful_provider_calls": 0,
                     "total_tokens": 0,
-                    "total_cost_usd": 0.0,
+                    "total_cost_cny": 0.0,
                     "error_count": 0,
                     "fallback_count": 0,
                 },
@@ -145,7 +157,7 @@ def _build_fake_db() -> _FakeDB:
                     "provider_calls": 1,
                     "successful_provider_calls": 0,
                     "total_tokens": 0,
-                    "total_cost_usd": 0.0,
+                    "total_cost_cny": 0.0,
                     "error_count": 1,
                     "fallback_count": 0,
                 },
@@ -155,7 +167,7 @@ def _build_fake_db() -> _FakeDB:
                     "provider_calls": 1,
                     "successful_provider_calls": 1,
                     "total_tokens": 1500,
-                    "total_cost_usd": 0.0017379,
+                    "total_cost_cny": 0.0120002,
                     "error_count": 0,
                     "fallback_count": 1,
                 },
@@ -165,7 +177,7 @@ def _build_fake_db() -> _FakeDB:
                     "provider_calls": 0,
                     "successful_provider_calls": 0,
                     "total_tokens": 0,
-                    "total_cost_usd": 0.0,
+                    "total_cost_cny": 0.0,
                     "error_count": 0,
                     "fallback_count": 0,
                 },
@@ -175,10 +187,15 @@ def _build_fake_db() -> _FakeDB:
                     "provider_calls": 1,
                     "successful_provider_calls": 1,
                     "total_tokens": 800,
-                    "total_cost_usd": 0.00004777,
+                    "total_cost_cny": 0.0003291,
                     "error_count": 0,
                     "fallback_count": 0,
                 },
+            ],
+            "ai_model_families": [
+                {"id": "deepseek_reasoning", "task_family": "reasoning", "family_name": "DeepSeek Reasoning"},
+                {"id": "qwen_budget_chat", "task_family": "cheap_chat", "family_name": "Qwen Budget Chat"},
+                {"id": "qwen_premium", "task_family": "premium_chat", "family_name": "Qwen Premium"},
             ],
         }
     )
@@ -199,7 +216,7 @@ async def test_usage_overview_splits_assistant_and_workflow_metrics():
     assert result.assistant.provider_call_count == 2
     assert result.assistant.successful_provider_call_count == 1
     assert result.assistant.total_tokens == 1500
-    assert result.assistant.total_cost_usd == 0.001738
+    assert result.assistant.total_cost_cny == 0.012
     assert result.assistant.error_rate == 0.5
     assert result.assistant.fallback_rate == 0.5
     assert result.assistant.p95_latency_ms == 3400
@@ -208,7 +225,7 @@ async def test_usage_overview_splits_assistant_and_workflow_metrics():
     assert result.workflow.provider_call_count == 1
     assert result.workflow.successful_provider_call_count == 1
     assert result.workflow.total_tokens == 800
-    assert result.workflow.total_cost_usd == 0.000048
+    assert result.workflow.total_cost_cny == 0.000329
     assert result.workflow.error_rate == 0.0
     assert result.workflow.fallback_rate == 0.0
     assert result.workflow.p95_latency_ms == 800
@@ -217,7 +234,7 @@ async def test_usage_overview_splits_assistant_and_workflow_metrics():
     assert result.all.provider_call_count == 3
     assert result.all.successful_provider_call_count == 2
     assert result.all.total_tokens == 2300
-    assert result.all.total_cost_usd == 0.001786
+    assert result.all.total_cost_cny == 0.012329
     assert result.all.error_rate == 0.3333
     assert result.all.fallback_rate == 0.3333
     assert result.all.p95_latency_ms == 3270
@@ -234,7 +251,7 @@ async def test_usage_live_rolls_up_recent_minute_buckets():
     assert result.summary.provider_call_count == 3
     assert result.summary.successful_provider_call_count == 2
     assert result.summary.total_tokens == 2300
-    assert result.summary.total_cost_usd == 0.001786
+    assert result.summary.total_cost_cny == 0.012329
     assert result.summary.error_rate == 0.3333
     assert result.summary.fallback_rate == 0.3333
 
@@ -262,7 +279,7 @@ async def test_usage_timeseries_keeps_assistant_and_workflow_costs_separate():
     point = populated[0]
     assert point.assistant_calls == 2
     assert point.assistant_tokens == 1500
-    assert point.assistant_cost_usd == 0.001738
+    assert point.assistant_cost_cny == 0.012
     assert point.workflow_calls == 1
     assert point.workflow_tokens == 800
-    assert point.workflow_cost_usd == 0.000048
+    assert point.workflow_cost_cny == 0.000329

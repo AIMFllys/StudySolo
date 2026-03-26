@@ -9,6 +9,11 @@ import type {
   UserDetailResponse,
 } from '@/types/admin';
 import type {
+  AdminCatalogResponse,
+  AdminCatalogUpdateRequest,
+  AdminCatalogUpdateResponse,
+} from '@/types/ai-catalog';
+import type {
   AdminUsageRange,
   CostSplitResponse,
   ModelBreakdownResponse,
@@ -103,6 +108,15 @@ export const getAdminAiRecentCalls = (limit = 20) =>
 
 export const getAdminAiCostSplit = (range: AdminUsageRange = '7d') =>
   adminFetch<CostSplitResponse>(`/dashboard/ai-cost-split?range=${range}`);
+
+export const getAdminModelCatalog = () =>
+  adminFetch<AdminCatalogResponse>('/models/catalog');
+
+export const updateAdminModelCatalogItem = (skuId: string, payload: AdminCatalogUpdateRequest) =>
+  adminFetch<AdminCatalogUpdateResponse>(`/models/${skuId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
 
 export const getUsers = (params: URLSearchParams) =>
   adminFetch<PaginatedUserList>(`/users?${params.toString()}`);

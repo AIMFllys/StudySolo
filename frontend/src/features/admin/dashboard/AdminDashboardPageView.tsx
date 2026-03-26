@@ -24,10 +24,10 @@ import { DashboardActivityTable } from './DashboardActivityTable';
 import { DashboardChartsSection } from './DashboardChartsSection';
 import { DashboardKpiSection } from './DashboardKpiSection';
 
-function formatUsd(value: number) {
-  return new Intl.NumberFormat('en-US', {
+function formatCny(value: number) {
+  return new Intl.NumberFormat('zh-CN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CNY',
     minimumFractionDigits: value >= 1 ? 2 : 4,
     maximumFractionDigits: value >= 1 ? 2 : 4,
   }).format(value);
@@ -142,9 +142,9 @@ export function AdminDashboardPageView() {
     <div className="mx-auto min-h-full max-w-[1600px] space-y-6 px-8 py-8">
       <PageHeader
         title="AI 使用量与计费看板"
-        description="平台全局 AI 请求、真实 API 调用、Token、成本与最近调用明细"
+        description="平台全局 AI 请求、真实 API 调用、Token、CNY 成本与最近调用明细"
         eyebrow="GLOBAL_AI_OBSERVABILITY"
-        action={
+        action={(
           <button
             onClick={() => {
               setLoading(true);
@@ -165,7 +165,7 @@ export function AdminDashboardPageView() {
           >
             刷新数据
           </button>
-        }
+        )}
       />
 
       <motion.section
@@ -229,7 +229,7 @@ export function AdminDashboardPageView() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span>费用</span>
-                  <span className="font-mono text-[#002045]">{formatUsd(live?.summary.total_cost_usd ?? 0)}</span>
+                  <span className="font-mono text-[#002045]">{formatCny(live?.summary.total_cost_cny ?? 0)}</span>
                 </div>
               </div>
             </section>
@@ -240,12 +240,12 @@ export function AdminDashboardPageView() {
                 <div>
                   <p className="font-mono text-[10px] tracking-[0.12em] text-[#74777f]">ASSISTANT</p>
                   <p className="mt-1">调用 {overview?.assistant.provider_call_count?.toLocaleString('zh-CN') ?? '0'} 次</p>
-                  <p>费用 {formatUsd(overview?.assistant.total_cost_usd ?? 0)}</p>
+                  <p>费用 {formatCny(overview?.assistant.total_cost_cny ?? 0)}</p>
                 </div>
                 <div>
                   <p className="font-mono text-[10px] tracking-[0.12em] text-[#74777f]">WORKFLOW</p>
                   <p className="mt-1">调用 {overview?.workflow.provider_call_count?.toLocaleString('zh-CN') ?? '0'} 次</p>
-                  <p>费用 {formatUsd(overview?.workflow.total_cost_usd ?? 0)}</p>
+                  <p>费用 {formatCny(overview?.workflow.total_cost_cny ?? 0)}</p>
                 </div>
               </div>
             </section>

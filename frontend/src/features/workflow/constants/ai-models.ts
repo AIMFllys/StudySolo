@@ -1,178 +1,118 @@
-/**
- * AI 对话可选模型定义.
- *
- * 每个供应商提供:
- * - 1 个中等免费模型 (所有用户可用)
- * - 1 个旗舰会员模型 (需要订阅)
- */
+import type { TierType } from '@/services/auth.service';
+import type { CatalogSku } from '@/types/ai-catalog';
 
 export interface AIModelOption {
-  /** 供应商 ID (对应 config.yaml platforms key) */
-  platform: string;
-  /** 模型 ID (发送给后端) */
-  model: string;
-  /** 用户可见的模型名称 */
+  skuId: string;
+  familyId: string;
+  familyName: string;
+  provider: string;
+  vendor: string;
+  modelId: string;
   displayName: string;
-  /** 供应商名称 */
   providerName: string;
-  /** 供应商品牌色 (用于 UI 标识) */
   brandColor: string;
-  /** 是否需要会员 */
+  billingChannel: CatalogSku['billing_channel'];
+  taskFamily: string;
+  routingPolicy: CatalogSku['routing_policy'];
+  requiredTier: TierType;
   isPremium: boolean;
-  /** 模型简介 */
+  isEnabled: boolean;
+  isVisible: boolean;
+  isUserSelectable: boolean;
+  isFallbackOnly: boolean;
+  supportsThinking: boolean;
+  maxContextTokens: number | null;
+  inputPriceCnyPerMillion: number;
+  outputPriceCnyPerMillion: number;
+  priceSource: string | null;
+  pricingVerifiedAt: string | null;
+  sortOrder: number;
   description: string;
-  /** 是否支持深度思考 (DeepSeek R1 的 reasoning_content) */
-  supportsThinking?: boolean;
+  platform: string;
+  model: string;
 }
 
-export const AI_MODEL_OPTIONS: AIModelOption[] = [
-  // ── 七牛云 (Qiniu Cloud) - [New Primary] ──
-  {
-    platform: 'qiniu',
-    model: 'DeepSeek-V3.2',
-    displayName: 'DeepSeek V3 (七牛)',
-    providerName: '七牛云',
-    brandColor: '#0082FA',
-    isPremium: false,
-    description: '日常对话优选，响应极快',
-  },
-  {
-    platform: 'qiniu',
-    model: 'DeepSeek-R1',
-    displayName: 'DeepSeek R1 (七牛)',
-    providerName: '七牛云',
-    brandColor: '#0082FA',
-    isPremium: true,
-    description: '强悍数学/编程推理，深度思维',
-    supportsThinking: true,
-  },
-  {
-    platform: 'qiniu',
-    model: 'Qwen3-Max',
-    displayName: 'Qwen 3 Max (七牛)',
-    providerName: '七牛云',
-    brandColor: '#0082FA',
-    isPremium: true,
-    description: '复杂任务与智能体编程专项',
-  },
-  {
-    platform: 'qiniu',
-    model: 'Kimi-K2.5',
-    displayName: 'Kimi K2.5 (七牛)',
-    providerName: '七牛云',
-    brandColor: '#0082FA',
-    isPremium: true,
-    description: '256K长上下文，旗舰架构',
-  },
+const PROVIDER_BRAND_COLORS: Record<string, string> = {
+  deepseek: '#4D6BFE',
+  dashscope: '#F97316',
+  volcengine: '#3370FF',
+  zhipu: '#2563EB',
+  moonshot: '#111827',
+  qiniu: '#0082FA',
+  siliconflow: '#0F766E',
+  compshare: '#7C3AED',
+};
 
-  // ── DeepSeek ──────────────────────────────────────
-  {
-    platform: 'deepseek',
-    model: 'deepseek-chat',
-    displayName: 'DeepSeek V3 (直连)',
-    providerName: 'DeepSeek',
-    brandColor: '#4D6BFE',
-    isPremium: false,
-    description: '均衡推理, 适合日常对话',
-  },
-  {
-    platform: 'deepseek',
-    model: 'deepseek-reasoner',
-    displayName: 'DeepSeek R1 (直连)',
-    providerName: 'DeepSeek',
-    brandColor: '#4D6BFE',
-    isPremium: true,
-    description: '顶级深度推理模型',
-    supportsThinking: true,
-  },
-  // ── 火山引擎 (豆包) ──────────────────────────────
-  {
-    platform: 'volcengine',
-    model: 'Doubao-pro-32k',
-    displayName: '豆包 Pro',
-    providerName: '豆包',
-    brandColor: '#3370FF',
-    isPremium: false,
-    description: '长文本理解, 适合分析',
-  },
-  {
-    platform: 'volcengine',
-    model: 'Doubao-pro-256k',
-    displayName: '豆包 Pro 256K',
-    providerName: '豆包',
-    brandColor: '#3370FF',
-    isPremium: true,
-    description: '超长上下文旗舰',
-  },
-  // ── 阿里云百炼 (通义千问) ────────────────────────
-  {
-    platform: 'dashscope',
-    model: 'qwen-turbo',
-    displayName: '通义千问 Turbo',
-    providerName: '通义千问',
-    brandColor: '#6B5CE7',
-    isPremium: false,
-    description: '快速响应, 适合轻量任务',
-  },
-  {
-    platform: 'dashscope',
-    model: 'qwen-max',
-    displayName: '通义千问 Max (直连)',
-    providerName: '通义千问',
-    brandColor: '#6B5CE7',
-    isPremium: true,
-    description: '最强通义旗舰模型',
-  },
-  // ── 智谱 AI ──────────────────────────────────────
-  {
-    platform: 'zhipu',
-    model: 'glm-4-flash',
-    displayName: 'GLM-4 Flash',
-    providerName: '智谱',
-    brandColor: '#2563EB',
-    isPremium: false,
-    description: '高效通用对话模型',
-  },
-  {
-    platform: 'zhipu',
-    model: 'glm-4',
-    displayName: 'GLM-4',
-    providerName: '智谱',
-    brandColor: '#2563EB',
-    isPremium: true,
-    description: '智谱旗舰大模型',
-  },
-  // ── 月之暗面 (Kimi) ─────────────────────────────
-  {
-    platform: 'moonshot',
-    model: 'moonshot-v1-8k',
-    displayName: 'Kimi 8K (直连)',
-    providerName: 'Kimi',
-    brandColor: '#1E1E1E',
-    isPremium: false,
-    description: '中等上下文对话模型',
-  },
-  {
-    platform: 'moonshot',
-    model: 'moonshot-v1-128k',
-    displayName: 'Kimi 128K (直连)',
-    providerName: 'Kimi',
-    brandColor: '#1E1E1E',
-    isPremium: true,
-    description: '超长上下文旗舰',
-  },
-];
+const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
+  deepseek: 'DeepSeek',
+  dashscope: '通义千问',
+  volcengine: '豆包',
+  zhipu: '智谱',
+  moonshot: 'Kimi',
+  qiniu: '七牛云',
+  siliconflow: '硅基流动',
+  compshare: '优云智算',
+};
 
-/** 默认模型 (DeepSeek V3) */
-export const DEFAULT_MODEL = AI_MODEL_OPTIONS[0];
+function buildDescription(item: CatalogSku) {
+  const source = item.billing_channel === 'native'
+    ? '原生'
+    : item.billing_channel === 'proxy'
+      ? '聚合'
+      : '工具';
+  return `${source} · ${item.vendor} · ${item.task_family}`;
+}
 
-/** 仅免费模型 */
-export const FREE_MODELS = AI_MODEL_OPTIONS.filter((m) => !m.isPremium);
+export function mapCatalogSkuToOption(item: CatalogSku): AIModelOption {
+  return {
+    skuId: item.sku_id,
+    familyId: item.family_id,
+    familyName: item.family_name,
+    provider: item.provider,
+    vendor: item.vendor,
+    modelId: item.model_id,
+    displayName: item.display_name,
+    providerName: PROVIDER_DISPLAY_NAMES[item.provider] ?? item.provider,
+    brandColor: PROVIDER_BRAND_COLORS[item.provider] ?? '#4B5563',
+    billingChannel: item.billing_channel,
+    taskFamily: item.task_family,
+    routingPolicy: item.routing_policy,
+    requiredTier: item.required_tier,
+    isPremium: item.required_tier !== 'free',
+    isEnabled: item.is_enabled,
+    isVisible: item.is_visible,
+    isUserSelectable: item.is_user_selectable,
+    isFallbackOnly: item.is_fallback_only,
+    supportsThinking: item.supports_thinking,
+    maxContextTokens: item.max_context_tokens,
+    inputPriceCnyPerMillion: item.input_price_cny_per_million,
+    outputPriceCnyPerMillion: item.output_price_cny_per_million,
+    priceSource: item.price_source,
+    pricingVerifiedAt: item.pricing_verified_at,
+    sortOrder: item.sort_order,
+    description: buildDescription(item),
+    platform: item.provider,
+    model: item.model_id,
+  };
+}
 
-/** 按供应商分组 */
-export function groupModelsByProvider() {
+export function compareTier(userTier: TierType | undefined, requiredTier: TierType | undefined): number {
+  const order: Record<TierType, number> = {
+    free: 0,
+    pro: 1,
+    pro_plus: 2,
+    ultra: 3,
+  };
+  return (order[userTier ?? 'free'] ?? 0) - (order[requiredTier ?? 'free'] ?? 0);
+}
+
+export function canAccessModel(userTier: TierType | undefined, model: AIModelOption): boolean {
+  return compareTier(userTier, model.requiredTier) >= 0;
+}
+
+export function groupModelsByProvider(options: AIModelOption[]) {
   const groups: Record<string, AIModelOption[]> = {};
-  for (const model of AI_MODEL_OPTIONS) {
+  for (const model of options) {
     if (!groups[model.providerName]) {
       groups[model.providerName] = [];
     }
@@ -180,3 +120,38 @@ export function groupModelsByProvider() {
   }
   return groups;
 }
+
+export const FALLBACK_AI_MODEL_OPTIONS: AIModelOption[] = [
+  {
+    skuId: 'sku_deepseek_chat_native',
+    familyId: 'deepseek_budget_chat',
+    familyName: 'DeepSeek Budget Chat',
+    provider: 'deepseek',
+    vendor: 'deepseek',
+    modelId: 'deepseek-chat',
+    displayName: 'DeepSeek V3',
+    providerName: 'DeepSeek',
+    brandColor: '#4D6BFE',
+    billingChannel: 'native',
+    taskFamily: 'cheap_chat',
+    routingPolicy: 'native_first',
+    requiredTier: 'free',
+    isPremium: false,
+    isEnabled: true,
+    isVisible: true,
+    isUserSelectable: true,
+    isFallbackOnly: false,
+    supportsThinking: false,
+    maxContextTokens: 64000,
+    inputPriceCnyPerMillion: 0,
+    outputPriceCnyPerMillion: 0,
+    priceSource: null,
+    pricingVerifiedAt: null,
+    sortOrder: 10,
+    description: '原生 · deepseek · cheap_chat',
+    platform: 'deepseek',
+    model: 'deepseek-chat',
+  },
+];
+
+export const DEFAULT_MODEL = FALLBACK_AI_MODEL_OPTIONS[0];

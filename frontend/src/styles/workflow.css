@@ -1872,6 +1872,47 @@
   box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.2);
 }
 
+
+.light .loop-group-container {
+  background: rgba(5, 150, 105, 0.04);
+  border-color: rgba(5, 150, 105, 0.3);
+}
+
+.loop-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px dashed rgba(5, 150, 105, 0.2);
+  background: rgba(5, 150, 105, 0.06);
+  border-radius: 10px 10px 0 0;
+  flex-shrink: 0;
+}
+
+.loop-group-body {
+  flex: 1;
+  min-height: 120px;
+  padding: 8px;
+}
+
+.loop-group-param-input {
+  width: 40px;
+  padding: 1px 4px;
+  border: 1px solid rgba(5, 150, 105, 0.3);
+  border-radius: 4px;
+  background: rgba(5, 150, 105, 0.08);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #059669;
+  outline: none;
+  text-align: center;
+}
+
+.loop-group-param-input:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.2);
+}
+
 /* Resizer styling */
 .loop-group-resizer-line {
   border-color: rgba(5, 150, 105, 0.4) !important;
@@ -1883,4 +1924,20 @@
   border-radius: 2px !important;
   background: #059669 !important;
   border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+/* ─── Node UI Refactor: Result Slip & Selectors ─── */
+.node-result-slip {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transform-origin: top;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.node-result-slip-expanded {
+  /* Used for expanded state animation overrides if any */
+}
+
+.node-model-selector-trigger {
+  letter-spacing: 0.05em;
 }

@@ -64,8 +64,9 @@ export function useStreamChat() {
       })),
       intent_hint: intentHint,
       mode: mode ?? 'chat',
-      selected_model: selectedModel.model,
-      selected_platform: selectedModel.platform,
+      selected_model_key: selectedModel.skuId,
+      selected_model: selectedModel.modelId,
+      selected_platform: selectedModel.provider,
       thinking_level: thinkingDepth ?? 'balanced',
     };
 

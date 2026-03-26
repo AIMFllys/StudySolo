@@ -45,10 +45,10 @@ const tooltipStyle = {
   color: '#002045',
 };
 
-function formatUsd(value: number) {
-  return new Intl.NumberFormat('en-US', {
+function formatCny(value: number) {
+  return new Intl.NumberFormat('zh-CN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CNY',
     minimumFractionDigits: value >= 1 ? 2 : 4,
     maximumFractionDigits: value >= 1 ? 2 : 4,
   }).format(value);
@@ -100,13 +100,13 @@ export function DashboardChartsSection({
     workflow_calls: point.workflow_calls,
     assistant_tokens: point.assistant_tokens,
     workflow_tokens: point.workflow_tokens,
-    assistant_cost_usd: point.assistant_cost_usd,
-    workflow_cost_usd: point.workflow_cost_usd,
+    assistant_cost_cny: point.assistant_cost_cny,
+    workflow_cost_cny: point.workflow_cost_cny,
   }));
 
   const pieData = costSplit.items.map((item) => ({
     name: item.source_type === 'assistant' ? 'Assistant' : 'Workflow',
-    value: item.total_cost_usd,
+    value: item.total_cost_cny,
   }));
 
   const topModels = modelBreakdown.items.slice(0, 8);
@@ -116,7 +116,7 @@ export function DashboardChartsSection({
       <ChartShell
         title="调用次数趋势"
         description="assistant 与 workflow 两本账的真实 provider 调用次数"
-        action={
+        action={(
           <div className="flex gap-2">
             {TIME_RANGE_OPTIONS.map((option) => (
               <button
@@ -132,7 +132,7 @@ export function DashboardChartsSection({
               </button>
             ))}
           </div>
-        }
+        )}
       >
         <div className="h-[320px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -165,7 +165,7 @@ export function DashboardChartsSection({
         </div>
       </ChartShell>
 
-      <ChartShell title="费用趋势" description="USD 账本，按 assistant / workflow 分开计算">
+      <ChartShell title="费用趋势" description="CNY 成本口径，按 assistant / workflow 分开计算">
         <div className="h-[320px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
@@ -174,24 +174,24 @@ export function DashboardChartsSection({
               <YAxis stroke="#74777f" fontSize={12} />
               <Tooltip
                 contentStyle={tooltipStyle}
-                formatter={(value: number) => [formatUsd(value), 'Cost']}
+                formatter={(value: number) => [formatCny(value), 'Cost']}
               />
               <Legend />
-              <Line type="monotone" dataKey="assistant_cost_usd" stroke="#8c6d1f" strokeWidth={2} name="Assistant Cost" />
-              <Line type="monotone" dataKey="workflow_cost_usd" stroke="#c05621" strokeWidth={2} name="Workflow Cost" />
+              <Line type="monotone" dataKey="assistant_cost_cny" stroke="#8c6d1f" strokeWidth={2} name="Assistant Cost" />
+              <Line type="monotone" dataKey="workflow_cost_cny" stroke="#c05621" strokeWidth={2} name="Workflow Cost" />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </ChartShell>
 
-      <ChartShell title="成本拆分与模型排行" description="左侧看账本拆分，右侧看最贵 / 最热模型">
+      <ChartShell title="成本拆分与模型排行" description="左侧看账本拆分，右侧看平台级 SKU 成本排行">
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(value: number) => [formatUsd(value), 'Cost']}
+                  formatter={(value: number) => [formatCny(value), 'Cost']}
                 />
                 <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={88} innerRadius={44}>
                   {pieData.map((entry, index) => (
@@ -206,7 +206,7 @@ export function DashboardChartsSection({
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-[#c4c6cf] bg-[#efeeea]">
-                  <th className="px-4 py-3 font-mono text-[10px] tracking-[0.16em] text-[#002045]">MODEL</th>
+                  <th className="px-4 py-3 font-mono text-[10px] tracking-[0.16em] text-[#002045]">SKU</th>
                   <th className="px-4 py-3 font-mono text-[10px] tracking-[0.16em] text-[#002045]">CALLS</th>
                   <th className="px-4 py-3 font-mono text-[10px] tracking-[0.16em] text-[#002045]">TOKENS</th>
                   <th className="px-4 py-3 font-mono text-[10px] tracking-[0.16em] text-[#002045]">COST</th>
@@ -221,11 +221,14 @@ export function DashboardChartsSection({
                   </tr>
                 ) : (
                   topModels.map((item) => (
-                    <tr key={`${item.provider}-${item.model}`} className="border-b border-[#ddd8cf] last:border-b-0">
-                      <td className="px-4 py-3 text-sm text-[#002045]">{item.provider}/{item.model}</td>
+                    <tr key={item.sku_id ?? `${item.provider}-${item.model}`} className="border-b border-[#ddd8cf] last:border-b-0">
+                      <td className="px-4 py-3 text-sm text-[#002045]">
+                        <div>{item.provider}/{item.model}</div>
+                        <div className="text-[10px] text-[#74777f]">{item.vendor} · {item.billing_channel}</div>
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs text-[#74777f]">{item.provider_call_count.toLocaleString('zh-CN')}</td>
                       <td className="px-4 py-3 font-mono text-xs text-[#74777f]">{item.total_tokens.toLocaleString('zh-CN')}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-[#002045]">{formatUsd(item.total_cost_usd)}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-[#002045]">{formatCny(item.total_cost_cny)}</td>
                     </tr>
                   ))
                 )}

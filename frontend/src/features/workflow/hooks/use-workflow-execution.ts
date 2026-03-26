@@ -6,9 +6,6 @@ import type { WorkflowSSEEvent } from '@/types/workflow-events';
 
 export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'error';
 
-
-export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'error';
-
 const MAX_RECONNECT_ATTEMPTS = 3;
 
 export function useWorkflowExecution() {

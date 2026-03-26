@@ -1,10 +1,10 @@
 import { KpiCard, formatNumber } from '@/features/admin/shared';
 import type { UsageLiveResponse, UsageOverviewResponse } from '@/types/usage';
 
-function formatUsd(value: number) {
-  return new Intl.NumberFormat('en-US', {
+function formatCny(value: number) {
+  return new Intl.NumberFormat('zh-CN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CNY',
     minimumFractionDigits: value >= 1 ? 2 : 4,
     maximumFractionDigits: value >= 1 ? 2 : 4,
   }).format(value);
@@ -43,8 +43,8 @@ export function DashboardKpiSection({ overview, live }: DashboardKpiSectionProps
     },
     {
       label: '总费用',
-      value: formatUsd(overview.all.total_cost_usd),
-      sub: `助手 ${formatUsd(overview.assistant.total_cost_usd)} / 工作流 ${formatUsd(overview.workflow.total_cost_usd)}`,
+      value: formatCny(overview.all.total_cost_cny),
+      sub: `助手 ${formatCny(overview.assistant.total_cost_cny)} / 工作流 ${formatCny(overview.workflow.total_cost_cny)}`,
     },
     {
       label: '错误率',
@@ -58,7 +58,7 @@ export function DashboardKpiSection({ overview, live }: DashboardKpiSectionProps
     },
     {
       label: '近 5 分钟费用',
-      value: formatUsd(live?.summary.total_cost_usd ?? 0),
+      value: formatCny(live?.summary.total_cost_cny ?? 0),
       sub: `近 5 分钟 Tokens ${formatNumber(live?.summary.total_tokens ?? 0)}`,
     },
   ];

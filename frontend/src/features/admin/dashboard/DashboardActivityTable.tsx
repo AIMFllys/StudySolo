@@ -17,10 +17,10 @@ interface DashboardActivityTableProps {
 
 const HEADERS = ['调用 ID', '账本来源', '模型', '状态', 'Tokens', '费用', '开始时间'];
 
-function formatUsd(value: number) {
-  return new Intl.NumberFormat('en-US', {
+function formatCny(value: number) {
+  return new Intl.NumberFormat('zh-CN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CNY',
     minimumFractionDigits: value >= 1 ? 2 : 4,
     maximumFractionDigits: value >= 1 ? 2 : 4,
   }).format(value);
@@ -38,7 +38,7 @@ export function DashboardActivityTable({ recentCalls, loading }: DashboardActivi
       <div className="border-b border-[#c4c6cf] bg-[#efeeea] px-6 py-4">
         <h2 className="font-serif text-xl font-bold text-[#002045]">最近真实调用</h2>
         <p className="mt-2 font-mono text-[10px] tracking-[0.16em] text-[#74777f]">
-          便于追踪失败、fallback 与模型成本
+          便于追踪失败、fallback 与平台级成本
         </p>
       </div>
 
@@ -85,7 +85,10 @@ export function DashboardActivityTable({ recentCalls, loading }: DashboardActivi
                       <span className="ml-2 font-mono text-[10px] text-[#b45309]">FALLBACK</span>
                     ) : null}
                   </td>
-                  <td className="px-5 py-4 text-sm text-[#74777f]">{call.provider}/{call.model}</td>
+                  <td className="px-5 py-4 text-sm text-[#74777f]">
+                    <div>{call.provider}/{call.model}</div>
+                    <div className="text-[10px]">{call.vendor} · {call.billing_channel}</div>
+                  </td>
                   <td className="px-5 py-4">
                     <StatusBadge
                       label={call.status}
@@ -97,7 +100,7 @@ export function DashboardActivityTable({ recentCalls, loading }: DashboardActivi
                     />
                   </td>
                   <td className="px-5 py-4 font-mono text-xs text-[#74777f]">{call.total_tokens.toLocaleString('zh-CN')}</td>
-                  <td className="px-5 py-4 font-mono text-xs text-[#002045]">{formatUsd(call.cost_amount_usd)}</td>
+                  <td className="px-5 py-4 font-mono text-xs text-[#002045]">{formatCny(call.cost_amount_cny)}</td>
                   <td className="px-5 py-4 font-mono text-xs text-[#74777f]">{formatDateTime(call.started_at)}</td>
                 </tr>
               ))}

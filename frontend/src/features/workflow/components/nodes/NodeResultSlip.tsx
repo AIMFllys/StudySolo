@@ -1,0 +1,135 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, ChevronRight, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { NodeStatus } from '@/types';
+import { getRenderer } from './index';
+
+interface NodeResultSlipProps {
+  nodeId: string;
+  status: NodeStatus;
+  output: string;
+  error?: string;
+  inputSnapshot?: string;
+  nodeType: string;
+  outputFormat?: string;
+  executionTimeMs?: number;
+}
+
+export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
+  nodeId,
+  status,
+  output,
+  error,
+  inputSnapshot,
+  nodeType,
+  outputFormat = 'markdown',
+  executionTimeMs,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (status === 'pending') {
+    return null;
+  }
+
+  const Renderer = getRenderer(nodeType);
+  const timeStr = executionTimeMs ? `${(executionTimeMs / 1000).toFixed(1)}s` : '';
+
+  let StatusIcon = Loader2;
+  let statusText = '执行中...';
+  let iconClass = 'animate-spin text-sky-500';
+
+  if (status === 'done') {
+    StatusIcon = CheckCircle2;
+    statusText = `运行成功  ${timeStr}`;
+    iconClass = 'text-emerald-500';
+  } else if (status === 'error') {
+    StatusIcon = AlertCircle;
+    statusText = '执行失败';
+    iconClass = 'text-rose-500';
+  } else if (status === 'waiting') {
+    StatusIcon = Loader2;
+    statusText = '等待中...';
+    iconClass = 'text-amber-500 opacity-70';
+  } else if (status === 'skipped') {
+    StatusIcon = CheckCircle2;
+    statusText = '已跳过';
+    iconClass = 'text-stone-400';
+  }
+
+  const toggleExpand = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded((prev) => !prev);
+  };
+
+  return (
+    <div className="node-result-slip mt-1 w-full rounded-b-md overflow-hidden bg-black/[0.03] dark:bg-white/[0.03] shadow-[inset_0_3px_8px_-4px_rgba(0,0,0,0.06)] border-t border-dashed border-black/10 dark:border-white/10 nodrag relative z-50">
+      <div 
+        className="flex items-center justify-between px-3 py-1.5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+        onClick={toggleExpand}
+      >
+        <div className="flex items-center gap-2">
+          <StatusIcon className={`w-3.5 h-3.5 ${iconClass}`} />
+          <span className="font-mono text-[11px] text-black/60 dark:text-white/60">
+            {statusText}
+          </span>
+        </div>
+        <div className="text-black/40 dark:text-white/40">
+          {isExpanded ? (
+            <ChevronDown className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5" />
+          )}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="overflow-hidden bg-white/50 dark:bg-black/20"
+          >
+            <div className="px-3 pb-3 max-h-[400px] overflow-y-auto w-full custom-scrollbar cursor-text relative z-50"
+                 onWheel={(e) => e.stopPropagation()}
+            >
+              {inputSnapshot && (
+                <div className="mb-3 pt-2">
+                  <div className="text-[10px] font-bold text-black/40 dark:text-white/40 mb-1 uppercase tracking-wider">Input</div>
+                  <pre className="font-mono text-[10px] bg-black/5 dark:bg-white/5 p-2 rounded border border-black/5 dark:border-white/5 text-black/70 dark:text-white/70 whitespace-pre-wrap break-all max-h-32 overflow-y-auto custom-scrollbar">
+                    {inputSnapshot}
+                  </pre>
+                </div>
+              )}
+
+              {(inputSnapshot && (output || error)) && (
+                <div className="border-t border-dashed border-black/10 dark:border-white/10 my-3" />
+              )}
+
+              {output || error ? (
+                <>
+                  <div className="text-[10px] font-bold text-black/40 dark:text-white/40 mb-1 uppercase tracking-wider">Output</div>
+                  {status === 'error' && error ? (
+                    <div className="text-rose-500 font-mono text-[11px] bg-rose-500/10 border border-rose-500/20 p-2 rounded whitespace-pre-wrap break-all">
+                      {error}
+                    </div>
+                  ) : (
+                    <div className="text-[12px] text-black/80 dark:text-white/80 bg-black/5 dark:bg-white/5 p-2 rounded border border-black/5 dark:border-white/5">
+                      <Renderer
+                        output={output}
+                        format={outputFormat}
+                        nodeType={nodeType}
+                        isStreaming={status === 'running'}
+                      />
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};

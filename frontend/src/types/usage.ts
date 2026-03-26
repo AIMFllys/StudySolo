@@ -9,7 +9,7 @@ export interface UsageMetrics {
   provider_call_count: number;
   successful_provider_call_count: number;
   total_tokens: number;
-  total_cost_usd: number;
+  total_cost_cny: number;
   error_rate: number;
   fallback_rate: number;
   p95_latency_ms: number | null;
@@ -28,7 +28,7 @@ export interface UsageLivePoint {
   provider_calls: number;
   successful_provider_calls: number;
   total_tokens: number;
-  total_cost_usd: number;
+  total_cost_cny: number;
   error_count: number;
   fallback_count: number;
 }
@@ -45,8 +45,8 @@ export interface UsageTimeseriesPoint {
   workflow_calls: number;
   assistant_tokens: number;
   workflow_tokens: number;
-  assistant_cost_usd: number;
-  workflow_cost_usd: number;
+  assistant_cost_cny: number;
+  workflow_cost_cny: number;
 }
 
 export interface UsageTimeseriesResponse {
@@ -56,12 +56,17 @@ export interface UsageTimeseriesResponse {
 }
 
 export interface ModelBreakdownItem {
+  sku_id: string | null;
+  family_id: string | null;
   provider: string;
+  vendor: string;
   model: string;
+  billing_channel: string;
+  task_family: string | null;
   provider_call_count: number;
   successful_provider_call_count: number;
   total_tokens: number;
-  total_cost_usd: number;
+  total_cost_cny: number;
   success_rate: number;
 }
 
@@ -76,14 +81,18 @@ export interface RecentCallItem {
   request_id: string;
   source_type: UsageSourceType;
   source_subtype: string;
+  sku_id: string | null;
+  family_id: string | null;
   provider: string;
+  vendor: string;
   model: string;
+  billing_channel: string;
   node_id: string | null;
   status: string;
   is_fallback: boolean;
   latency_ms: number | null;
   total_tokens: number;
-  cost_amount_usd: number;
+  cost_amount_cny: number;
   started_at: string;
 }
 
@@ -95,7 +104,7 @@ export interface CostSplitItem {
   source_type: UsageSourceType;
   provider_call_count: number;
   total_tokens: number;
-  total_cost_usd: number;
+  total_cost_cny: number;
 }
 
 export interface CostSplitResponse {

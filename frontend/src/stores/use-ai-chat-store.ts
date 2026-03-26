@@ -146,8 +146,9 @@ export const useAIChatStore = create<AIChatState>((set, get) => ({
       })),
       intent_hint: intentHint,
       mode: state.mode,
-      selected_model: state.selectedModel.model,
-      selected_platform: state.selectedModel.platform,
+      selected_model_key: state.selectedModel.skuId,
+      selected_model: state.selectedModel.modelId,
+      selected_platform: state.selectedModel.provider,
       thinking_level: state.thinkingDepth,
     };
 
