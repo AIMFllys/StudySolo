@@ -7,6 +7,7 @@ import type { AIStepNodeData } from '@/types';
 import { getNodePreview, getNodeTypeMeta, getStatusMeta, getNodeTheme } from '@/features/workflow/constants/workflow-meta';
 import { getRenderer } from './index';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
+import BranchManagerPanel from './BranchManagerPanel';
 
 
 
@@ -130,6 +131,11 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
 
         {/* Divider */}
         <hr className="border-t-[1px] border-dashed border-black/15 dark:border-white/15 my-4" />
+
+        {/* Branch manager — logic_switch only, when selected */}
+        {isLogicSwitch && selected && (
+          <BranchManagerPanel nodeId={id} />
+        )}
 
         {/* Dynamic Content Area */}
         <div className="w-full min-h-[4rem]">
