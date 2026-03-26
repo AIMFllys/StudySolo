@@ -1,8 +1,11 @@
 import '@/app/globals.css';
+import SessionRefresher from './SessionRefresher';
 
 export default function SharedLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-background">
+      {/* Activate Supabase session + auto-refresh outside the dashboard layout */}
+      <SessionRefresher />
       {/* Floating minimalist top bar over the canvas */}
       <header className="absolute top-0 left-0 right-0 z-50 px-4 py-3 pointer-events-none">
         <div className="flex items-center justify-between max-w-7xl mx-auto pointer-events-auto">

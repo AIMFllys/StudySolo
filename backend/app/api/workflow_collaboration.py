@@ -67,38 +67,40 @@ async def invite_collaborator(
     await check_workflow_access(workflow_id, current_user["id"], "owner", db)
 
     # Find invitee by email
-    profile = (
+    profile_res = (
         await db.from_("user_profiles")
         .select("id,email")
         .eq("email", body.email)
-        .maybe_single()
+        .limit(1)
         .execute()
     )
-    if not profile.data:
+    profile_rows = profile_res.data or []
+    if not profile_rows:
         raise HTTPException(status_code=404, detail="未找到该用户")
 
-    invitee_id = profile.data["id"]
+    invitee_id = profile_rows[0]["id"]
 
     # Cannot invite self
     if invitee_id == current_user["id"]:
         raise HTTPException(status_code=400, detail="不能邀请自己")
 
     # Check for existing invitation (might be rejected — allow re-invite)
-    existing = (
+    existing_res = (
         await db.from_("ss_workflow_collaborators")
         .select("id,status")
         .eq("workflow_id", workflow_id)
         .eq("user_id", invitee_id)
-        .maybe_single()
+        .limit(1)
         .execute()
     )
+    existing_rows = existing_res.data or []
 
-    if existing.data:
-        if existing.data["status"] in ("pending", "accepted"):
+    if existing_rows:
+        if existing_rows[0]["status"] in ("pending", "accepted"):
             raise HTTPException(status_code=409, detail="该用户已被邀请")
         # Rejected → delete old record to allow re-invite
         await db.from_("ss_workflow_collaborators") \
-            .delete().eq("id", existing.data["id"]).execute()
+            .delete().eq("id", existing_rows[0]["id"]).execute()
 
     await db.from_("ss_workflow_collaborators").insert({
         "workflow_id": workflow_id,
@@ -234,18 +236,20 @@ async def reject_invitation(
 async def _respond_invitation(
     invitation_id: str, user_id: str, new_status: str, db: AsyncClient
 ) -> dict:
-    inv = (
+    inv_res = (
         await db.from_("ss_workflow_collaborators")
         .select("id,user_id,status")
         .eq("id", invitation_id)
-        .maybe_single()
+        .limit(1)
         .execute()
     )
-    if not inv.data:
+    inv_rows = inv_res.data or []
+    if not inv_rows:
         raise HTTPException(status_code=404, detail="邀请不存在")
-    if inv.data["user_id"] != user_id:
+    inv_data = inv_rows[0]
+    if inv_data["user_id"] != user_id:
         raise HTTPException(status_code=403, detail="只能操作自己的邀请")
-    if inv.data["status"] != "pending":
+    if inv_data["status"] != "pending":
         raise HTTPException(status_code=400, detail="邀请已处理")
 
     await db.from_("ss_workflow_collaborators") \

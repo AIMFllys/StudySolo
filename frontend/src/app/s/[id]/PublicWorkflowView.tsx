@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
-import { toggleLike, toggleFavorite, forkWorkflow } from '@/services/workflow.service';
+import { ApiError, toggleLike, toggleFavorite, forkWorkflow } from '@/services/workflow.service';
 import type { WorkflowPublicView } from '@/types/workflow';
 
 const ReadOnlyCanvas = dynamic(
@@ -33,7 +33,7 @@ function LoginPromptDialog({
   onCancel: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
@@ -91,6 +91,8 @@ export default function PublicWorkflowView({ workflow }: Props) {
   const [liked, setLiked] = useState(workflow.is_liked ?? false);
   const [faved, setFaved] = useState(workflow.is_favorited ?? false);
   const [forking, setForking] = useState(false);
+  const [liking, setLiking] = useState(false);
+  const [faving, setFaving] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showShare, setShowShare] = useState(true);
 
@@ -111,22 +113,38 @@ export default function PublicWorkflowView({ workflow }: Props) {
   }, [router, pathname]);
 
   async function handleLike() {
+    if (liking) return;
+    setLiking(true);
     try {
       const res = await toggleLike(workflow.id);
       setLiked(res.toggled);
       setLikes(res.count);
-    } catch {
-      promptLogin();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        promptLogin();
+      } else {
+        toast.error(err instanceof Error ? err.message : '操作失败，请稍后重试');
+      }
+    } finally {
+      setLiking(false);
     }
   }
 
   async function handleFavorite() {
+    if (faving) return;
+    setFaving(true);
     try {
       const res = await toggleFavorite(workflow.id);
       setFaved(res.toggled);
       setFavs(res.count);
-    } catch {
-      promptLogin();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        promptLogin();
+      } else {
+        toast.error(err instanceof Error ? err.message : '操作失败，请稍后重试');
+      }
+    } finally {
+      setFaving(false);
     }
   }
 
@@ -136,9 +154,13 @@ export default function PublicWorkflowView({ workflow }: Props) {
       const forked = await forkWorkflow(workflow.id);
       toast.success('已 Fork 到我的工作空间');
       router.push(`/c/${forked.id}`);
-    } catch {
+    } catch (err) {
       setForking(false);
-      promptLogin();
+      if (err instanceof ApiError && err.status === 401) {
+        promptLogin();
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Fork 失败，请稍后重试');
+      }
     }
   }
 
@@ -198,7 +220,8 @@ export default function PublicWorkflowView({ workflow }: Props) {
           <div className="flex bg-background border border-border rounded-lg overflow-hidden shadow-sm mt-1">
              <button
                 onClick={handleLike}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-wider font-bold transition-colors ${
+                disabled={liking}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-wider font-bold transition-colors disabled:opacity-60 ${
                   liked ? 'text-red-600 bg-red-50/50 hover:bg-red-50' : 'text-muted-foreground hover:bg-muted'
                 }`}
               >
@@ -208,7 +231,8 @@ export default function PublicWorkflowView({ workflow }: Props) {
               <div className="w-px bg-border" />
               <button
                 onClick={handleFavorite}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-wider font-bold transition-colors ${
+                disabled={faving}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-wider font-bold transition-colors disabled:opacity-60 ${
                   faved ? 'text-amber-600 bg-amber-50/50 hover:bg-amber-50' : 'text-muted-foreground hover:bg-muted'
                 }`}
               >

@@ -7,6 +7,39 @@ import type {
 } from '@/types/workflow';
 
 /**
+ * API error that preserves the HTTP status code.
+ * Callers can check `err instanceof ApiError && err.status === 401`
+ * to distinguish "not authenticated" from other failures.
+ */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/**
+ * Return the current Supabase access token (handles auto-refresh).
+ * Returns undefined on the server side or if the user is not signed in.
+ */
+async function getAccessToken(): Promise<string | undefined> {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const { createClient } = await import('@/utils/supabase/client');
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    return session?.access_token ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Discriminated union for fetch operations that may fail silently.
  * Callers can distinguish "genuinely empty data" from "request failed".
  */
@@ -104,13 +137,15 @@ export async function deleteWorkflow(workflowId: string): Promise<void> {
 export async function toggleLike(
   workflowId: string
 ): Promise<InteractionToggleResponse> {
+  const token = await getAccessToken();
   const response = await fetch(`/api/workflow/${workflowId}/like`, {
     method: 'POST',
     credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   if (!response.ok) {
-    throw new Error(await parseApiError(response, '点赞操作失败'));
+    throw new ApiError(await parseApiError(response, '点赞操作失败'), response.status);
   }
   return (await response.json()) as InteractionToggleResponse;
 }
@@ -118,13 +153,15 @@ export async function toggleLike(
 export async function toggleFavorite(
   workflowId: string
 ): Promise<InteractionToggleResponse> {
+  const token = await getAccessToken();
   const response = await fetch(`/api/workflow/${workflowId}/favorite`, {
     method: 'POST',
     credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   if (!response.ok) {
-    throw new Error(await parseApiError(response, '收藏操作失败'));
+    throw new ApiError(await parseApiError(response, '收藏操作失败'), response.status);
   }
   return (await response.json()) as InteractionToggleResponse;
 }
@@ -198,13 +235,15 @@ export async function fetchMarketplace(
 export async function forkWorkflow(
   workflowId: string
 ): Promise<WorkflowMeta> {
+  const token = await getAccessToken();
   const response = await fetch(`/api/workflow/${workflowId}/fork`, {
     method: 'POST',
     credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   if (!response.ok) {
-    throw new Error(await parseApiError(response, 'Fork 工作流失败'));
+    throw new ApiError(await parseApiError(response, 'Fork 工作流失败'), response.status);
   }
   return (await response.json()) as WorkflowMeta;
 }

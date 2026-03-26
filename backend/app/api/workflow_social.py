@@ -43,20 +43,21 @@ async def _toggle_interaction(
     for an existing record with .maybe_single(), then inserts or deletes
     deterministically.
     """
-    existing = (
+    result = (
         await db.from_("ss_workflow_interactions")
         .select("id")
         .eq("user_id", user_id)
         .eq("workflow_id", workflow_id)
         .eq("action", action)
-        .maybe_single()
+        .limit(1)
         .execute()
     )
+    rows = result.data or []
 
-    if existing.data:
+    if rows:
         # Already interacted → remove (untoggle)
         await db.from_("ss_workflow_interactions") \
-            .delete().eq("id", existing.data["id"]).execute()
+            .delete().eq("id", rows[0]["id"]).execute()
         toggled = False
     else:
         # No prior interaction → insert (toggle on)
