@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
-import { FALLBACK_AI_MODEL_OPTIONS, groupModelsByProvider } from '../../constants/ai-models';
+import { groupModelsByProvider, canAccessModel, type AIModelOption } from '../../constants/ai-models';
+import { useWorkflowCatalog } from '../../hooks/use-workflow-catalog';
+import { getUser, type UserInfo } from '@/services/auth.service';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,57 +25,88 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
   nodeThemeColor,
 }) => {
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData);
+  const { models, isLoading } = useWorkflowCatalog();
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const userTier = user?.tier;
 
-  const modelOptions = FALLBACK_AI_MODEL_OPTIONS;
-  const groups = groupModelsByProvider(modelOptions);
+  useEffect(() => {
+    getUser().then(setUser).catch(() => null);
+  }, []);
 
-  const handleSelect = (modelStr: string) => {
-    updateNodeData(nodeId, { model_route: modelStr });
+  const groups = groupModelsByProvider(models);
+
+  const handleSelect = (model: AIModelOption) => {
+    if (!canAccessModel(userTier, model)) return;
+    updateNodeData(nodeId, { model_route: model.model });
   };
 
-  const selectedModelInfo = modelOptions.find((m) => m.model === currentModel) || modelOptions[0];
-  const brandColor = selectedModelInfo.brandColor || nodeThemeColor;
+  const selectedModelInfo = models.find((m) => m.model === currentModel) ?? models[0];
+  const brandColor = selectedModelInfo?.brandColor ?? nodeThemeColor;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           className="node-model-selector-trigger group flex items-center gap-1.5 focus:outline-none bg-transparent border-none opacity-60 font-mono text-[9px] uppercase hover:opacity-100 hover:border hover:border-dashed hover:border-current/20 px-1 py-0.5 rounded transition-all"
-          title="切换 AI 模型"
+          title={isLoading ? '加载模型列表...' : '切换 AI 模型'}
+          disabled={isLoading}
         >
-          <span 
-            className="w-1.5 h-1.5 rounded-full inline-block transition-colors" 
-            style={{ backgroundColor: brandColor }}
-          />
-          <span>{selectedModelInfo.model}</span>
+          {isLoading ? (
+            <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse bg-stone-400" />
+          ) : (
+            <span
+              className="w-1.5 h-1.5 rounded-full inline-block transition-colors"
+              style={{ backgroundColor: brandColor }}
+            />
+          )}
+          <span>{selectedModelInfo?.model ?? currentModel}</span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56 node-paper-bg border border-dashed border-black/20 dark:border-white/20 shadow-xl" align="start">
-        {Object.entries(groups).map(([providerName, models], idx) => (
+
+      <DropdownMenuContent
+        className="w-56 node-paper-bg border border-dashed border-black/20 dark:border-white/20 shadow-xl"
+        align="start"
+      >
+        {Object.entries(groups).map(([providerName, providerModels], idx) => (
           <React.Fragment key={providerName}>
             {idx > 0 && <DropdownMenuSeparator className="bg-black/10 dark:bg-white/10" />}
             <DropdownMenuGroup>
               <DropdownMenuLabel className="font-serif text-[10px] opacity-70 px-2 py-1">
                 {providerName}
               </DropdownMenuLabel>
-              {models.map((model) => (
-                <DropdownMenuItem
-                  key={model.model}
-                  onClick={() => handleSelect(model.model)}
-                  className="font-mono text-[10px] cursor-pointer focus:bg-black/5 dark:focus:bg-white/10 flex items-center gap-2 px-2 py-1.5 rounded-sm"
-                >
-                  <span
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ backgroundColor: model.brandColor }}
-                  />
-                  <span>{model.model}</span>
-                  {model.isPremium && (
-                    <span className="text-[8px] border border-amber-500/30 text-amber-600 dark:text-amber-400 px-1 rounded-sm ml-auto">
-                      PRO
-                    </span>
-                  )}
-                </DropdownMenuItem>
-              ))}
+              {providerModels.map((model) => {
+                const accessible = canAccessModel(userTier, model);
+                const isActive = model.model === currentModel;
+                return (
+                  <DropdownMenuItem
+                    key={model.model}
+                    onClick={() => handleSelect(model)}
+                    disabled={!accessible}
+                    className={`font-mono text-[10px] cursor-pointer flex items-center gap-2 px-2 py-1.5 rounded-sm transition-colors
+                      ${isActive ? 'bg-black/8 dark:bg-white/10 font-semibold' : ''}
+                      ${!accessible ? 'opacity-40 cursor-not-allowed' : 'focus:bg-black/5 dark:focus:bg-white/10'}
+                    `}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: model.brandColor }}
+                    />
+                    <span className="flex-1 truncate">{model.model}</span>
+                    {model.isPremium && (
+                      <span className={`text-[8px] border px-1 rounded-sm ml-auto shrink-0
+                        ${accessible
+                          ? 'border-amber-500/30 text-amber-600 dark:text-amber-400'
+                          : 'border-stone-400/30 text-stone-500'}
+                      `}>
+                        PRO
+                      </span>
+                    )}
+                    {isActive && (
+                      <span className="w-1 h-1 rounded-full bg-emerald-500 shrink-0" />
+                    )}
+                  </DropdownMenuItem>
+                );
+              })}
             </DropdownMenuGroup>
           </React.Fragment>
         ))}
