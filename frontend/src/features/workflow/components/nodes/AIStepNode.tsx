@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { AIStepNodeData } from '@/types';
 import { getNodeTypeMeta, getNodeTheme } from '@/features/workflow/constants/workflow-meta';
@@ -20,7 +20,13 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
   const nodeTheme = getNodeTheme(nodeType);
   const statusBadge = status === 'running' ? '(ACTIVE)' : status === 'waiting' ? '(WAIT)' : '';
   
-  const cardShadow = isActive ? 'ring-2 ring-primary/40 shadow-xl shadow-primary/10 scale-[1.02]' : '';
+  // Independent Selection Trackers
+  const [activePart, setActivePart] = useState<'card' | 'slip'>('card');
+  const showAllNodeSlips = useWorkflowStore((s) => s.showAllNodeSlips);
+  const hideSlip = (nodeData as any).hideSlip === true;
+  const isSlipVisible = showAllNodeSlips && !hideSlip;
+  
+  const cardShadow = selected && activePart === 'card' ? 'ring-2 ring-primary/40 shadow-xl shadow-primary/10 scale-[1.02]' : '';
 
   // Click-to-connect
   const clickConnectState = useWorkflowStore((s) => s.clickConnectState);
@@ -56,18 +62,19 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
       role="article"
       aria-label={`节点: ${label}`}
     >
-      {/* Target Handles (输入) */}
-      <Handle type="target" id="target-left" position={Position.Left}
-        className={`node-handle !h-3 !w-3 !-left-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isWaitingTarget && !isSourceOfCurrentConnect ? 'node-handle-click-target' : ''}`}
-        onClick={(e) => handleHandleClick(e, 'target-left', 'target')}
-      />
-      <Handle type="target" id="target-top" position={Position.Top}
-        className={`node-handle !h-3 !w-3 !-top-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isWaitingTarget && !isSourceOfCurrentConnect ? 'node-handle-click-target' : ''}`}
-        onClick={(e) => handleHandleClick(e, 'target-top', 'target')}
-      />
-
       {/* 主卡片 */}
-      <div className={`${cardShadow} node-paper-bg relative w-full rounded-md transition-all duration-200 ${nodeTheme.borderClass} p-6 flex flex-col`}>
+      <div 
+        className={`${cardShadow} node-paper-bg relative w-full rounded-md transition-all duration-200 ${nodeTheme.borderClass} p-6 flex flex-col z-20`}
+        onClick={(e) => {
+          setActivePart('card');
+          // Allow ReactFlow to select the node normally.
+        }}
+      >
+        {/* Target Handles (输入) */}
+        <Handle type="target" id="target-left" position={Position.Left}
+          className={`node-handle !h-3 !w-3 !-left-[8px] !border-2 !border-background !bg-current z-10 ${nodeTheme.headerTextColor} ${isWaitingTarget && !isSourceOfCurrentConnect ? 'node-handle-click-target' : ''}`}
+          onClick={(e) => handleHandleClick(e, 'target-left', 'target')}
+        />
         <div className={`absolute inset-1 pointer-events-none z-0 ${nodeTheme.innerBorderClass}`} />
         
         <div className="relative z-10 flex flex-col">
@@ -112,29 +119,29 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
             </>
           )}
         </div>
+        
+        {/* Source Handle (输出) */}
+        <Handle type="source" id="source-right" position={Position.Right}
+          className={`node-handle !h-3 !w-3 !-right-[8px] !border-2 !border-background !bg-current z-10 ${nodeTheme.headerTextColor} ${isSourceOfCurrentConnect && clickConnectState.sourceHandleId === 'source-right' ? 'node-handle-click-source-active' : ''}`}
+          onClick={(e) => handleHandleClick(e, 'source-right', 'source')}
+        />
       </div>
 
       {/* 底部悬挂纸条 */}
-      <NodeResultSlip
-        nodeId={id}
-        status={status}
-        output={output || ''}
-        error={error}
-        inputSnapshot={input_snapshot}
-        nodeType={nodeType}
-        outputFormat={output_format}
-        executionTimeMs={execution_time_ms}
-      />
-
-      {/* Source Handles (输出) */}
-      <Handle type="source" id="source-right" position={Position.Right}
-        className={`node-handle !h-3 !w-3 !-right-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isSourceOfCurrentConnect && clickConnectState.sourceHandleId === 'source-right' ? 'node-handle-click-source-active' : ''}`}
-        onClick={(e) => handleHandleClick(e, 'source-right', 'source')}
-      />
-      <Handle type="source" id="source-bottom" position={Position.Bottom}
-        className={`node-handle !h-3 !w-3 !-bottom-[8px] !border-2 !border-background !bg-current z-20 ${nodeTheme.headerTextColor} ${isSourceOfCurrentConnect && clickConnectState.sourceHandleId === 'source-bottom' ? 'node-handle-click-source-active' : ''}`}
-        onClick={(e) => handleHandleClick(e, 'source-bottom', 'source')}
-      />
+      {isSlipVisible && (
+        <NodeResultSlip
+          nodeId={id}
+          status={status}
+          output={output || ''}
+          error={error}
+          inputSnapshot={input_snapshot}
+          nodeType={nodeType}
+          outputFormat={output_format}
+          executionTimeMs={execution_time_ms}
+          isSelected={selected && activePart === 'slip'}
+          onFocusSlip={() => setActivePart('slip')}
+        />
+      )}
     </div>
   );
 }

@@ -9,6 +9,10 @@ import {
   Repeat,
   Bookmark,
   FileText,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 export interface NodeContextMenuItem {
@@ -106,9 +110,17 @@ export default function NodeContextMenu({
 export function buildNodeMenuGroups({
   onCopy,
   onDelete,
+  onToggleSlip,
+  onToggleGlobalSlips,
+  isSlipHidden,
+  isGlobalSlipsHidden,
 }: {
   onCopy: () => void;
   onDelete: () => void;
+  onToggleSlip: () => void;
+  onToggleGlobalSlips: () => void;
+  isSlipHidden: boolean;
+  isGlobalSlipsHidden: boolean;
 }): NodeContextMenuGroup[] {
   return [
     {
@@ -162,10 +174,65 @@ export function buildNodeMenuGroups({
     {
       items: [
         {
+          label: isSlipHidden ? '显示运行详情' : '隐藏运行详情',
+          icon: isSlipHidden ? <Eye size={14} /> : <EyeOff size={14} />,
+          onClick: onToggleSlip,
+        },
+        {
+          label: isGlobalSlipsHidden ? '显示所有全局详情' : '隐藏所有全局详情',
+          icon: isGlobalSlipsHidden ? <Eye size={14} className="text-blue-500" /> : <EyeOff size={14} className="text-blue-500" />,
+          onClick: onToggleGlobalSlips,
+        },
+      ],
+    },
+    {
+      items: [
+        {
           label: '删除节点',
           icon: <Trash2 size={14} />,
           danger: true,
           onClick: onDelete,
+        },
+      ],
+    },
+  ];
+}
+
+export function buildSlipMenuGroups({
+  onExpandToggle,
+  onHideSlip,
+  onHideGlobalSlips,
+  isExpanded,
+  isGlobalSlipsHidden,
+}: {
+  onExpandToggle: () => void;
+  onHideSlip: () => void;
+  onHideGlobalSlips: () => void;
+  isExpanded: boolean;
+  isGlobalSlipsHidden: boolean;
+}): NodeContextMenuGroup[] {
+  return [
+    {
+      items: [
+        {
+          label: isExpanded ? '收起详情内容' : '展开详情内容',
+          icon: isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />,
+          shortcut: 'Space/Click',
+          onClick: onExpandToggle,
+        },
+      ],
+    },
+    {
+      items: [
+        {
+          label: '隐藏此纸条 (运行详情)',
+          icon: <EyeOff size={14} />,
+          onClick: onHideSlip,
+        },
+        {
+          label: isGlobalSlipsHidden ? '全局显示所有纸条' : '全局隐藏所有纸条',
+          icon: isGlobalSlipsHidden ? <Eye size={14} className="text-blue-500" /> : <EyeOff size={14} className="text-blue-500" />,
+          onClick: onHideGlobalSlips,
         },
       ],
     },

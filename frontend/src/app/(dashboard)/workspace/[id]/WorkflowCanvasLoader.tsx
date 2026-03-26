@@ -29,10 +29,14 @@ function cacheKey(id: string) {
 
 export default function WorkflowCanvasLoader({ workflowId, initialNodes, initialEdges }: Props) {
   const setCurrentWorkflow = useWorkflowStore((s) => s.setCurrentWorkflow);
+  const setEdges = useWorkflowStore((s) => s.setEdges);
   const hasInitializedRef = useRef(false);
   useWorkflowSync();
 
-  // Inject data into Zustand Store on mount, preferring local dirty cache over SSR data
+  // Inject data into Zustand Store on mount, preferring local dirty cache over SSR data.
+  // Nodes are loaded first; edges are deferred by one animation frame so ReactFlow's
+  // Handle components finish DOM registration before edge connections are resolved.
+  // This eliminates the ReactFlow error#008 "Couldn't create edge for target handle" warning loop.
   useEffect(() => {
     if (hasInitializedRef.current) return;
     hasInitializedRef.current = true;
@@ -40,14 +44,27 @@ export default function WorkflowCanvasLoader({ workflowId, initialNodes, initial
     (async () => {
       const cached = await localforage.getItem<LocalWorkflowCache>(cacheKey(workflowId));
 
-      // If local cache has unsaved changes with actual content, prefer it
+      let nodes: Node[];
+      let edges: Edge[];
+
       if (cached?.dirty && cached.nodes.length > 0) {
-        setCurrentWorkflow(workflowId, cached.nodes, cached.edges, true);
+        nodes = cached.nodes;
+        edges = cached.edges;
       } else {
-        setCurrentWorkflow(workflowId, initialNodes, initialEdges);
+        nodes = initialNodes;
+        edges = initialEdges;
       }
+
+      // Load nodes immediately (no edges yet)
+      setCurrentWorkflow(workflowId, nodes, []);
+
+      // Defer edges by one frame so Handle components mount first
+      requestAnimationFrame(() => {
+        setEdges(edges);
+      });
     })();
   }, [workflowId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <WorkflowCanvas />;
 }
+

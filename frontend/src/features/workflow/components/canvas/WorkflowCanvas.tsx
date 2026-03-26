@@ -665,6 +665,14 @@ function WorkflowCanvasInner() {
           groups={buildNodeMenuGroups({
             onCopy: () => void handleCopyNode(nodeMenu.nodeId),
             onDelete: () => handleDeleteNode(nodeMenu.nodeId),
+            onToggleSlip: () => {
+              const node = useWorkflowStore.getState().nodes.find(n => n.id === nodeMenu.nodeId);
+              const hideSlip = (node?.data as any)?.hideSlip || false;
+              useWorkflowStore.getState().updateNodeData(nodeMenu.nodeId, { hideSlip: !hideSlip });
+            },
+            onToggleGlobalSlips: () => useWorkflowStore.getState().toggleGlobalNodeSlips(),
+            isSlipHidden: (useWorkflowStore.getState().nodes.find(n => n.id === nodeMenu.nodeId)?.data as any)?.hideSlip || false,
+            isGlobalSlipsHidden: !useWorkflowStore.getState().showAllNodeSlips,
           })}
           onClose={() => setNodeMenu(null)}
         />

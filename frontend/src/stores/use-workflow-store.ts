@@ -42,6 +42,9 @@ interface WorkflowStore {
   setCurrentWorkflow: (id: string, nodes: Node[], edges: Edge[], dirty?: boolean) => void;
   markClean: () => void;
   
+  showAllNodeSlips: boolean;
+  toggleGlobalNodeSlips: () => void;
+  
   // History Actions
   past: { nodes: Node[], edges: Edge[] }[];
   future: { nodes: Node[], edges: Edge[] }[];
@@ -101,6 +104,9 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
   lastImplicitContext: null,
   isDirty: false,
   clickConnectState: { phase: 'idle' } as ClickConnectState,
+  showAllNodeSlips: true,
+
+  toggleGlobalNodeSlips: () => set((state) => ({ showAllNodeSlips: !state.showAllNodeSlips })),
 
   takeSnapshot: () =>
     set((state) => {

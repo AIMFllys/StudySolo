@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, CheckCircle2, AlertCircle, Loader2, Clock3 } from 'lucide-react';
 import { NodeStatus } from '@/types';
 import { getRenderer } from './index';
+import { createPortal } from 'react-dom';
+import NodeContextMenu, { buildSlipMenuGroups } from '../canvas/NodeContextMenu';
+import { useWorkflowStore } from '@/stores/use-workflow-store';
 
 interface NodeResultSlipProps {
   nodeId: string;
@@ -13,6 +16,8 @@ interface NodeResultSlipProps {
   nodeType: string;
   outputFormat?: string;
   executionTimeMs?: number;
+  isSelected?: boolean;
+  onFocusSlip?: () => void;
 }
 
 // Parse and format the raw JSON input snapshot into readable sections
@@ -43,17 +48,42 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   nodeType,
   outputFormat = 'markdown',
   executionTimeMs,
+  isSelected,
+  onFocusSlip,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [slipMenuPos, setSlipMenuPos] = useState<{ x: number; y: number } | null>(null);
   const parsedInput = useMemo(() => parseInputSnapshot(inputSnapshot), [inputSnapshot]);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onFocusSlip?.();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('canvas:show-slip-menu', {
+          detail: { x: e.clientX, y: e.clientY, nodeId },
+        })
+      );
+    }
+  };
+
+  const shadowClass = isSelected ? 'ring-2 ring-primary/40 shadow-xl shadow-primary/10' : '';
 
   // ── Pending: show a silent "idle" tab — never return null ──────────────────
   if (!status || status === 'pending') {
     return (
-      <div className="node-result-slip mt-1 w-full bg-black/[0.02] dark:bg-white/[0.02] border-t border-dashed border-black/8 dark:border-white/8 rounded-b-md nodrag">
+      <div 
+        className={`node-result-slip mt-3 w-full bg-black/5 dark:bg-white/5 border border-dashed border-black/15 dark:border-white/15 rounded-md shadow-sm backdrop-blur-sm ${shadowClass}`}
+        onContextMenu={handleContextMenu}
+        onPointerDown={(e) => {
+          onFocusSlip?.();
+          // Allow ReactFlow to drag it naturally without e.stopPropagation()
+        }}
+      >
         <div className="flex items-center gap-2 px-3 py-1.5 pointer-events-none select-none">
-          <Clock3 className="w-3 h-3 text-black/20 dark:text-white/20" />
-          <span className="font-mono text-[10px] text-black/20 dark:text-white/20 tracking-wider">
+          <Clock3 className="w-3 h-3 text-black/30 dark:text-white/30" />
+          <span className="font-mono text-[10px] text-black/40 dark:text-white/40 tracking-wider">
             闲置中
           </span>
         </div>
@@ -97,7 +127,13 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   );
 
   return (
-    <div className="node-result-slip mt-1 w-full rounded-b-md overflow-hidden bg-black/[0.03] dark:bg-white/[0.03] shadow-[inset_0_3px_8px_-4px_rgba(0,0,0,0.06)] border-t border-dashed border-black/10 dark:border-white/10 nodrag relative z-50">
+    <div 
+      className={`node-result-slip mt-3 w-full rounded-md overflow-hidden bg-white/80 dark:bg-black/50 backdrop-blur-md shadow-sm border border-black/10 dark:border-white/10 relative z-50 transition-colors ${shadowClass}`}
+      onContextMenu={handleContextMenu}
+      onPointerDown={(e) => {
+        onFocusSlip?.();
+      }}
+    >
       <div
         className="flex items-center justify-between px-3 py-1.5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
         onClick={toggleExpand}
@@ -191,6 +227,27 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {slipMenuPos && typeof document !== 'undefined' && createPortal(
+        <NodeContextMenu
+          x={slipMenuPos.x}
+          y={slipMenuPos.y}
+          onClose={() => setSlipMenuPos(null)}
+          groups={buildSlipMenuGroups({
+            isExpanded,
+            onExpandToggle: () => setIsExpanded(!isExpanded),
+            onHideSlip: () => {
+              const nodes = useWorkflowStore.getState().nodes;
+              const node = nodes.find(n => n.id === nodeId);
+              const hideSlip = (node?.data as any)?.hideSlip || false;
+              useWorkflowStore.getState().updateNodeData(nodeId, { hideSlip: !hideSlip });
+            },
+            onHideGlobalSlips: () => useWorkflowStore.getState().toggleGlobalNodeSlips(),
+            isGlobalSlipsHidden: !useWorkflowStore.getState().showAllNodeSlips,
+          })}
+        />,
+        document.body
+      )}
     </div>
   );
 };

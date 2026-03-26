@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getUserAiModelCatalog } from '@/services/ai-catalog.service';
 import { FALLBACK_AI_MODEL_OPTIONS, type AIModelOption } from '../constants/ai-models';
 import { getUser } from '@/services/auth.service';
@@ -14,6 +14,8 @@ interface CacheEntry {
 // Module-level cache keyed by user identity (userId + tier).
 // Invalidated automatically when these change to prevent cross-session pollution.
 let _cache: CacheEntry | null = null;
+// Global in-flight promise: prevents N nodes from triggering N parallel API calls.
+let _inflight: Promise<AIModelOption[]> | null = null;
 
 /**
  * Fetches the full visible AI model catalog from `/api/ai/models/catalog`.
@@ -26,20 +28,23 @@ let _cache: CacheEntry | null = null;
  * - Hit:  same userId + tier → reuse cached models instantly.
  * - Miss: different user, different tier, or cold start → fetch fresh.
  * - Error: degraded to FALLBACK_AI_MODEL_OPTIONS (static list).
+ *
+ * Bug fixed:
+ * - setIsLoading(false) was only called inside `finally { if (!cancelled) ... }`.
+ *   When a component unmounts (cancelled=true) before the promise resolves,
+ *   any re-mount would restart with isLoading=true but didInit.current=true
+ *   (module cache), so setIsLoading(false) was never called → stuck loading.
+ * - N workflow nodes mounting simultaneously triggered N parallel fetches,
+ *   each with its own 401 → tryRestoreSession → possible redirectToLogin.
+ *   Fixed by a module-level _inflight promise dedup.
  */
 export function useWorkflowCatalog() {
-  // CRITICAL FIX: Do NOT pre-seed state with FALLBACK.
-  // Start with empty array while loading; only use FALLBACK if the request fails.
-  // This prevents the initial render from permanently showing only DeepSeek.
   const [models, setModels] = useState<AIModelOption[]>(_cache?.models ?? []);
-  const [isLoading, setIsLoading] = useState(true);
-  const didInit = useRef(false);
+  // Start isLoading=false immediately if module-level cache is already populated.
+  const [isLoading, setIsLoading] = useState<boolean>(!_cache);
 
   useEffect(() => {
-    if (didInit.current) return;
-    didInit.current = true;
-
-    // If cache is already populated, use it immediately (no loading flash)
+    // Fast path: cache already filled (from a previous node mount this session)
     if (_cache) {
       setModels(_cache.models);
       setIsLoading(false);
@@ -49,40 +54,39 @@ export function useWorkflowCatalog() {
     let cancelled = false;
 
     async function init() {
-      // 1. Identify current user for cache key
-      const user = await getUser().catch(() => null);
-      const userId = user?.id ?? 'anonymous';
-      const tier = (user as Record<string, string> | null)?.tier ?? 'free';
-
-      // 2. Cache hit: same user+tier, serve immediately
-      if (_cache && _cache.userId === userId && _cache.tier === tier) {
-        if (!cancelled) {
-          setModels(_cache.models);
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      // 3. Cache miss: fetch full catalog (all visible models, tier-agnostic)
       try {
-        const all = await getUserAiModelCatalog();
+        // Identify user for cache keying — never throws (401 caught to null)
+        const user = await getUser().catch(() => null);
         if (cancelled) return;
 
-        // Only filter out non-selectable and disabled; keep all tiers for Upsell UI
+        const userId = user?.id ?? 'anonymous';
+        const tier = (user as Record<string, string> | null)?.tier ?? 'free';
+
+        // Re-check cache after awaiting getUser (another node may have filled it)
+        if (_cache && _cache.userId === userId && _cache.tier === tier) {
+          if (!cancelled) { setModels(_cache.models); setIsLoading(false); }
+          return;
+        }
+
+        // Deduplicate parallel fetches: reuse in-flight promise if one already exists
+        if (!_inflight) {
+          _inflight = getUserAiModelCatalog().finally(() => { _inflight = null; });
+        }
+        const all = await _inflight;
+        if (cancelled) return;
+
         const selectable = all.filter((m) => m.isEnabled && m.isUserSelectable);
         const result = selectable.length > 0 ? selectable : FALLBACK_AI_MODEL_OPTIONS;
-
         _cache = { userId, tier, models: result };
         setModels(result);
+        setIsLoading(false);
       } catch {
         if (!cancelled) {
-          // Degraded mode: use existing cache or static fallback
-          // Never leave the user with an empty model list
+          // Degraded mode: static fallback — never leave the node with a broken selector
           const degraded = _cache?.models ?? FALLBACK_AI_MODEL_OPTIONS;
           setModels(degraded);
+          setIsLoading(false);
         }
-      } finally {
-        if (!cancelled) setIsLoading(false);
       }
     }
 
@@ -99,4 +103,5 @@ export function useWorkflowCatalog() {
  */
 export function invalidateWorkflowCatalogCache() {
   _cache = null;
+  _inflight = null;
 }
