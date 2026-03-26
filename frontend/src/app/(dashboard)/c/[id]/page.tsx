@@ -18,7 +18,11 @@ export default async function PrivateCanvasPage({ params }: Props) {
   }
 
   return (
-    <WorkflowPageShell workflowName={workflow.name}>
+    <WorkflowPageShell
+      workflowId={workflow.id}
+      workflowName={workflow.name}
+      isPublic={workflow.is_public}
+    >
       <Suspense fallback={<CanvasTraceLoader />}>
         <WorkflowCanvasLoader
           key={workflow.id}

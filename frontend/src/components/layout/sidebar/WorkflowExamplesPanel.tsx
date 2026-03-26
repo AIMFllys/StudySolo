@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, ArrowRight, Star, Heart, Search, Filter, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
-import { fetchMarketplace, forkWorkflow } from '@/services/workflow.service';
+import { FileText, Eye, Star, Heart, Search, Filter, AlertTriangle } from 'lucide-react';
+import { fetchMarketplace } from '@/services/workflow.service';
 import { usePanelStore } from '@/stores/use-panel-store';
 import type { WorkflowMeta } from '@/types/workflow';
 
@@ -18,7 +17,7 @@ export default function WorkflowExamplesPanel() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
-  const [forkingId, setForkingId] = useState<string | null>(null);
+
   const marketplaceVersion = usePanelStore((s) => s.marketplaceVersion);
 
   // Debounce search input by 400ms
@@ -63,19 +62,7 @@ export default function WorkflowExamplesPanel() {
     return () => { cancelled = true; };
   }, [filter, debouncedSearch, marketplaceVersion]);
 
-  // P1 Fix: add toast feedback so users know what went wrong on fork failure
-  const handleFork = async (id: string) => {
-    setForkingId(id);
-    try {
-      const forked = await forkWorkflow(id);
-      toast.success('已复制到我的工作流');
-      router.push(`/c/${forked.id}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Fork 失败，请重试';
-      toast.error(msg);
-      setForkingId(null);
-    }
-  };
+
 
   const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
     { value: 'all', label: '全部' },
@@ -135,16 +122,15 @@ export default function WorkflowExamplesPanel() {
               <button
                 key={wf.id}
                 type="button"
-                onClick={() => handleFork(wf.id)}
-                disabled={forkingId === wf.id}
-                className="node-paper-bg group flex w-full flex-col gap-1.5 rounded-xl border-[1.5px] border-border/50 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all p-3 text-left disabled:opacity-50"
+                onClick={() => router.push(`/s/${wf.id}`)}
+                className="node-paper-bg group flex w-full flex-col gap-1.5 rounded-xl border-[1.5px] border-border/50 shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all p-3 text-left"
               >
                 <div className="flex items-start justify-between gap-2 w-full">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 shrink-0 text-foreground stroke-[1.5]" />
                     <span className="text-xs font-semibold font-serif text-foreground">{wf.name}</span>
                   </div>
-                  <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 stroke-[1.5]" />
+                  <Eye className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 stroke-[1.5]" />
                 </div>
                 {wf.description && (
                   <p className="text-[10.5px] leading-snug text-muted-foreground font-serif">{wf.description}</p>
@@ -167,9 +153,7 @@ export default function WorkflowExamplesPanel() {
                     </span>
                   )}
                 </div>
-                {forkingId === wf.id && (
-                  <p className="text-[9px] text-muted-foreground text-center">复制中...</p>
-                )}
+
               </button>
             ))}
           </div>

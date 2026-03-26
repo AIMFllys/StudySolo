@@ -1,10 +1,28 @@
 'use client';
 
-import { Heart, Star, GitFork, ExternalLink } from 'lucide-react';
+import { Heart, Star, GitFork, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import { toast } from 'sonner';
 import { toggleLike, toggleFavorite, forkWorkflow } from '@/services/workflow.service';
 import type { WorkflowPublicView } from '@/types/workflow';
+
+const ReadOnlyCanvas = dynamic(
+  () => import('@/components/workflow/ReadOnlyCanvas'),
+  { ssr: false, loading: () => <CanvasPlaceholder /> }
+);
+
+function CanvasPlaceholder() {
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 min-h-[500px] flex items-center justify-center">
+      <div className="text-center text-muted-foreground">
+        <div className="h-8 w-8 mx-auto mb-2 rounded-full border-2 border-muted-foreground/30 border-t-foreground animate-spin" />
+        <p className="text-xs">加载画布预览...</p>
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   workflow: WorkflowPublicView;
@@ -24,7 +42,7 @@ export default function PublicWorkflowView({ workflow }: Props) {
       setLiked(res.toggled);
       setLikes(res.count);
     } catch {
-      /* user not logged in — silently fail or redirect */
+      toast.error('请先登录后再操作');
     }
   }
 
@@ -34,7 +52,7 @@ export default function PublicWorkflowView({ workflow }: Props) {
       setFaved(res.toggled);
       setFavs(res.count);
     } catch {
-      /* user not logged in */
+      toast.error('请先登录后再操作');
     }
   }
 
@@ -42,16 +60,18 @@ export default function PublicWorkflowView({ workflow }: Props) {
     setForking(true);
     try {
       const forked = await forkWorkflow(workflow.id);
+      toast.success('已 Fork 到我的工作空间');
       router.push(`/c/${forked.id}`);
     } catch {
+      toast.error('Fork 失败，请先登录');
       setForking(false);
     }
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-serif font-bold text-foreground truncate">
@@ -79,6 +99,17 @@ export default function PublicWorkflowView({ workflow }: Props) {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Owner edit entry */}
+            {workflow.is_owner && (
+              <button
+                onClick={() => router.push(`/c/${workflow.id}`)}
+                className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                <span>编辑此工作流</span>
+              </button>
+            )}
+
             <button
               onClick={handleLike}
               className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-xs border transition-colors ${
@@ -129,15 +160,20 @@ export default function PublicWorkflowView({ workflow }: Props) {
         )}
       </div>
 
-      {/* Canvas preview area */}
-      <div className="rounded-lg border border-border bg-muted/30 p-8 min-h-[400px] flex items-center justify-center">
-        <div className="text-center text-muted-foreground">
-          <ExternalLink className="h-10 w-10 mx-auto mb-3 opacity-40" />
-          <p className="text-sm font-medium">工作流预览</p>
-          <p className="text-xs mt-1">
-            共 {workflow.nodes_json.length} 个节点，{workflow.edges_json.length} 条连线
-          </p>
-        </div>
+      {/* Canvas preview — real interactive (view-only) canvas */}
+      <div className="rounded-lg border border-border overflow-hidden">
+        <ReadOnlyCanvas
+          nodes={workflow.nodes_json}
+          edges={workflow.edges_json}
+          className="min-h-[500px]"
+        />
+      </div>
+
+      {/* Node summary (below canvas) */}
+      <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
+        <span>共 {workflow.nodes_json.length} 个节点</span>
+        <span>·</span>
+        <span>{workflow.edges_json.length} 条连线</span>
       </div>
     </div>
   );

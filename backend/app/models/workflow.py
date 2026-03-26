@@ -90,6 +90,7 @@ class WorkflowPublicView(BaseModel):
     owner_name: str | None = None
     is_liked: bool = False
     is_favorited: bool = False
+    is_owner: bool = False
     created_at: datetime
 
 

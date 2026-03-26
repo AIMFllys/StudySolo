@@ -23,8 +23,10 @@ _PUBLIC_VIEW_COLS = (
     "is_featured,is_official,likes_count,favorites_count,"
     "user_id,created_at"
 )
-# Derived from WorkflowMeta model — single source of truth, prevents field-drift
-_MARKETPLACE_COLS = WorkflowMeta.select_cols()
+# Derived from WorkflowMeta model — single source of truth, prevents field-drift.
+# user_id is appended as a transient join key for batch owner-name resolution;
+# it is NOT in WorkflowMeta, so Pydantic strips it from the response automatically.
+_MARKETPLACE_COLS = WorkflowMeta.select_cols() + ",user_id"
 
 
 async def _toggle_interaction(
@@ -152,18 +154,20 @@ async def get_public_workflow(
         actions = {r["action"] for r in (interactions.data or [])}
         wf["is_liked"] = "like" in actions
         wf["is_favorited"] = "favorite" in actions
+        wf["is_owner"] = current_user["id"] == wf.get("user_id")
     else:
         wf["is_liked"] = False
         wf["is_favorited"] = False
+        wf["is_owner"] = False
     return wf
 
 
 @router.get("/marketplace", response_model=list[WorkflowMeta])
 async def list_marketplace(
-    filter: str | None = Query(None, regex="^(official|public|featured)$"),
+    filter: str | None = Query(None, pattern="^(official|public|featured)$"),
     search: str | None = Query(None, max_length=100),
     tags: str | None = Query(None, description="Comma-separated tag filter"),
-    sort: str = Query("likes", regex="^(likes|newest|favorites)$"),
+    sort: str = Query("likes", pattern="^(likes|newest|favorites)$"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=50),
     db: AsyncClient = Depends(get_db),
@@ -208,8 +212,8 @@ async def list_marketplace(
     result = await query.execute()
     workflows = result.data or []
 
-    # Batch resolve owner names
-    user_ids = list({w["user_id"] for w in workflows})
+    # Batch resolve owner names (user_id is a transient join key, not in WorkflowMeta)
+    user_ids = list({uid for w in workflows if (uid := w.get("user_id"))})
     if user_ids:
         profiles = (
             await db.from_("user_profiles")
@@ -219,7 +223,7 @@ async def list_marketplace(
         )
         name_map = {p["id"]: p.get("nickname") or "未知用户" for p in (profiles.data or [])}
         for w in workflows:
-            w["owner_name"] = name_map.get(w["user_id"], "未知用户")
+            w["owner_name"] = name_map.get(w.get("user_id", ""), "未知用户")
 
     return workflows
 

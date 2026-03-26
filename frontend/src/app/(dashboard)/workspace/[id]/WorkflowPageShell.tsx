@@ -1,17 +1,24 @@
 'use client';
 
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import RightPanel from '@/components/layout/RightPanel';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import { useSettingsStore } from '@/stores/use-settings-store';
 
 interface WorkflowPageShellProps {
+  workflowId?: string;
   workflowName: string;
+  isPublic?: boolean;
   children: React.ReactNode;
 }
 
-export default function WorkflowPageShell({ workflowName, children }: WorkflowPageShellProps) {
+export default function WorkflowPageShell({
+  workflowId,
+  workflowName,
+  isPublic = false,
+  children,
+}: WorkflowPageShellProps) {
   const isDirty = useWorkflowStore((s) => s.isDirty);
   const sidebarPosition = useSettingsStore((s) => s.sidebarPosition);
   const isRight = sidebarPosition === 'right';
@@ -32,6 +39,20 @@ export default function WorkflowPageShell({ workflowName, children }: WorkflowPa
           <div className="h-3.5 w-px bg-border" />
 
           <h1 className="truncate text-xs font-medium min-w-0 flex-1">{workflowName}</h1>
+
+          {/* Public link shortcut — visible only when workflow is public */}
+          {isPublic && workflowId && (
+            <a
+              href={`/s/${workflowId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title="在新标签页查看公开链接"
+            >
+              <ExternalLink className="h-3 w-3" />
+              <span className="hidden sm:inline">公开链接</span>
+            </a>
+          )}
 
           {/* Save status indicator */}
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">

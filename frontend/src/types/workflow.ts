@@ -55,7 +55,14 @@ export type NodeType =
   | 'loop_group';
 
 /** 节点生命周期状态 */
-export type NodeStatus = 'pending' | 'running' | 'done' | 'error' | 'paused';
+export type NodeStatus =
+  | 'pending'
+  | 'running'
+  | 'waiting'
+  | 'done'
+  | 'error'
+  | 'skipped'
+  | 'paused';
 
 /** AI 步骤节点数据（存储在 WorkflowNode.data 中） */
 export interface AIStepNodeData {
@@ -75,14 +82,19 @@ export interface LoopGroupNodeData {
   maxIterations: number;     // 1-100
   intervalSeconds: number;   // ≥ 0.1s
   description?: string;
+  status?: NodeStatus;
+  currentIteration?: number;
+  totalIterations?: number;
 }
+
+export type WorkflowNodeData = AIStepNodeData | LoopGroupNodeData;
 
 /** 工作流节点（存储在 nodes_json JSONB 中） */
 export interface WorkflowNode {
   id: string;
   type: NodeType;
   position: { x: number; y: number };
-  data: AIStepNodeData | LoopGroupNodeData;
+  data: WorkflowNodeData;
   parentId?: string;    // 如果在循环容器内，指向容器 ID
   extent?: 'parent';    // 限制拖拽不出容器
 }
@@ -104,7 +116,7 @@ export type HandlePosition =
   | 'target-top';
 
 /** 连线附加数据 */
-export interface WorkflowEdgeData {
+export interface WorkflowEdgeData extends Record<string, unknown> {
   /** 备注文字（不参与执行） */
   note?: string;
   /** 等待时间-秒（0-300，执行目标节点前等待） */
@@ -135,11 +147,16 @@ export function normalizeEdge(edge: Partial<WorkflowEdge> & { id: string; source
   };
 }
 
+export function isLegacyLoopRegionNode(node: Partial<WorkflowNode> & { type?: string }) {
+  return (node.type as string | undefined) === 'loop_region';
+}
+
 export interface WorkflowMeta {
   id: string;
   name: string;
   description: string | null;
   status: string;
+  isRunning?: boolean;
   tags: string[];
   is_public: boolean;
   is_featured: boolean;
@@ -181,6 +198,7 @@ export interface WorkflowPublicView {
   owner_name: string | null;
   is_liked: boolean;
   is_favorited: boolean;
+  is_owner: boolean;
   created_at: string;
 }
 
