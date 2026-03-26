@@ -113,6 +113,78 @@ SET total_cost_cny = ROUND(COALESCE(total_cost_usd, 0) * 6.905, 6)
 WHERE COALESCE(total_cost_cny, 0) = 0
   AND COALESCE(total_cost_usd, 0) > 0;
 
+CREATE TEMP TABLE _ss_ai_usage_minute_dedup AS
+SELECT
+  minute_bucket,
+  user_id,
+  source_type,
+  source_subtype,
+  COALESCE(sku_id, '__request__') AS sku_id,
+  MAX(provider) AS provider,
+  MAX(model) AS model,
+  MAX(COALESCE(family_id, '__request__')) AS family_id,
+  MAX(COALESCE(vendor, '__request__')) AS vendor,
+  MAX(COALESCE(billing_channel, 'request')) AS billing_channel,
+  SUM(logical_requests) AS logical_requests,
+  SUM(provider_calls) AS provider_calls,
+  SUM(successful_provider_calls) AS successful_provider_calls,
+  SUM(total_tokens) AS total_tokens,
+  SUM(total_cost_usd) AS total_cost_usd,
+  SUM(total_cost_cny) AS total_cost_cny,
+  SUM(error_count) AS error_count,
+  SUM(fallback_count) AS fallback_count,
+  SUM(latency_ms_sum) AS latency_ms_sum,
+  SUM(latency_ms_count) AS latency_ms_count
+FROM public.ss_ai_usage_minute
+GROUP BY minute_bucket, user_id, source_type, source_subtype, COALESCE(sku_id, '__request__');
+
+TRUNCATE TABLE public.ss_ai_usage_minute;
+
+INSERT INTO public.ss_ai_usage_minute (
+  minute_bucket,
+  user_id,
+  source_type,
+  source_subtype,
+  provider,
+  model,
+  sku_id,
+  family_id,
+  vendor,
+  billing_channel,
+  logical_requests,
+  provider_calls,
+  successful_provider_calls,
+  total_tokens,
+  total_cost_usd,
+  total_cost_cny,
+  error_count,
+  fallback_count,
+  latency_ms_sum,
+  latency_ms_count
+)
+SELECT
+  minute_bucket,
+  user_id,
+  source_type,
+  source_subtype,
+  provider,
+  model,
+  sku_id,
+  family_id,
+  vendor,
+  billing_channel,
+  logical_requests,
+  provider_calls,
+  successful_provider_calls,
+  total_tokens,
+  total_cost_usd,
+  total_cost_cny,
+  error_count,
+  fallback_count,
+  latency_ms_sum,
+  latency_ms_count
+FROM _ss_ai_usage_minute_dedup;
+
 ALTER TABLE public.ss_ai_usage_minute DROP CONSTRAINT IF EXISTS ss_ai_usage_minute_pkey;
 ALTER TABLE public.ss_ai_usage_minute
   ADD CONSTRAINT ss_ai_usage_minute_pkey PRIMARY KEY (minute_bucket, user_id, source_type, source_subtype, sku_id);

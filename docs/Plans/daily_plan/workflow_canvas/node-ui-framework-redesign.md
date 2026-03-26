@@ -1,8 +1,26 @@
 # Node UI 框架重设计 — 可复用节点壳 + 悬挂纸条系统
 
 > **创建日期**：2026-03-26
-> **状态**：✅ 已完成
+> **状态**：✅ 已完成（遗留待办见下）
 > **范围限制**：🚫 不触碰 AI 路由相关代码 (`ai_router.py`, `config.yaml`, `ai-models.ts` 逻辑)，不对接真实 AI
+
+---
+
+## ⏳ 遗留待办（AI 路由重构完成后对接）
+
+> 以下问题由于 AI 路由层正在重构（`ai_router.py` / `config.yaml` / `ai-models.ts` 逻辑），
+> 暂时搁置，待路由系统稳定后再行对接。
+
+### 🔴 [PENDING] NodeModelSelector 接入真实 AI Catalog
+
+- **问题**：当前 `NodeModelSelector.tsx` 固定使用 `FALLBACK_AI_MODEL_OPTIONS`（只有 1 个 deepseek-chat 备用模型），用户在节点右上角的下拉只能看到 1 个选项，无法真正切换模型。
+- **根本原因**：`ai-models.ts` 已升级为从 Supabase `ai_catalog` 动态拉取，需要在 `NodeModelSelector` 中调用已有的 `useCatalogModels()` hook 或传入外部的 `AIModelOption[]` prop，替换掉 `FALLBACK_AI_MODEL_OPTIONS`。
+- **待完成工作**：
+  - [ ] 待 AI 路由重构完成后，在 `NodeModelSelector` 中通过 context/store 接收完整 `AIModelOption[]`（来自 catalog API）
+  - [ ] 按 `providerName` 分组渲染全量模型列表
+  - [ ] 根据用户 tier 对 `isPremium` 模型做灰显处理
+
+---
 
 ## Goal
 

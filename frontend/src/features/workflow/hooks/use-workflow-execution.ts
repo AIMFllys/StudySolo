@@ -44,6 +44,12 @@ export function useWorkflowExecution() {
         es.addEventListener('node_input', (e) => {
           try {
             const data = JSON.parse(e.data) as Extract<WorkflowSSEEvent, { type: 'node_input' }>;
+            // Use node_input arrival as the execution start timestamp.
+            // This is more accurate than node_status:running because:
+            // - Single nodes: node_input fires right before actual execution begins
+            // - Parallel nodes: node_input fires per-node just before asyncio.gather,
+            //   whereas node_status:running is batched for all parallel nodes first.
+            startTimeMapRef.current[data.node_id] = performance.now();
             updateNodeData(data.node_id, {
               input_snapshot: data.input_snapshot,
             });
@@ -61,7 +67,11 @@ export function useWorkflowExecution() {
             };
 
             if (data.status === 'running') {
-              startTimeMapRef.current[data.node_id] = performance.now();
+              // Timing is now anchored to node_input event (see above) for accuracy.
+              // Fallback: if node_input was never received, start timing here.
+              if (!startTimeMapRef.current[data.node_id]) {
+                startTimeMapRef.current[data.node_id] = performance.now();
+              }
             } else if (data.status === 'done' || data.status === 'error') {
               const startT = startTimeMapRef.current[data.node_id];
               if (startT) {
