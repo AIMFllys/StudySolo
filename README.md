@@ -134,12 +134,14 @@ cd backend
 
 ### 🤖 AI 开发技能（`.agent/skills/`）
 
-以下 Skills 将 SOP 文档封装为 AI 可直接调用的开发技能，实现"AI 辅助开发时自动遵循项目规范"：
+本项目独创了 **"SOP 文档 + AI Skills 规则"** 驱动开发的理念。以下 2 个核心技能为**本项目专门原创**，也是本项目唯一对外开源并在 GitHub 仓库中托管的 AI 技能配置，实现了"让 AI 在辅助开发时自动遵循项目专有规范"：
 
 | Skill | 路径 | 用途 |
 | :--- | :--- | :--- |
-| **workflow-node-builder** | [`.agent/skills/workflow-node-builder/SKILL.md`](./.agent/skills/workflow-node-builder/SKILL.md) | 新增工作流节点 / 对接 AI 模型 / 对接外部 API 时自动触发，强制按 SOP 执行 |
-| **project-context** | [`.agent/skills/project-context/SKILL.md`](./.agent/skills/project-context/SKILL.md) | 项目架构全景上下文，涵盖技术栈、端口、API 分组、节点体系、数据库域的完整映射 |
+| **workflow-node-builder** | [`.agent/skills/workflow-node-builder/SKILL.md`](./.agent/skills/workflow-node-builder/SKILL.md) | **节点开发专属**：新增节点 / 对接 AI 模型 / 对接外部 API 时自动触发，强制 AI 走分类和 Checklist |
+| **project-context** | [`.agent/skills/project-context/SKILL.md`](./.agent/skills/project-context/SKILL.md) | **架构认知骨架**：项目全景上下文，涵盖技术栈、端口、API 分组、节点体系、数据库域的完整心智映射 |
+
+> 注：本地开发环境可能使用的其他通用代码规范技能（如 Clean Code 等）非本项目原创，因此未包含在 GitHub 仓库中。
 
 > **`shared/` 说明**：本仓库中 `shared/` 为 Git Submodule。使用 `git clone --recurse-submodules` 完整克隆，或在克隆后执行 `git submodule update --init`。
 
