@@ -61,6 +61,54 @@ async def export_markdown(content: str, filename: str = "export") -> ConvertedFi
     )
 
 
+# ── TXT export ───────────────────────────────────────────────────────────────
+
+def _strip_markdown(text: str) -> str:
+    """Strip common Markdown formatting to produce plain text."""
+    import re
+    # Remove headers
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+    # Remove bold/italic
+    text = re.sub(r'\*{1,3}(.+?)\*{1,3}', r'\1', text)
+    text = re.sub(r'_{1,3}(.+?)_{1,3}', r'\1', text)
+    # Remove links [text](url) -> text
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+    # Remove images ![alt](url)
+    text = re.sub(r'!\[([^\]]*)\]\([^)]+\)', r'\1', text)
+    # Remove code blocks
+    text = re.sub(r'```[\s\S]*?```', '', text)
+    # Remove inline code
+    text = re.sub(r'`([^`]+)`', r'\1', text)
+    # Remove blockquotes
+    text = re.sub(r'^>\s?', '', text, flags=re.MULTILINE)
+    # Remove horizontal rules
+    text = re.sub(r'^[-*_]{3,}$', '', text, flags=re.MULTILINE)
+    # Remove list markers
+    text = re.sub(r'^[\-*+]\s+', '  • ', text, flags=re.MULTILINE)
+    # Collapse multiple blank lines
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+async def export_txt(content: str, filename: str = "export") -> ConvertedFile:
+    """Convert Markdown content to plain text file."""
+    export_dir = _ensure_export_dir()
+    safe_name = f"{filename}_{uuid.uuid4().hex[:8]}.txt"
+    filepath = os.path.join(export_dir, safe_name)
+
+    plain_text = _strip_markdown(content)
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(plain_text)
+
+    size = os.path.getsize(filepath)
+    return ConvertedFile(
+        filename=safe_name,
+        format="txt",
+        filepath=filepath,
+        size_bytes=size,
+    )
+
+
 # ── DOCX export ──────────────────────────────────────────────────────────────
 
 async def export_docx(content: str, filename: str = "export") -> ConvertedFile:
@@ -259,8 +307,10 @@ async def convert_file(
         return await export_docx(content, filename)
     elif format in ("md", "markdown"):
         return await export_markdown(content, filename)
+    elif format in ("txt", "text"):
+        return await export_txt(content, filename)
     else:
         return ConvertedFile(
             filename="", format=format, filepath="", size_bytes=0,
-            error=f"不支持的导出格式: {format}（支持 pdf/docx/md）",
+            error=f"不支持的导出格式: {format}（支持 md/txt/docx/pdf）",
         )

@@ -1,16 +1,14 @@
 """Baidu search via Qiniu proxy — uses Qiniu's OpenAI-compatible API
-with a model that has built-in web search capability.
+with a model that has built-in web search capability (Qwen3-Max).
 
-Qiniu proxies multiple model vendors and some models include
-search-augmented generation (SAG) capabilities that perform
-Baidu searches under the hood.
-
-Strategy: Use Qiniu's API with a search-capable model to perform
+Strategy: Use Qiniu's API with enable_search=True to perform
 Baidu-backed web searches with authoritative source constraints.
+Also parses text results as a fallback when structured metadata is unavailable.
 """
 
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 
 from openai import AsyncOpenAI
@@ -35,6 +33,33 @@ class BaiduSearchResponse:
     error: str | None = None
 
 
+def _parse_results_from_text(text: str, max_results: int) -> list[BaiduSearchResult]:
+    """Parse search results from Qwen's text response."""
+    results: list[BaiduSearchResult] = []
+    blocks = re.split(r'\n(?=\d+[\.\、])', text)
+    for block in blocks:
+        block = block.strip()
+        if not block or not block[0].isdigit():
+            continue
+        title_match = re.search(r'\*\*(.+?)\*\*', block)
+        title = title_match.group(1) if title_match else block.split('\n')[0][:60]
+        url_match = re.search(r'https?://[^\s\)]+', block)
+        url = url_match.group(0) if url_match else ""
+        content = re.sub(r'\*\*.*?\*\*', '', block).strip()
+        content = re.sub(r'https?://[^\s\)]+', '', content).strip()
+        content = re.sub(r'^\d+[\.\、]\s*', '', content).strip()
+
+        if title or content:
+            results.append(BaiduSearchResult(
+                title=title.strip(),
+                url=url.strip(),
+                content=content[:300],
+            ))
+        if len(results) >= max_results:
+            break
+    return results
+
+
 async def search_via_baidu(
     query: str,
     max_results: int = 5,
@@ -56,23 +81,20 @@ async def search_via_baidu(
 
     client = AsyncOpenAI(base_url=base_url, api_key=api_key, timeout=30.0)
 
-    # Build search prompt with strict authority constraints
     search_prompt = (
-        f"你是一个学术搜索助手。请通过百度搜索以下内容，"
+        f"你是一个学术搜索助手。请搜索以下内容，"
         f"并严格遵循以下搜索规则：\n\n"
         f"## 搜索规则\n"
         f"1. **仅引用权威平台**：百度百科、知网(CNKI)、中国政府网(.gov.cn)、"
         f"学术期刊、官方文档、维基百科\n"
         f"2. **禁止引用**：个人博客、自媒体(百家号、搜狐号)、"
         f"未经验证的论坛帖子、非官方教程网站\n"
-        f"3. **每条结果**必须包含：标题、来源URL、核心内容摘要\n\n"
+        f"3. **每条结果**必须包含：加粗标题、来源URL、核心内容摘要（3-5句话）\n\n"
         f"## 搜索内容\n{query}\n\n"
-        f"请提供 {max_results} 条最权威、最相关的搜索结果。"
+        f"请用编号列表提供 {max_results} 条最权威、最相关的搜索结果。"
     )
 
     try:
-        # Use a search-capable model via Qiniu
-        # Qiniu proxies models like Qwen that can perform web searches
         response = await client.chat.completions.create(
             model="Qwen/Qwen3-Max",
             messages=[{"role": "user", "content": search_prompt}],
@@ -81,18 +103,27 @@ async def search_via_baidu(
         )
 
         content = response.choices[0].message.content or ""
-
-        # Extract search results from response metadata if available
         search_results: list[BaiduSearchResult] = []
 
-        # Check for search_results in the response (Qwen search-augmented)
-        if hasattr(response, "search_results") and response.search_results:
-            for item in response.search_results[:max_results]:
-                search_results.append(BaiduSearchResult(
-                    title=item.get("title", ""),
-                    url=item.get("url", item.get("link", "")),
-                    content=item.get("content", item.get("snippet", "")),
-                ))
+        # Method 1: Try structured search_results from response metadata
+        raw = response.model_dump() if hasattr(response, "model_dump") else {}
+        sr_data = (
+            raw.get("search_results")
+            or raw.get("choices", [{}])[0].get("search_results")
+            or raw.get("choices", [{}])[0].get("message", {}).get("search_results")
+        )
+        if isinstance(sr_data, list):
+            for item in sr_data[:max_results]:
+                if isinstance(item, dict):
+                    search_results.append(BaiduSearchResult(
+                        title=item.get("title", ""),
+                        url=item.get("url", item.get("link", "")),
+                        content=item.get("content", item.get("snippet", "")),
+                    ))
+
+        # Method 2: Parse from text if no structured results
+        if not search_results and content:
+            search_results = _parse_results_from_text(content, max_results)
 
         return BaiduSearchResponse(
             query=query,

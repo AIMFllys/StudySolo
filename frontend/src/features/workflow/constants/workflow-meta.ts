@@ -232,11 +232,11 @@ export const NODE_TYPE_META: Record<NodeType, NodeTypeMeta> = {
   export_file: {
     label: '文件导出',
     icon: FileDown,
-    description: '导出工作流结果为文件',
+    description: '导出为 MD/TXT/Word 或复制到剪贴板',
     accentClassName: 'from-gray-500/20 to-slate-500/5 text-gray-100 ring-gray-400/30',
     requiresModel: false,
     inputs: [{ key: '文件内容', description: '要转换成文件的文本/富文本', required: true }],
-    outputs: [{ key: '文件访问链接', description: '提供用户下载的URL等标识', required: true }],
+    outputs: [{ key: '文件/复制', description: '下载链接或可复制内容', required: true }],
   },
   logic_switch: {
     label: '逻辑分支',

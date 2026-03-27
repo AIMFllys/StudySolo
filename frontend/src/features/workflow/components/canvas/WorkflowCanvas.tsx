@@ -26,6 +26,7 @@ import AnimatedEdge from '@/features/workflow/components/canvas/edges/AnimatedEd
 import SequentialEdge from '@/features/workflow/components/canvas/edges/SequentialEdge';
 import AIStepNode from '@/features/workflow/components/nodes/AIStepNode';
 import TriggerInputNode from '@/features/workflow/components/nodes/TriggerInputNode';
+import LogicSwitchNode from '@/features/workflow/components/nodes/LogicSwitchNode';
 import GeneratingNode from '@/features/workflow/components/nodes/GeneratingNode';
 import AnnotationNode from '@/features/workflow/components/nodes/AnnotationNode';
 import LoopGroupNode from '@/features/workflow/components/nodes/LoopGroupNode';
@@ -72,7 +73,7 @@ const nodeTypes: NodeTypes = {
   web_search: AIStepNode,
   export_file: AIStepNode,
   // ── P2 引擎节点 (2) ──
-  logic_switch: AIStepNode,
+  logic_switch: LogicSwitchNode,
   loop_map: AIStepNode,
   // ── 状态节点 (1) ──
   generating: GeneratingNode,

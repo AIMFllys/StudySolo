@@ -3,12 +3,14 @@
 GLM models (GLM-4 series) support a `web_search` tool that performs
 real-time internet searches and returns structured results.
 
-The approach: call the GLM chat API with web_search tool enabled,
-the model automatically performs the search and returns results.
+Strategy: call GLM chat API with web_search tool enabled,
+extract both the text summary and structured search references.
 """
 
+import json
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 
 from openai import AsyncOpenAI
@@ -34,6 +36,41 @@ class GLMSearchResponse:
     error: str | None = None
 
 
+def _parse_results_from_text(text: str, max_results: int) -> list[GLMSearchResult]:
+    """Parse search results from GLM's text response when structured metadata is unavailable.
+
+    GLM often returns results in numbered format like:
+    1. **Title** - Content... (URL: https://...)
+    """
+    results: list[GLMSearchResult] = []
+    # Pattern: numbered items with potential URLs
+    blocks = re.split(r'\n(?=\d+[\.\、])', text)
+    for block in blocks:
+        block = block.strip()
+        if not block or not block[0].isdigit():
+            continue
+        # Extract title (bold or first line)
+        title_match = re.search(r'\*\*(.+?)\*\*', block)
+        title = title_match.group(1) if title_match else block.split('\n')[0][:60]
+        # Extract URL
+        url_match = re.search(r'https?://[^\s\)]+', block)
+        url = url_match.group(0) if url_match else ""
+        # Content is the rest
+        content = re.sub(r'\*\*.*?\*\*', '', block).strip()
+        content = re.sub(r'https?://[^\s\)]+', '', content).strip()
+        content = re.sub(r'^\d+[\.\、]\s*', '', content).strip()
+
+        if title or content:
+            results.append(GLMSearchResult(
+                title=title.strip(),
+                url=url.strip(),
+                content=content[:300],
+            ))
+        if len(results) >= max_results:
+            break
+    return results
+
+
 async def search_via_glm(
     query: str,
     max_results: int = 5,
@@ -55,13 +92,13 @@ async def search_via_glm(
 
     client = AsyncOpenAI(base_url=base_url, api_key=api_key, timeout=30.0)
 
-    # Build search prompt with authority constraints
     search_prompt = (
         f"请搜索以下内容，优先从权威平台获取信息"
         f"（如百度百科、知网CNKI、中国政府网、学术期刊、官方文档）。\n"
         f"禁止引用非官方自媒体、个人博客等不可靠来源。\n\n"
         f"搜索内容：{query}\n\n"
-        f"请提供 {max_results} 条最相关的搜索结果，每条包含标题、来源URL和核心内容摘要。"
+        f"请提供 {max_results} 条最相关的搜索结果，"
+        f"每条用编号列出，包含：加粗标题、来源URL、核心内容摘要（3-5句话）。"
     )
 
     try:
@@ -73,26 +110,30 @@ async def search_via_glm(
         )
 
         content = response.choices[0].message.content or ""
-
-        # Extract web_search_results from the response metadata if available
         web_results: list[GLMSearchResult] = []
 
-        # GLM returns web search references in the response
-        # Parse the structured content from GLM's response
-        tool_calls = getattr(response.choices[0].message, "tool_calls", None)
+        # Method 1: Try extracting structured web_search metadata
+        # GLM may return this at various nesting levels
+        raw = response.model_dump() if hasattr(response, "model_dump") else {}
+        ws_data = (
+            raw.get("web_search")
+            or raw.get("choices", [{}])[0].get("web_search")
+            or raw.get("choices", [{}])[0].get("message", {}).get("web_search")
+        )
+        if isinstance(ws_data, list):
+            for item in ws_data[:max_results]:
+                if isinstance(item, dict):
+                    web_results.append(GLMSearchResult(
+                        title=item.get("title", ""),
+                        url=item.get("link", item.get("url", "")),
+                        content=item.get("content", ""),
+                        refer=item.get("refer", ""),
+                    ))
 
-        # GLM web_search integrates results directly into the response content
-        # We parse the content and also check for web_search metadata
-        if hasattr(response, "web_search") and response.web_search:
-            for item in response.web_search[:max_results]:
-                web_results.append(GLMSearchResult(
-                    title=item.get("title", ""),
-                    url=item.get("link", item.get("url", "")),
-                    content=item.get("content", ""),
-                    refer=item.get("refer", ""),
-                ))
+        # Method 2: Parse from text content if no structured results
+        if not web_results and content:
+            web_results = _parse_results_from_text(content, max_results)
 
-        # If no structured results, use the text content as summary
         return GLMSearchResponse(
             query=query,
             results=web_results,

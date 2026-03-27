@@ -6,6 +6,7 @@ from app.services.file_converter import (
     export_docx,
     export_markdown,
     export_pdf,
+    export_txt,
 )
 from app.services.file_parser import ParsedDocument, ParsedSection, parse_file
 
@@ -33,6 +34,7 @@ __all__ = [
     "export_docx",
     "export_markdown",
     "export_pdf",
+    "export_txt",
     "parse_document",
     "parse_file",
 ]

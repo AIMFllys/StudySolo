@@ -48,6 +48,7 @@ async def download_export(
         ".pdf": "application/pdf",
         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         ".md": "text/markdown",
+        ".txt": "text/plain",
     }
     ext = os.path.splitext(safe_filename)[1].lower()
     media_type = media_types.get(ext, "application/octet-stream")
