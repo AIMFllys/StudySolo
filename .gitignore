@@ -35,6 +35,9 @@ Desktop.ini
 # Antigravity & Skills
 .agent/*
 !.agent/skills/
+.agent/skills/*
+!.agent/skills/workflow-node-builder/
+!.agent/skills/project-context/
 .kiro/
 .cursor/
 .vscode/

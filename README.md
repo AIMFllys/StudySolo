@@ -141,7 +141,7 @@ cd backend
 | **workflow-node-builder** | [`.agent/skills/workflow-node-builder/SKILL.md`](./.agent/skills/workflow-node-builder/SKILL.md) | **节点开发专属**：新增节点 / 对接 AI 模型 / 对接外部 API 时自动触发，强制 AI 走分类和 Checklist |
 | **project-context** | [`.agent/skills/project-context/SKILL.md`](./.agent/skills/project-context/SKILL.md) | **架构认知骨架**：项目全景上下文，涵盖技术栈、端口、API 分组、节点体系、数据库域的完整心智映射 |
 
-> 注：本地开发环境可能使用的其他通用代码规范技能（如 Clean Code 等）非本项目原创，因此未包含在 GitHub 仓库中。
+> 注：本地开发环境可能使用的其他通用代码规范技能（如 Clean Code、Testing 等）非本项目原创，因此未包含在 GitHub 仓库中。上述 "SOP 文档 → Skills 封装" 的工程化思路是本项目在实践中独立总结形成的，同类思路在工程社区中或有相似探索，欢迎交流。
 
 > **`shared/` 说明**：本仓库中 `shared/` 为 Git Submodule。使用 `git clone --recurse-submodules` 完整克隆，或在克隆后执行 `git submodule update --init`。
 
