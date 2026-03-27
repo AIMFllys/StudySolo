@@ -5,6 +5,7 @@
 
   <p>
     <a href="https://StudyFlow.1037solo.com"><img src="https://img.shields.io/badge/Live%20Demo-StudyFlow.1037solo.com-4F46E5?style=flat-square&logo=googlechrome&logoColor=white" alt="Live Demo" /></a>
+    <a href="https://b23.tv/uPd6KUr"><img src="https://img.shields.io/badge/Demo%20Video-Bilibili-00A1D6?style=flat-square&logo=bilibili&logoColor=white" alt="Demo Video" /></a>
     <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License" /></a>
     <a href="#tech-stack"><img src="https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js" alt="Next.js" /></a>
     <a href="#tech-stack"><img src="https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi" alt="FastAPI" /></a>
@@ -128,8 +129,21 @@ cd backend
 | [AI 工作流底层原理](./docs/项目规范与框架流程/项目介绍/AI工作流系统底层原理.md) | DAG 执行引擎与节点交互机制 |
 | [命名与代码规范](./docs/项目规范与框架流程/项目规范/naming.md) | 文件命名、变量、注释规范 |
 | [后端 API 规范](./docs/项目规范与框架流程/项目规范/api.md) | 接口设计标准 |
-| [节点新增 SOP](./docs/项目规范与框架流程/功能流程/新增AI工具/) | 标准化节点开发流程（A/B 型） |
+| [节点新增 SOP](./docs/项目规范与框架流程/功能流程/新增AI工具/) | 标准化节点开发流程（A/B/C 型分类判断 + 全流程 Checklist） |
 | [Shared 子模块说明](./shared/README.md) | 共享层使用规范 |
+
+### 🤖 AI 开发技能（`.agent/skills/`）
+
+以下 Skills 将 SOP 文档封装为 AI 可直接调用的开发技能，实现"AI 辅助开发时自动遵循项目规范"：
+
+| Skill | 路径 | 用途 |
+| :--- | :--- | :--- |
+| **workflow-node-builder** | [`.agent/skills/workflow-node-builder/SKILL.md`](./.agent/skills/workflow-node-builder/SKILL.md) | 新增工作流节点 / 对接 AI 模型 / 对接外部 API 时自动触发，强制按 SOP 执行 |
+| **project-context** | [`.agent/skills/project-context/SKILL.md`](./.agent/skills/project-context/SKILL.md) | 项目架构全景上下文，涵盖技术栈、端口、API 分组、节点体系、数据库域的完整映射 |
+| **clean-code** | [`.agent/skills/clean-code/SKILL.md`](./.agent/skills/clean-code/SKILL.md) | 全局代码质量约束——简洁、自文档化、测试金字塔、性能标准 |
+| **testing-patterns** | [`.agent/skills/testing-patterns/SKILL.md`](./.agent/skills/testing-patterns/SKILL.md) | 单元测试 / 集成测试 / Mock 策略标准 |
+| **frontend-design** | [`.agent/skills/frontend-design/SKILL.md`](./.agent/skills/frontend-design/SKILL.md) | Web UI 设计原则与决策框架 |
+| **database-design** | [`.agent/skills/database-design/SKILL.md`](./.agent/skills/database-design/SKILL.md) | Schema 设计、索引策略、ORM 选型、Supabase 最佳实践 |
 
 > **`shared/` 说明**：本仓库中 `shared/` 为 Git Submodule。使用 `git clone --recurse-submodules` 完整克隆，或在克隆后执行 `git submodule update --init`。
 
