@@ -17,7 +17,16 @@ class NodeType(str, Enum):
     summary = "summary"
     flashcard = "flashcard"
     chat_response = "chat_response"
+    compare = "compare"
+    mind_map = "mind_map"
+    quiz_gen = "quiz_gen"
+    merge_polish = "merge_polish"
+    knowledge_base = "knowledge_base"
+    web_search = "web_search"
+    export_file = "export_file"
     write_db = "write_db"
+    logic_switch = "logic_switch"
+    loop_map = "loop_map"
 
 
 # LLM node types (require system prompts)
@@ -29,12 +38,21 @@ LLM_NODE_TYPES = {
     NodeType.summary,
     NodeType.flashcard,
     NodeType.chat_response,
+    NodeType.compare,
+    NodeType.mind_map,
+    NodeType.quiz_gen,
+    NodeType.merge_polish,
 }
 
 # Non-LLM node types
 NON_LLM_NODE_TYPES = {
     NodeType.trigger_input,
     NodeType.write_db,
+    NodeType.knowledge_base,
+    NodeType.web_search,
+    NodeType.export_file,
+    NodeType.logic_switch,
+    NodeType.loop_map,
 }
 
 
@@ -54,12 +72,30 @@ SYSTEM_PROMPTS: dict[NodeType, str] = {
     NodeType.ai_planner: (
         "你是一个学习工作流规划专家。你会收到结构化的学习需求 JSON，需要生成工作流节点和连线。\n"
         "输出必须是严格的 JSON 格式，包含：\n"
-        "- nodes: 节点数组，每个节点包含 id、type、position({x,y})、data({label,system_prompt,model_route,status,output})\n"
-        "- edges: 连线数组，每条连线包含 id、source、target\n"
-        "节点类型只能是：outline_gen、content_extract、summary、flashcard、chat_response、write_db\n"
-        "position 必须体现依赖逻辑：有分支时请使用多行或错位布局，不要把所有节点都放在同一条直线上。\n"
-        "edges 必须真实表达先后与分支关系，不能只做形式上的顺序拼接。\n"
-        "最多生成 8 个节点。不要输出任何 JSON 以外的内容。"
+        "- nodes: 节点数组，每个节点包含 id、type、position({x,y})、data({label,type,system_prompt,model_route,status,output})\n"
+        "- edges: 连线数组，每条连线包含 id、source、target\n\n"
+        "## 可用节点类型（type 字段只能用以下值）\n"
+        "- trigger_input: 输入触发（⚠️ 必须作为第1个节点，id 固定 'trigger-input-0'，label 用学习目标摘要）\n"
+        "- outline_gen: 生成学习大纲\n"
+        "- content_extract: 提炼核心知识点\n"
+        "- summary: 总结归纳\n"
+        "- flashcard: 闪卡生成（Q&A 式）\n"
+        "- compare: 对比分析\n"
+        "- mind_map: 思维导图\n"
+        "- quiz_gen: 测验生成\n"
+        "- merge_polish: 合并润色（整合多源内容）\n"
+        "- chat_response: 学习回复（最终输出节点）\n"
+        "- knowledge_base: 知识库检索\n"
+        "- web_search: 网络搜索\n"
+        "- write_db: 写入数据（持久化）\n"
+        "- export_file: 文件导出\n\n"
+        "## 强制规则\n"
+        "1. 第一个节点必须是 trigger_input，id 为 'trigger-input-0'\n"
+        "2. 所有其他节点必须直接或间接位于 trigger_input 下游\n"
+        "3. position 体现依赖逻辑，有分支时使用多行布局\n"
+        "4. edges 真实表达先后与分支关系\n"
+        "5. 最多生成 8 个节点（含 trigger_input）\n"
+        "6. 不要输出任何 JSON 以外的内容。"
     ),
     NodeType.outline_gen: (
         "你是一个知识大纲生成专家。根据学习目标和暗线上下文，生成清晰的学习大纲。\n"
@@ -80,6 +116,22 @@ SYSTEM_PROMPTS: dict[NodeType, str] = {
     NodeType.chat_response: (
         "你是一个学习助手。根据用户的学习进度和暗线上下文，提供个性化的学习建议和回复。\n"
         "输出格式为 Markdown，语气友好、鼓励性强。"
+    ),
+    NodeType.compare: (
+        "你是一个对比分析专家。根据暗线上下文，从多个维度对比分析相关内容。\n"
+        "输出格式为 JSON，包含对比维度和各项的优劣分析。"
+    ),
+    NodeType.mind_map: (
+        "你是一个思维导图生成专家。根据知识点和暗线上下文，生成结构化的思维导图。\n"
+        "输出格式为 JSON，包含层级节点和关系。"
+    ),
+    NodeType.quiz_gen: (
+        "你是一个测验生成专家。根据知识点和暗线上下文，生成测验题目。\n"
+        "输出格式为 JSON 数组，每道题包含 question、options、answer、explanation 字段。"
+    ),
+    NodeType.merge_polish: (
+        "你是一个内容整合润色专家。将多个上游节点的输出整合为连贯优美的最终文档。\n"
+        "输出格式为 Markdown，保持逻辑清晰、语言流畅。"
     ),
 }
 

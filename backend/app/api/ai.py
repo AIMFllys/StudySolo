@@ -340,11 +340,41 @@ async def _generate_workflow_core(
         )
 
     normalized_edges = _normalize_edges(enriched_nodes, planner_output.edges)
-    final_nodes = (
-        _auto_layout_nodes(enriched_nodes, normalized_edges)
-        if _should_auto_layout(enriched_nodes, normalized_edges)
-        else enriched_nodes
-    )
+
+    # ── 自动注入 trigger_input（若 Planner 未生成） ──────────────────
+    has_trigger = any(n.type == "trigger_input" for n in enriched_nodes)
+    if not has_trigger:
+        trigger_id = "trigger-input-0"
+        trigger_label = body.user_input.strip().replace("\n", " ")[:80]
+        trigger_node = WorkflowNodeSchema(
+            id=trigger_id,
+            type="trigger_input",
+            position=NodePosition(x=0, y=0),  # auto_layout 会重新计算
+            data=NodeData(
+                label=trigger_label,
+                type="trigger_input",
+            ),
+        )
+        enriched_nodes.insert(0, trigger_node)
+
+        # 找到所有入度=0 的非 trigger 节点，从 trigger 连接过去
+        targets_with_incoming = {e.target for e in normalized_edges}
+        root_ids = [
+            n.id for n in enriched_nodes
+            if n.id != trigger_id and n.id not in targets_with_incoming
+        ]
+        for root_id in root_ids:
+            normalized_edges.insert(
+                0,
+                WorkflowEdgeSchema(
+                    id=f"edge-{trigger_id}-{root_id}",
+                    source=trigger_id,
+                    target=root_id,
+                ),
+            )
+
+    # ── 始终执行自动布局（AI 生成的坐标不可靠） ─────────────────────
+    final_nodes = _auto_layout_nodes(enriched_nodes, normalized_edges)
 
     return GenerateWorkflowResponse(
         nodes=final_nodes,

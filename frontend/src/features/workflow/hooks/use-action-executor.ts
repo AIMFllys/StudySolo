@@ -10,6 +10,7 @@
 import { useCallback } from 'react';
 import type { Node, Edge } from '@xyflow/react';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { NODE_TYPE_META } from '../constants/workflow-meta';
 
 export interface CanvasAction {
   operation: 'ADD_NODE' | 'DELETE_NODE' | 'UPDATE_NODE' | 'ADD_EDGE' | 'DELETE_EDGE' | 'COPY_NODE';
@@ -65,6 +66,9 @@ export async function executeCanvasActions(actions: CanvasAction[]): Promise<Exe
               const { type, label, position, anchor_node_id } = action.payload;
               if (!type || !label) {
                 throw new Error('ADD_NODE 缺少 type 或 label');
+              }
+              if (!(type in NODE_TYPE_META)) {
+                throw new Error(`ADD_NODE type "${type}" 不是已注册的节点类型`);
               }
 
               const anchor = anchor_node_id
