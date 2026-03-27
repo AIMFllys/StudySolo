@@ -1,18 +1,22 @@
 'use client';
 
 import type { DragEvent } from 'react';
-import { Heart, PackageOpen } from 'lucide-react';
+import { Heart, PackageOpen, Settings2 } from 'lucide-react';
 
 import { getCommunityCategoryLabel, getCommunityIcon } from '@/features/community-nodes/constants/catalog';
 import type { CommunityNodeInsertPayload, CommunityNodePublic } from '@/types';
 
 interface CommunityNodeCardProps {
   node: CommunityNodePublic;
-  onAdd: (payload: CommunityNodeInsertPayload) => void;
   onToggleLike: (node: CommunityNodePublic) => void;
+  onManage?: (nodeId: string) => void;
 }
 
-export function CommunityNodeCard({ node, onAdd, onToggleLike }: CommunityNodeCardProps) {
+export function CommunityNodeCard({
+  node,
+  onToggleLike,
+  onManage,
+}: CommunityNodeCardProps) {
   const Icon = getCommunityIcon(node.icon);
 
   const payload: CommunityNodeInsertPayload = {
@@ -81,13 +85,19 @@ export function CommunityNodeCard({ node, onAdd, onToggleLike }: CommunityNodeCa
             {node.output_format === 'json' ? <span>JSON 输出</span> : null}
           </div>
 
-          <button
-            type="button"
-            onClick={() => onAdd(payload)}
-            className="mt-3 rounded-lg border border-border px-3 py-2 text-xs text-foreground transition-colors hover:bg-muted"
-          >
-            添加到画布
-          </button>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="text-[11px] text-muted-foreground">拖拽到画布即可使用</p>
+            {node.is_owner && onManage ? (
+              <button
+                type="button"
+                onClick={() => onManage(node.id)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs text-foreground transition-colors hover:bg-muted"
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                管理
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

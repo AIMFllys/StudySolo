@@ -36,7 +36,12 @@ def _sample_row() -> dict:
 
 
 def test_public_serializer_does_not_expose_prompt_or_knowledge():
-    payload = _serialize_public(_sample_row(), author_name="作者", is_liked=True).model_dump()
+    payload = _serialize_public(
+        _sample_row(),
+        author_name="作者",
+        is_liked=True,
+        is_owner=False,
+    ).model_dump()
 
     assert payload["name"] == "结构化总结器"
     assert payload["is_liked"] is True

@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import WorkflowCanvasLoader from '@/app/(dashboard)/workspace/[id]/WorkflowCanvasLoader';
 import WorkflowPageShell from '@/app/(dashboard)/workspace/[id]/WorkflowPageShell';
@@ -10,6 +10,9 @@ import { buildApiUrl, buildAuthHeaders } from '@/services/api-client';
 interface Props {
   params: Promise<{ id: string }>;
 }
+
+// Reserved route segments that should not be treated as workflow IDs
+const RESERVED_SEGMENTS = ['new', 'create', 'edit', 'settings'];
 
 /** Check if current user is the workflow owner via lightweight API call. */
 async function checkIsOwner(workflowId: string, token?: string): Promise<boolean> {
@@ -28,6 +31,13 @@ async function checkIsOwner(workflowId: string, token?: string): Promise<boolean
 
 export default async function PrivateCanvasPage({ params }: Props) {
   const { id } = await params;
+
+  // Guard: prevent reserved segments from being treated as workflow IDs
+  // This protects against routing errors when users navigate to /c/new, /c/create, etc.
+  if (RESERVED_SEGMENTS.includes(id.toLowerCase())) {
+    redirect('/workspace');
+  }
+
   const workflow = await fetchWorkflowContentForServer(id);
 
   if (!workflow) {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -11,20 +12,10 @@ import {
   listCommunityNodes,
   unlikeCommunityNode,
 } from '@/services/community-nodes.service';
-import type { CommunityNodeInsertPayload, CommunityNodePublic } from '@/types';
-
-function dispatchCommunityNodeAdd(payload: CommunityNodeInsertPayload) {
-  window.dispatchEvent(
-    new CustomEvent('node-store:add-node', {
-      detail: {
-        nodeType: 'community_node',
-        communityNode: payload,
-      },
-    }),
-  );
-}
+import type { CommunityNodePublic } from '@/types';
 
 export function CommunityNodeList() {
+  const router = useRouter();
   const [items, setItems] = useState<CommunityNodePublic[]>([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -144,8 +135,8 @@ export function CommunityNodeList() {
             <CommunityNodeCard
               key={node.id}
               node={node}
-              onAdd={dispatchCommunityNodeAdd}
               onToggleLike={handleToggleLike}
+              onManage={(nodeId) => router.push(`/workspace/community-nodes/${nodeId}`)}
             />
           ))
         )}

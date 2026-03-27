@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from math import ceil
 
@@ -14,6 +15,8 @@ from app.models.community_nodes import (
     CommunityNodeMine,
     CommunityNodePublic,
 )
+
+logger = logging.getLogger(__name__)
 
 _PUBLIC_COLS = (
     "id,author_id,name,description,icon,category,version,input_hint,"
@@ -73,6 +76,7 @@ def _serialize_public(
     *,
     author_name: str,
     is_liked: bool,
+    is_owner: bool,
 ) -> CommunityNodePublic:
     return CommunityNodePublic(
         id=str(row["id"]),
@@ -92,12 +96,18 @@ def _serialize_public(
         likes_count=int(row.get("likes_count") or 0),
         install_count=int(row.get("install_count") or 0),
         is_liked=is_liked,
+        is_owner=is_owner,
         created_at=row["created_at"],
     )
 
 
 def _serialize_mine(row: dict, *, author_name: str, is_liked: bool) -> CommunityNodeMine:
-    public = _serialize_public(row, author_name=author_name, is_liked=is_liked)
+    public = _serialize_public(
+        row,
+        author_name=author_name,
+        is_liked=is_liked,
+        is_owner=True,
+    )
     return CommunityNodeMine(
         **public.model_dump(),
         prompt=str(row.get("prompt") or ""),
@@ -146,6 +156,7 @@ async def list_public_nodes(
             row,
             author_name=author_names.get(str(row["author_id"]), "未知用户"),
             is_liked=str(row["id"]) in liked_ids,
+            is_owner=current_user_id == str(row["author_id"]),
         )
         for row in rows
     ]
@@ -172,6 +183,37 @@ async def list_my_nodes(db: AsyncClient, *, user_id: str) -> list[CommunityNodeM
         _serialize_mine(row, author_name="我", is_liked=str(row["id"]) in liked_ids)
         for row in rows
     ]
+
+
+async def get_my_node(
+    db: AsyncClient,
+    *,
+    node_id: str,
+    user_id: str,
+) -> CommunityNodeMine:
+    result = (
+        await db.from_("ss_community_nodes")
+        .select(_MINE_COLS)
+        .eq("id", node_id)
+        .eq("author_id", user_id)
+        .maybe_single()
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="社区节点不存在或无权访问",
+        )
+    liked_ids = await _load_liked_ids(
+        db,
+        current_user_id=user_id,
+        node_ids=[node_id],
+    )
+    return _serialize_mine(
+        result.data,
+        author_name="我",
+        is_liked=node_id in liked_ids,
+    )
 
 
 async def get_public_node(
@@ -204,6 +246,7 @@ async def get_public_node(
         row,
         author_name=author_names.get(str(row["author_id"]), "未知用户"),
         is_liked=str(row["id"]) in liked_ids,
+        is_owner=current_user_id == str(row["author_id"]),
     )
 
 
@@ -281,6 +324,20 @@ async def update_node(
 
 
 async def delete_node(db: AsyncClient, *, node_id: str, author_id: str) -> None:
+    existing = (
+        await db.from_("ss_community_nodes")
+        .select("knowledge_file_path")
+        .eq("id", node_id)
+        .eq("author_id", author_id)
+        .maybe_single()
+        .execute()
+    )
+    if not existing.data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="社区节点不存在或无权删除",
+        )
+
     result = (
         await db.from_("ss_community_nodes")
         .delete()
@@ -293,6 +350,16 @@ async def delete_node(db: AsyncClient, *, node_id: str, author_id: str) -> None:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="社区节点不存在或无权删除",
         )
+    knowledge_file_path = existing.data.get("knowledge_file_path")
+    if knowledge_file_path:
+        try:
+            await db.storage.from_("community-node-files").remove([knowledge_file_path])
+        except Exception as exc:  # pragma: no cover - best effort cleanup
+            logger.warning(
+                "Failed to remove knowledge file for community node %s: %s",
+                node_id,
+                exc,
+            )
 
 
 async def like_node(db: AsyncClient, *, node_id: str, user_id: str) -> int:

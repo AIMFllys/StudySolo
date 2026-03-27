@@ -8,6 +8,7 @@ import type {
   GenerateSchemaRequest,
   GenerateSchemaResponse,
   PublishCommunityNodeInput,
+  UpdateCommunityNodeInput,
 } from '@/types';
 
 interface CommunityNodeListParams {
@@ -47,6 +48,14 @@ export async function listMyCommunityNodes(): Promise<CommunityNodeMine[]> {
   return response.json() as Promise<CommunityNodeMine[]>;
 }
 
+export async function getMyCommunityNode(nodeId: string): Promise<CommunityNodeMine> {
+  const response = await authedFetch(`/api/community-nodes/mine/${nodeId}`);
+  if (!response.ok) {
+    throw new Error(await parseApiError(response, '加载我的共享节点失败'));
+  }
+  return response.json() as Promise<CommunityNodeMine>;
+}
+
 export async function getCommunityNode(nodeId: string): Promise<CommunityNodePublic> {
   const response = await authedFetch(`/api/community-nodes/${nodeId}`);
   if (!response.ok) {
@@ -83,6 +92,29 @@ export async function publishCommunityNode(
     throw new Error(await parseApiError(response, '发布共享节点失败'));
   }
   return response.json() as Promise<CommunityNodeMine>;
+}
+
+export async function updateCommunityNode(
+  nodeId: string,
+  input: UpdateCommunityNodeInput,
+): Promise<CommunityNodeMine> {
+  const response = await authedFetch(`/api/community-nodes/${nodeId}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(await parseApiError(response, '更新共享节点失败'));
+  }
+  return response.json() as Promise<CommunityNodeMine>;
+}
+
+export async function deleteCommunityNode(nodeId: string): Promise<void> {
+  const response = await authedFetch(`/api/community-nodes/${nodeId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error(await parseApiError(response, '删除共享节点失败'));
+  }
 }
 
 export async function likeCommunityNode(nodeId: string): Promise<number> {

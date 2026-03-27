@@ -116,3 +116,54 @@ def test_publish_community_node_accepts_slashless_root(monkeypatch):
     assert response.status_code == 201
     assert response.json()["id"] == "node-1"
     create_node.assert_awaited_once()
+
+
+def test_get_my_node_detail_returns_owner_payload(monkeypatch):
+    get_my_node = AsyncMock(
+        return_value={
+            "id": "node-1",
+            "author_id": _USER["id"],
+            "author_name": "self",
+            "name": "Owned Node",
+            "description": "Editable by author",
+            "icon": "Bot",
+            "category": "other",
+            "version": "1.0.0",
+            "input_hint": "",
+            "output_format": "markdown",
+            "output_schema": None,
+            "model_preference": "auto",
+            "knowledge_file_name": None,
+            "knowledge_file_size": 0,
+            "likes_count": 0,
+            "install_count": 0,
+            "is_liked": False,
+            "is_owner": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "prompt": "secret prompt",
+            "status": "approved",
+            "reject_reason": None,
+        }
+    )
+
+    async def _override_auth_db():
+        return _make_auth_db()
+
+    monkeypatch.setattr(auth_middleware, "get_db", _override_auth_db)
+    monkeypatch.setattr(community_nodes_api, "get_my_node", get_my_node)
+    app.dependency_overrides[deps.get_current_user] = lambda: _USER
+    app.dependency_overrides[deps.get_supabase_client] = lambda: MagicMock()
+
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.get(
+            "/api/community-nodes/mine/node-1",
+            headers=_auth_headers(),
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["is_owner"] is True
+    assert response.json()["prompt"] == "secret prompt"
+    get_my_node.assert_awaited_once()

@@ -28,6 +28,7 @@ export interface CommunityNodePublic {
   likes_count: number;
   install_count: number;
   is_liked: boolean;
+  is_owner: boolean;
   created_at: string;
 }
 
@@ -76,4 +77,16 @@ export interface PublishCommunityNodeInput {
   output_schema?: Record<string, unknown> | null;
   model_preference: CommunityNodeModelPreference;
   knowledge_file?: File | null;
+}
+
+export interface UpdateCommunityNodeInput {
+  name?: string;
+  description?: string;
+  icon?: string;
+  category?: CommunityNodeCategory;
+  prompt?: string;
+  input_hint?: string;
+  output_format?: CommunityNodeOutputFormat;
+  output_schema?: Record<string, unknown> | null;
+  model_preference?: CommunityNodeModelPreference;
 }

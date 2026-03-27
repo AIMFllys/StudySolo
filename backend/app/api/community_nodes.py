@@ -26,6 +26,7 @@ from app.services.ai_router import call_llm_direct
 from app.services.community_node_service import (
     create_node,
     delete_node,
+    get_my_node,
     get_public_node,
     like_node,
     list_my_nodes,
@@ -128,7 +129,6 @@ async def _maybe_store_knowledge_file(
     return storage_path, knowledge_file.filename, len(content), knowledge_text
 
 
-@router.get("", response_model=CommunityNodeListResponse, include_in_schema=False)
 # Next.js dev rewrites can normalize a trailing slash away before proxying.
 # Keep both root variants stable so authenticated requests do not fall through
 # to a 404 when the browser ultimately sends /api/community-nodes.
@@ -162,6 +162,19 @@ async def get_my_nodes(
     return await list_my_nodes(db, user_id=current_user["id"])
 
 
+@router.get("/mine/{node_id}", response_model=CommunityNodeMine)
+async def get_my_node_detail(
+    node_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncClient = Depends(get_supabase_client),
+) -> CommunityNodeMine:
+    return await get_my_node(
+        db,
+        node_id=node_id,
+        user_id=current_user["id"],
+    )
+
+
 @router.get("/{node_id}", response_model=CommunityNodePublic)
 async def get_node_detail(
     node_id: str,
@@ -175,7 +188,6 @@ async def get_node_detail(
     )
 
 
-@router.post("", response_model=CommunityNodeMine, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("", response_model=CommunityNodeMine, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("/", response_model=CommunityNodeMine, status_code=status.HTTP_201_CREATED)
 async def publish_community_node(

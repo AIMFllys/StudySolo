@@ -61,6 +61,7 @@ class CommunityNodePublic(BaseModel):
     likes_count: int = 0
     install_count: int = 0
     is_liked: bool = False
+    is_owner: bool = False
     created_at: datetime
 
 
