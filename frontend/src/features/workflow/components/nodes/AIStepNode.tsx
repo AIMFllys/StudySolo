@@ -5,6 +5,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Settings2 } from 'lucide-react';
 import type { AIStepNodeData } from '@/types';
 import { getNodeTypeMeta, getNodeTheme } from '@/features/workflow/constants/workflow-meta';
+import { getCommunityIcon } from '@/features/community-nodes/constants/catalog';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import BranchManagerPanel from './BranchManagerPanel';
 import { NodeModelSelector } from './NodeModelSelector';
@@ -18,8 +19,15 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
   const { error, label, model_route, output, output_format, status, input_snapshot, execution_time_ms } = nodeData;
   const nodeType = nodeData.type ?? type ?? 'chat_response';
   const isLogicSwitch = nodeType === 'logic_switch';
+  const isCommunityNode = nodeType === 'community_node';
   const typeMeta = getNodeTypeMeta(nodeType);
   const nodeTheme = getNodeTheme(nodeType);
+  const HeaderIcon = isCommunityNode
+    ? getCommunityIcon(nodeData.community_icon)
+    : typeMeta.icon;
+  const description = isCommunityNode
+    ? (nodeData.input_hint?.trim() || '社区共享的封装 AI 节点')
+    : typeMeta.description;
   const statusBadge = status === 'running' ? '(ACTIVE)' : status === 'waiting' ? '(WAIT)' : '';
   
   // Independent Selection Trackers
@@ -83,7 +91,7 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className={`flex items-center gap-2 text-[11px] font-mono tracking-wider uppercase font-bold ${nodeTheme.headerTextColor}`}>
-              <typeMeta.icon className="h-3.5 w-3.5" />
+              <HeaderIcon className="h-3.5 w-3.5" />
               #{id.slice(0, 3)}_{nodeTheme.category} {statusBadge}
               {isLogicSwitch && (
                 <span className="rounded-sm border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] tracking-[0.18em] text-amber-700 dark:text-amber-300">
@@ -102,7 +110,20 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.stopPropagation();
-                  window.dispatchEvent(new CustomEvent('workflow:open-node-config', { detail: { nodeId: id } }));
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  window.dispatchEvent(new CustomEvent('workflow:open-node-config', {
+                    detail: {
+                      nodeId: id,
+                      anchorRect: {
+                        top: rect.top,
+                        left: rect.left,
+                        right: rect.right,
+                        bottom: rect.bottom,
+                        width: rect.width,
+                        height: rect.height,
+                      },
+                    },
+                  }));
                 }}
               >
                 <Settings2 className="h-3.5 w-3.5" />
@@ -116,7 +137,7 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
               {label}
             </h3>
             <p className="text-[13px] text-black/60 dark:text-white/60 font-serif leading-relaxed line-clamp-2">
-              {typeMeta.description}
+              {description}
             </p>
             {isLogicSwitch && (
               <div className="mt-3 inline-flex items-center gap-1 rounded-sm border border-dashed border-amber-500/40 bg-amber-500/5 px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-amber-700 dark:text-amber-300">

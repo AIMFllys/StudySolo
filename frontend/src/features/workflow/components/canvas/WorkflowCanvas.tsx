@@ -20,7 +20,6 @@ import {
 import type { Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import ExecutionTraceDrawer from '@/features/workflow/components/execution/ExecutionTraceDrawer';
 import FloatingToolbar from '@/features/workflow/components/toolbar/FloatingToolbar';
 import type { CanvasTool } from '@/features/workflow/components/toolbar/FloatingToolbar';
 import AnimatedEdge from '@/features/workflow/components/canvas/edges/AnimatedEdge';
@@ -35,10 +34,11 @@ import CanvasContextMenu, { buildCanvasMenuItems } from '@/features/workflow/com
 import NodeContextMenu, { buildNodeMenuGroups } from '@/features/workflow/components/canvas/NodeContextMenu';
 import EdgeContextMenu from '@/features/workflow/components/canvas/EdgeContextMenu';
 import NodeConfigDrawer from '@/features/workflow/components/node-config/NodeConfigDrawer';
+import type { NodeConfigAnchorRect } from '@/features/workflow/components/node-config/popover-position';
 import { useLoopGroupDrop } from '@/features/workflow/hooks/use-loop-group-drop';
 import { NODE_TYPE_META } from '@/features/workflow/constants/workflow-meta';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
-import type { NodeType } from '@/types';
+import type { CommunityNodeInsertPayload, NodeType } from '@/types';
 
 type WorkflowCanvasNodeData = Record<string, unknown> & { hideSlip?: boolean };
 
@@ -61,6 +61,7 @@ const nodeTypes: NodeTypes = {
   flashcard: AIStepNode,
   chat_response: AIStepNode,
   write_db: AIStepNode,
+  ai_step: AIStepNode, // 兼容历史数据兜底
   // ── P1 节点 (7) ──
   compare: AIStepNode,
   mind_map: AIStepNode,
@@ -78,6 +79,8 @@ const nodeTypes: NodeTypes = {
   annotation: AnnotationNode,
   // ── 循环容器块 ──
   loop_group: LoopGroupNode,
+  // ── 社区节点 ──
+  community_node: AIStepNode,
 };
 
 const edgeTypes: EdgeTypes = {
@@ -90,6 +93,19 @@ function createDefaultNodeData(nodeType: string): Record<string, unknown> {
   if (nodeType === 'loop_group') {
     return { label: '循环块', maxIterations: 3, intervalSeconds: 0 };
   }
+  if (nodeType === 'community_node') {
+    return {
+      label: '社区节点',
+      type: nodeType,
+      system_prompt: '',
+      model_route: '',
+      status: 'pending',
+      output: '',
+      output_format: 'markdown',
+      input_hint: '',
+      config: {},
+    };
+  }
   const meta = NODE_TYPE_META[nodeType as NodeType];
   return {
     label: meta?.label ?? nodeType,
@@ -99,6 +115,26 @@ function createDefaultNodeData(nodeType: string): Record<string, unknown> {
     status: 'pending',
     output: '',
     config: {},
+  };
+}
+
+function createCommunityNodeData(
+  communityNode: CommunityNodeInsertPayload | null | undefined,
+): Record<string, unknown> {
+  return {
+    label: communityNode?.name || '社区节点',
+    type: 'community_node',
+    system_prompt: '',
+    model_route: '',
+    status: 'pending',
+    output: '',
+    config: {},
+    community_node_id: communityNode?.id || '',
+    community_icon: communityNode?.icon || 'Bot',
+    output_format: communityNode?.output_format || 'markdown',
+    model_preference: communityNode?.model_preference || 'auto',
+    input_hint: communityNode?.input_hint || '',
+    description: communityNode?.description || '',
   };
 }
 
@@ -132,19 +168,18 @@ function HistoryControls() {
 
 function WorkflowCanvasInner() {
 
-  const {
-    edges,
-    nodes,
-    onConnect,
-    onEdgesChange,
-    onNodesChange,
-    setSelectedNodeId,
-    setNodes,
-  } = useWorkflowStore();
+  const edges = useWorkflowStore((state) => state.edges);
+  const nodes = useWorkflowStore((state) => state.nodes);
+  const onConnect = useWorkflowStore((state) => state.onConnect);
+  const onEdgesChange = useWorkflowStore((state) => state.onEdgesChange);
+  const onNodesChange = useWorkflowStore((state) => state.onNodesChange);
+  const setSelectedNodeId = useWorkflowStore((state) => state.setSelectedNodeId);
+  const setNodes = useWorkflowStore((state) => state.setNodes);
   const [canvasTool, setCanvasTool] = useState<CanvasTool>('pan');
   const [modal, setModal] = useState<{ title: string; message: string } | null>(null);
   const [placementMode, setPlacementMode] = useState<string | null>(null);
   const [configNodeId, setConfigNodeId] = useState<string | null>(null);
+  const [configAnchorRect, setConfigAnchorRect] = useState<NodeConfigAnchorRect | null>(null);
   const reactFlowInstance = useReactFlow();
   const annotationCountRef = useRef(0);
   const handleNodeDragStop = useLoopGroupDrop();
@@ -171,6 +206,36 @@ function WorkflowCanvasInner() {
 
       const isLoop = nodeType === 'loop_group';
       const nodeId = `${nodeType}-${Date.now().toString(36)}`;
+
+      if (nodeType === 'community_node') {
+        const communityId = e.dataTransfer.getData('application/studysolo-community-id');
+        const metaStr = e.dataTransfer.getData('application/studysolo-community-meta');
+        const communityNode = metaStr ? JSON.parse(metaStr) as CommunityNodeInsertPayload : null;
+        const newNode: Node = {
+          id: nodeId,
+          type: 'community_node',
+          position: {
+            x: flowPos.x - 176,
+            y: flowPos.y - 70,
+          },
+          data: createCommunityNodeData({
+            ...(communityNode ?? {
+              id: communityId,
+              name: '社区节点',
+              icon: 'Bot',
+              input_hint: '',
+              output_format: 'markdown',
+              model_preference: 'auto',
+              description: '',
+            }),
+            id: communityId || communityNode?.id || '',
+          }),
+        };
+
+        store.setNodes([...store.nodes, newNode]);
+        setSelectedNodeId(nodeId);
+        return;
+      }
 
       const newNode: Node = {
         id: nodeId,
@@ -612,8 +677,11 @@ function WorkflowCanvasInner() {
 
   // ── Listen for node-store click-to-add events ─────────────────────────────
   useEffect(() => {
-    const handler = (e: Event) => {
-      const { nodeType } = (e as CustomEvent).detail as { nodeType: string };
+      const handler = (e: Event) => {
+      const { nodeType, communityNode } = (e as CustomEvent).detail as {
+        nodeType: string;
+        communityNode?: CommunityNodeInsertPayload;
+      };
       if (!nodeType) return;
 
       const store = useWorkflowStore.getState();
@@ -626,16 +694,27 @@ function WorkflowCanvasInner() {
         y: window.innerHeight / 2,
       });
 
-      const newNode: Node = {
-        id: nodeId,
-        type: nodeType,
-        position: {
-          x: canvasCenter.x - (isLoop ? 250 : 176),
-          y: canvasCenter.y - (isLoop ? 175 : 70),
-        },
-        data: createDefaultNodeData(nodeType),
-        ...(isLoop ? { style: { width: 500, height: 350 } } : {}),
-      };
+      const newNode: Node =
+        nodeType === 'community_node'
+          ? {
+              id: nodeId,
+              type: 'community_node',
+              position: {
+                x: canvasCenter.x - 176,
+                y: canvasCenter.y - 70,
+              },
+              data: createCommunityNodeData(communityNode),
+            }
+          : {
+              id: nodeId,
+              type: nodeType,
+              position: {
+                x: canvasCenter.x - (isLoop ? 250 : 176),
+                y: canvasCenter.y - (isLoop ? 175 : 70),
+              },
+              data: createDefaultNodeData(nodeType),
+              ...(isLoop ? { style: { width: 500, height: 350 } } : {}),
+            };
 
       store.setNodes([...store.nodes, newNode]);
       setSelectedNodeId(nodeId);
@@ -646,13 +725,26 @@ function WorkflowCanvasInner() {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { nodeId?: string };
+      const detail = (e as CustomEvent).detail as {
+        nodeId?: string;
+        anchorRect?: NodeConfigAnchorRect | null;
+      };
       if (detail?.nodeId) {
         setConfigNodeId(detail.nodeId);
+        setConfigAnchorRect(detail.anchorRect ?? null);
       }
     };
     window.addEventListener('workflow:open-node-config', handler);
     return () => window.removeEventListener('workflow:open-node-config', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      setConfigNodeId(null);
+      setConfigAnchorRect(null);
+    };
+    window.addEventListener('workflow:close-node-config', handler);
+    return () => window.removeEventListener('workflow:close-node-config', handler);
   }, []);
 
   // ── Compute React Flow props based on active tool ──────────────────────────
@@ -718,8 +810,6 @@ function WorkflowCanvasInner() {
 
       <FloatingToolbar />
 
-      <ExecutionTraceDrawer />
-
       {/* Canvas modal for edit/upload messages */}
       {modal && (
         <CanvasModal
@@ -751,7 +841,17 @@ function WorkflowCanvasInner() {
           y={nodeMenu.y}
           groups={buildNodeMenuGroups({
             onCopy: () => void handleCopyNode(nodeMenu.nodeId),
-            onConfigure: () => setConfigNodeId(nodeMenu.nodeId),
+            onConfigure: () => {
+              setConfigNodeId(nodeMenu.nodeId);
+              setConfigAnchorRect({
+                top: nodeMenu.y,
+                left: nodeMenu.x,
+                right: nodeMenu.x,
+                bottom: nodeMenu.y,
+                width: 0,
+                height: 0,
+              });
+            },
             onDelete: () => handleDeleteNode(nodeMenu.nodeId),
             onToggleSlip: () => {
               const node = useWorkflowStore.getState().nodes.find(n => n.id === nodeMenu.nodeId);
@@ -770,7 +870,11 @@ function WorkflowCanvasInner() {
       <NodeConfigDrawer
         key={configNodeId ?? 'node-config-drawer'}
         nodeId={configNodeId}
-        onClose={() => setConfigNodeId(null)}
+        anchorRect={configAnchorRect}
+        onClose={() => {
+          setConfigNodeId(null);
+          setConfigAnchorRect(null);
+        }}
       />
 
       {/* ── Edge right-click context menu ── */}

@@ -15,7 +15,8 @@ export default function WorkflowPromptInput() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { replaceWorkflowGraph, setGenerationContext } = useWorkflowStore();
+  const replaceWorkflowGraph = useWorkflowStore((state) => state.replaceWorkflowGraph);
+  const setGenerationContext = useWorkflowStore((state) => state.setGenerationContext);
 
   const handleGenerate = async () => {
     if (!input.trim() || loading) return;

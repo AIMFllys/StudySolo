@@ -21,13 +21,14 @@ import copy
 import json
 import logging
 from collections import defaultdict, deque
-from typing import AsyncIterator, Awaitable, Callable
+from typing import Any, AsyncIterator, Awaitable, Callable
 
 from app.engine.context import build_upstream_map, build_downstream_map, get_all_downstream
 from app.engine.events import sse_event
 from app.nodes import NODE_REGISTRY
 from app.nodes._base import BaseNode, NodeInput
-from app.services.ai_router import call_llm, AIRouterError
+from app.services.ai_catalog_service import get_sku_by_id
+from app.services.ai_router import AIRouterError, call_llm, call_llm_direct
 from app.services.usage_ledger import bind_usage_call
 
 logger = logging.getLogger(__name__)
@@ -311,6 +312,45 @@ def _resolve_user_content(node_data: dict) -> str:
     return node_data.get("user_content") or node_data.get("label", "")
 
 
+def _build_runtime_config(node_data: dict) -> dict[str, Any] | None:
+    """Merge node.data root execution fields into node_config."""
+    merged: dict[str, Any] = {}
+    config = node_data.get("config")
+    if isinstance(config, dict):
+        merged.update(config)
+
+    for key in (
+        "model_route",
+        "community_node_id",
+        "output_format",
+        "input_hint",
+        "model_preference",
+        "community_icon",
+    ):
+        value = node_data.get(key)
+        if value not in (None, ""):
+            merged[key] = value
+
+    return merged or None
+
+
+def _build_node_llm_caller(runtime_config: dict[str, Any] | None):
+    async def _llm_caller(node_type: str, messages: list[dict], stream: bool = False):
+        model_route = runtime_config.get("model_route") if runtime_config else None
+        if isinstance(model_route, str) and model_route:
+            sku = await get_sku_by_id(model_route)
+            if sku:
+                return await call_llm_direct(
+                    sku.provider,
+                    sku.model_id,
+                    messages,
+                    stream=stream,
+                )
+        return await call_llm(node_type, messages, stream=stream)
+
+    return _llm_caller
+
+
 # ── Single node execution ────────────────────────────────────────────────────
 
 async def _execute_single_node(
@@ -335,18 +375,22 @@ async def _execute_single_node(
             return (node_id, None, f"Unknown node type: {node_type_str}")
 
     node_instance = NodeClass()
+    runtime_config = _build_runtime_config(node_data)
 
     node_input = NodeInput(
         user_content=_resolve_user_content(node_data),
         upstream_outputs=upstream_outputs,
         implicit_context=implicit_context,
-        node_config=node_data.get("config"),
+        node_config=runtime_config,
     )
 
     full_output = ""
     try:
         with bind_usage_call(node_id=node_id, node_type=node_type_str):
-            async for token in node_instance.execute(node_input, call_llm):
+            async for token in node_instance.execute(
+                node_input,
+                _build_node_llm_caller(runtime_config),
+            ):
                 full_output += token
 
         result = await node_instance.post_process(full_output)
@@ -480,6 +524,7 @@ async def execute_workflow(
                     continue
 
             node_instance = NodeClass()
+            runtime_config = _build_runtime_config(node_data)
 
             direct_upstream_ids = upstream_map.get(node_id, [])
             upstream_outputs = {
@@ -492,7 +537,7 @@ async def execute_workflow(
                 user_content=_resolve_user_content(node_data),
                 upstream_outputs=upstream_outputs,
                 implicit_context=implicit_context,
-                node_config=node_data.get("config"),
+                node_config=runtime_config,
             )
 
             # Emit input snapshot
@@ -505,7 +550,10 @@ async def execute_workflow(
             full_output = ""
             try:
                 with bind_usage_call(node_id=node_id, node_type=node_type_str):
-                    async for token in node_instance.execute(node_input, call_llm):
+                    async for token in node_instance.execute(
+                        node_input,
+                        _build_node_llm_caller(runtime_config),
+                    ):
                         full_output += token
                         yield sse_event("node_token", {"node_id": node_id, "token": token})
 
@@ -558,7 +606,7 @@ async def execute_workflow(
                     user_content=_resolve_user_content(node_data),
                     upstream_outputs=upstream_outputs,
                     implicit_context=implicit_context,
-                    node_config=node_data.get("config"),
+                    node_config=_build_runtime_config(node_data),
                 )
                 try:
                     snapshot_json = _build_input_snapshot(node_input)

@@ -1,127 +1,152 @@
 <div align="center">
   <h1>StudySolo</h1>
-  <p>一个由 AI 驱动的新型智能学习工作流平台 (An AI-Powered Learning Workflow Platform)</p>
+  <p>面向学习场景的 AI 智能体可视化编排平台</p>
+  <p><em>An Open Platform for Creating, Running, Sharing and Governing Learning Agents</em></p>
 
-  <!-- Badges -->
   <p>
-    <a href="#license"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License" /></a>
-    <a href="#tech-stack"><img src="https://img.shields.io/badge/framework-Next.js_16-black?style=flat-square&logo=next.js" alt="Next.js" /></a>
-    <a href="#tech-stack"><img src="https://img.shields.io/badge/backend-FastAPI-009688?style=flat-square&logo=fastapi" alt="FastAPI" /></a>
-    <a href="#tech-stack"><img src="https://img.shields.io/badge/database-Supabase-3ECF8E?style=flat-square&logo=supabase" alt="Supabase" /></a>
+    <a href="https://StudyFlow.1037solo.com"><img src="https://img.shields.io/badge/Live%20Demo-StudyFlow.1037solo.com-4F46E5?style=flat-square&logo=googlechrome&logoColor=white" alt="Live Demo" /></a>
+    <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License" /></a>
+    <a href="#tech-stack"><img src="https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js" alt="Next.js" /></a>
+    <a href="#tech-stack"><img src="https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi" alt="FastAPI" /></a>
+    <a href="#tech-stack"><img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase" alt="Supabase" /></a>
   </p>
 </div>
 
 ---
 
-> 最后更新：2026-03-27
-> 
-> 文档编码：UTF-8（无 BOM） / LF
+**StudySolo** 是一个专注于学习场景的 AI 工作流编排平台。用户通过自然语言描述学习目标，系统自动生成多节点工作流，18 种专业学习节点在 DAG 执行引擎的调度下按依赖顺序运行，执行过程通过 SSE 全程实时可见。
 
-StudySolo 是一个基于前后端分离架构的 AI 学习工作流编排平台。它允许用户在直观的前端画布中自由组织学习节点，后端通过 DAG（有向无环图）引擎执行复杂的工作流，并依赖 SSE 技术将多轨 AI 大模型的输出实时流式返回给终端用户。
+平台同时具备工作流社区共享、用户自建节点、多平台 AI 模型路由与容灾、管理后台等完整的生产级能力，已部署上线：**[StudyFlow.1037solo.com](https://StudyFlow.1037solo.com)**
 
-## ✨ 核心特性 (Features)
+---
 
-- 🎨 **可视化工作流画布**：基于 `@xyflow/react` 的沉浸式拖拽编辑，轻松构建你的学习、分析、生成管线。
-- 🧠 **高度灵活的节点体系**：内置输入、分析、生成、交互与输出等多类插件化节点（详见引擎架构）。
-- 🚀 **多轨 AI 模型选型与容灾**：深度集成了供应商、大模型家族与 SKU 两级路由机制，自带高可用 Fallback 策略。
-- ⚡ **实时响应流式返回**：基于 FastAPI 与 SSE-Starlette 构建的高性能后端引擎。
-- 🛡️ **严密的访问控制**：采用 Supabase Row Level Security (RLS) 提供行级数据安全与完整的鉴权闭环。
+## ✨ 核心特性
 
-## 🛠️ 技术栈 (Tech Stack)
+- 🗣️ **自然语言驱动**：在侧边栏用自然语言描述学习目标，AI 直接生成/修改画布上的工作流，无需手动连线
+- 🎨 **可视化节点画布**：基于 `@xyflow/react` 的拖拽式编辑，支持分组、Undo/Redo、实时画布序列化
+- 🧩 **18 种专业学习节点**：涵盖输入、分析、生成、交互、输出、控制流六大类别
+- 🔀 **多平台 AI 模型路由**：8 个 AI 平台 / 17+ 模型 SKU，3 种路由策略，单平台宕机自动降级
+- ⚡ **流式执行追踪**：SSE 实时推送，节点状态/流式输出/链路血缘全程可视
+- 🌐 **社区工作流共享**：发布、收藏、分叉他人工作流，积累社区学习资产
+- 🏗️ **开放节点共建**：用户可自定义并发布提示词节点，支持上传知识库文件与 AI 辅助生成 JSON Schema
 
-### 前端 (Frontend)
-- **核心框架**：Next.js `16.1.6` (App Router) / React `19.2.3`
-- **语言与样式**：TypeScript `5` / Tailwind CSS `v4` / Framer Motion
-- **状态与组件**：Zustand `5.0.11` / `@xyflow/react` / Supabase SSR
+## 🛠️ 技术栈 <a id="tech-stack"></a>
 
-### 后端 (Backend)
-- **核心框架**：FastAPI `>=0.115` / Python 3.10+
-- **数据与流**：Pydantic `>=2.10` / SSE-Starlette / OpenAI SDK
-- **安全与限流**：SlowAPI
+| 层级 | 技术选型 | 说明 |
+| :--- | :--- | :--- |
+| **前端框架** | Next.js 15 + React 19 + TypeScript | App Router，SSR + CSR 混合渲染 |
+| **前端样式** | Tailwind CSS v4 | CSS-first 配置，设计令牌统一管理 |
+| **画布引擎** | @xyflow/react (React Flow) | 工业级节点画布，支持拖拽、连线、分组、缩放 |
+| **前端状态** | Zustand | 轻量级状态管理，内置 Undo/Redo 快照 |
+| **后端框架** | Python + FastAPI ≥0.115 | 高性能异步框架，原生支持 SSE 流式推送 |
+| **执行引擎** | 自研 DAG Executor | 拓扑排序 + ExecutionContext 黑板模型 |
+| **数据库** | Supabase (PostgreSQL) + RLS | 多租户数据隔离，Row Level Security 全覆盖 |
+| **认证** | Supabase Auth + JWT | Canvas 拼图验证码 + IP 登录锁定 |
+| **实时通信** | Server-Sent Events (SSE) | 节点执行进度流式推送至前端 |
+| **生产部署** | 阿里云 ECS + Nginx | 已在线运行，域名：StudyFlow.1037solo.com |
 
-### 基础架构层 (Infrastructure)
-- **数据库**：Supabase PostgreSQL + Auth + pgvector
-- **代码复用**：标准化的本地 `shared/` 统一维护共享层与跨项目规范
-
-## 📂 仓库结构 (Repository Structure)
+## 📂 仓库结构
 
 ```text
 StudySolo/
-├── frontend/                 # 基于 Next.js 的前端服务 (Port: 2037)
-├── backend/                  # 基于 FastAPI 的后端服务 (Port: 2038)
-├── supabase/migrations/      # Supabase 数据库结构与迁移脚本
-├── shared/                   # 项目间通用共享模块 (Git Submodule)
-├── docs/                     # 架构设计标准与产品规范文档
-├── scripts/                  # 运行启动、环境检测辅助脚本
-└── .agent/                   # 适用于构建环节的专有 AI Agent 规则与技能
+├── frontend/                 # Next.js 前端服务 (Port: 2037)
+│   └── src/features/workflow # 工作流核心模块（画布 / 节点 / 执行面板）
+├── backend/                  # FastAPI 后端服务 (Port: 2038)
+│   ├── app/engine/           # DAG 执行引擎
+│   ├── app/nodes/            # 18 种工作流节点
+│   ├── app/prompts/          # 模块化 Prompt 文件（Markdown + 模板变量）
+│   └── app/api/              # REST API 路由
+├── supabase/migrations/      # 数据库结构迁移脚本
+├── shared/                   # 跨项目共享模块 (Git Submodule)
+├── docs/                     # 架构文档 / 每日更新 / 功能规划 / SOP
+├── .agent/skills/            # SOP 化开发技能（节点新增标准流程）
+└── scripts/                  # 一键启动 / 环境检测脚本
 ```
 
-## 🚀 快速开始 (Quick Start)
+## 🚀 快速开始
 
-### 1. 启动前端服务
+### 环境要求
+
+- **Node.js** ≥ 18 / **pnpm** ≥ 8
+- **Python** ≥ 3.10
+- 已配置 Supabase 项目与环境变量（参考 `.env.example`）
+
+### 1. 前端
 
 ```bash
 cd frontend
 pnpm install
 pnpm dev
+# http://localhost:2037
 ```
-> 前端默认热更新地址：`http://localhost:2037`
 
-### 2. 启动后端服务
+### 2. 后端
 
 ```bash
 cd backend
 python -m venv .venv
-# 激活环境后安装依赖（Windows 示例）：
-.venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-dev.txt
-.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 2038
+
+# Windows
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\uvicorn app.main:app --reload --port 2038
+
+# macOS / Linux
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 2038
+# Swagger: http://localhost:2038/docs
 ```
-> 后端 Swagger 接口测试面板：`http://localhost:2038/docs`
 
-### 3. 一键完整启动 (Windows PowerShell)
-
-在 Windows 平台下，您可以通过提供的脚本同时拉起所有的开发服务面板：
+### 3. 一键启动（Windows PowerShell）
 
 ```powershell
 powershell scripts/start-studysolo.ps1
 ```
 
-## 🧪 代码检查与测试 (Testing & Linting)
+## 🧪 测试与检查
 
-保持高质量的项目工程化迭代，需要稳定的检查环节约束。
+**前端：**
 
-**前端校验指令：**
 ```bash
 cd frontend
-pnpm lint        # 执行 ESLint 等代码静态语法检查
-pnpm lint:lines  # 关键文件行数超限检测
-pnpm test        # 执行 Vitest 单元与组件交互测试
+pnpm lint     # ESLint 静态检查
+pnpm test     # Vitest 单元测试
 ```
 
-**后端校验指令：**
-```powershell
+**后端：**
+
+```bash
 cd backend
-.\.venv\Scripts\python.exe -m pytest tests
+.venv\Scripts\python -m pytest tests
 ```
 
-## 📖 核心文档导航 (Documentation)
+## 📖 文档导航
 
-对项目的深入扩展和共建，强烈建议您在改动之前查阅如下核心设计文档：
+| 文档 | 内容 |
+| :--- | :--- |
+| [项目架构全景](./docs/项目规范与框架流程/项目规范/项目架构全景.md) | 整体系统设计与模块边界 |
+| [AI 工作流底层原理](./docs/项目规范与框架流程/项目介绍/AI工作流系统底层原理.md) | DAG 执行引擎与节点交互机制 |
+| [命名与代码规范](./docs/项目规范与框架流程/项目规范/naming.md) | 文件命名、变量、注释规范 |
+| [后端 API 规范](./docs/项目规范与框架流程/项目规范/api.md) | 接口设计标准 |
+| [节点新增 SOP](./docs/项目规范与框架流程/功能流程/新增AI工具/) | 标准化节点开发流程（A/B 型） |
+| [Shared 子模块说明](./shared/README.md) | 共享层使用规范 |
 
-- [🗺️ 项目架构全景概览](./docs/项目规范与框架流程/项目规范/项目架构全景.md)
-- [📝 命名与代码书写规范](./docs/项目规范与框架流程/项目规范/naming.md)
-- [🔗 后端 API 协同规范](./docs/项目规范与框架流程/项目规范/api.md)
-- [🧩 核心节点插件化开发指南](./backend/app/nodes/CONTRIBUTING.md)
-- [🗃️ Shared 子模块参考手册](./shared/README.md)
-- [🤖 Agent 与 Workflow 协作机制说明](./shared/AGENTS.md)
+> **`shared/` 说明**：本仓库中 `shared/` 为 Git Submodule。使用 `git clone --recurse-submodules` 完整克隆，或在克隆后执行 `git submodule update --init`。
 
->⚠️ **特别说明 (`shared` 边界)：**  
->当前仓库中的 `shared/` 为 Git submodule。在后续若与 Platform Monorepo 同步时使用 subtree 操作时，切勿混淆两套流程策略结构（具体参照 `shared/docs/guides/subtree-sync.md`）。
+## 🔮 开发规划
 
-## 🤝 参与贡献 (Contributing)
+| 功能 | 状态 |
+| :--- | :--- |
+| MCP 协议接入 | 🔧 开发中 |
+| 外部 API 对接 | 🔧 开发中 |
+| 用户自有 API Key 支持 | 📋 规划中 |
+| 社区节点内容审核机制 | 📋 规划中 |
+| 社区节点安全沙箱 | 📋 规划中 |
 
-欢迎通过提交 Issue 错误报告或是提交 Pull Request 来帮助本平台变得更好！参与研发前请务必仔细阅读官方的规范并遵守现有项目的架构。
+## 🤝 贡献
 
-## 📄 开源协议 (License)
+欢迎通过 Issue 提交问题反馈或通过 Pull Request 参与共建。参与前请阅读 [节点新增 SOP](./docs/项目规范与框架流程/功能流程/新增AI工具/) 与 [代码规范](./docs/项目规范与框架流程/项目规范/naming.md)，确保与现有架构对齐。
 
-StudySolo 项目基于 [MIT License](./LICENSE) 发布。
+## 📄 License
+
+[MIT License](./LICENSE) © 2026 1037Solo

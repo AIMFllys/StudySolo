@@ -61,6 +61,10 @@ const RENDERER_REGISTRY: Record<string, React.FC<NodeRendererProps>> = {
     knowledge_base: MarkdownRenderer,
     web_search: MarkdownRenderer,
     export_file: ExportRenderer,
+    community_node: ({ format, ...props }) =>
+        format === 'json'
+            ? React.createElement(JsonRenderer, { ...props, format })
+            : React.createElement(MarkdownRenderer, { ...props, format }),
 
     // ── P2 引擎增强节点渲染器 ──
     logic_switch: JsonRenderer,

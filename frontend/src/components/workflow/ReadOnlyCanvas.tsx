@@ -42,6 +42,7 @@ const readOnlyNodeTypes: NodeTypes = {
   export_file: AIStepNode,
   logic_switch: AIStepNode,
   loop_map: AIStepNode,
+  community_node: AIStepNode,
   generating: GeneratingNode,
   annotation: AnnotationNode,
   loop_group: LoopGroupNode,

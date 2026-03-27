@@ -33,7 +33,8 @@ Thumbs.db
 Desktop.ini
 
 # Antigravity & Skills
-.agent/
+.agent/*
+!.agent/skills/
 .kiro/
 .cursor/
 .vscode/

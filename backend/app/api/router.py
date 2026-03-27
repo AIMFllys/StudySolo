@@ -28,6 +28,7 @@ from app.api.exports import router as exports_router
 from app.api.feedback import router as feedback_router
 from app.api.usage import router as usage_router
 from app.api.discounts import router as discounts_router
+from app.api.community_nodes import router as community_nodes_router
 
 router = APIRouter()
 
@@ -47,6 +48,7 @@ router.include_router(exports_router, prefix="/exports", tags=["exports"])
 router.include_router(feedback_router, prefix="/feedback", tags=["feedback"])
 router.include_router(usage_router, prefix="/usage", tags=["usage"])
 router.include_router(discounts_router, prefix="/discounts", tags=["discounts"])
+router.include_router(community_nodes_router, prefix="/community-nodes", tags=["community-nodes"])
 router.include_router(admin_auth_router, prefix="/admin", tags=["admin-auth"])
 router.include_router(admin_dashboard_router, prefix="/admin", tags=["admin-dashboard"])
 router.include_router(admin_users_router, prefix="/admin", tags=["admin-users"])

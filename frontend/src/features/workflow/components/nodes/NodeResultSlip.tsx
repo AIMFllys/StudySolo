@@ -57,10 +57,12 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   const slipRef = useRef<HTMLDivElement>(null);
   const wasRunningRef = useRef(false);
   const parsedInput = useMemo(() => parseInputSnapshot(inputSnapshot), [inputSnapshot]);
-  const nodeNameMap = useWorkflowStore(
-    (state) => Object.fromEntries(
-      state.nodes.map((node) => [node.id, String((node.data as { label?: string })?.label ?? node.id)]),
+  const nodes = useWorkflowStore((state) => state.nodes);
+  const nodeNameMap = useMemo(
+    () => Object.fromEntries(
+      nodes.map((node) => [node.id, String((node.data as { label?: string })?.label ?? node.id)]),
     ),
+    [nodes],
   );
 
   useEffect(() => {

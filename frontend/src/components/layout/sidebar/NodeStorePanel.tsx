@@ -1,13 +1,27 @@
 'use client';
 
-import { useCallback, useMemo, useState, useRef } from 'react';
-import { GripVertical, Search, ChevronDown, ChevronRight, X, ChevronsUpDown, LibraryBig, BrainCircuit, NotebookPen, FileTerminal, Network, LayoutGrid } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  BrainCircuit,
+  ChevronDown,
+  ChevronRight,
+  ChevronsUpDown,
+  FileTerminal,
+  GripVertical,
+  LayoutGrid,
+  LibraryBig,
+  Network,
+  NotebookPen,
+  Search,
+  X,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+
+import { CommunityNodeList } from '@/features/community-nodes/components/CommunityNodeList';
 import { NODE_TYPE_META, getNodeTheme } from '@/features/workflow/constants/workflow-meta';
 import type { NodeType } from '@/types';
-import { createPortal } from 'react-dom';
 
-/** 节点分类 */
 const NODE_CATEGORIES: { id: string; label: string; icon: LucideIcon; types: NodeType[] }[] = [
   {
     id: 'trigger',
@@ -43,7 +57,6 @@ const NODE_CATEGORIES: { id: string; label: string; icon: LucideIcon; types: Nod
 
 const ALL_TAG = 'all';
 
-/** Extended description for hover tooltip */
 const NODE_EXTENDED_INFO: Partial<Record<NodeType, string>> = {
   trigger_input: '工作流的起始点。接收用户输入的学习目标、限制条件和上下文信息，作为后续节点的数据源。',
   ai_analyzer: '使用 AI 分析用户需求，提取关键学习目标、约束条件和上下文信息，为流程规划提供结构化数据。',
@@ -65,7 +78,6 @@ const NODE_EXTENDED_INFO: Partial<Record<NodeType, string>> = {
   loop_map: '对列表数据进行循环处理，每个元素独立经过指定的节点链。',
 };
 
-/* ─── Node Tooltip (portal) ─── */
 function NodeTooltip({
   nodeType,
   anchorRect,
@@ -77,17 +89,15 @@ function NodeTooltip({
   const extended = NODE_EXTENDED_INFO[nodeType];
   const nodeTheme = getNodeTheme(nodeType);
 
-  const style: React.CSSProperties = {
-    position: 'fixed',
-    top: anchorRect.top,
-    left: anchorRect.right + 8,
-    zIndex: 9999,
-    maxWidth: 260,
-  };
-
   return createPortal(
     <div
-      style={style}
+      style={{
+        position: 'fixed',
+        top: anchorRect.top,
+        left: anchorRect.right + 8,
+        zIndex: 9999,
+        maxWidth: 260,
+      }}
       className="node-paper-bg animate-in fade-in slide-in-from-left-1 duration-150 rounded-xl border border-border p-3 shadow-lg backdrop-blur-sm"
     >
       <div className="mb-2 flex items-center gap-2">
@@ -107,27 +117,27 @@ function NodeTooltip({
       ) : null}
       <p className="mt-2 text-[9px] text-muted-foreground/50">拖拽到画布 或 点击添加</p>
     </div>,
-    document.body
+    document.body,
   );
 }
 
-/* ─── Tag filter bar ─── */
-interface TagFilterBarProps {
+function TagFilterBar({
+  selectedCategoryId,
+  onSelect,
+}: {
   selectedCategoryId: string;
   onSelect: (id: string) => void;
-}
-
-function TagFilterBar({ selectedCategoryId, onSelect }: TagFilterBarProps) {
+}) {
   const [expanded, setExpanded] = useState(false);
-
   const allTags = [
     { id: ALL_TAG, label: '全部', icon: LayoutGrid },
-    ...NODE_CATEGORIES.map((c) => ({ id: c.id, label: c.label, icon: c.icon })),
+    ...NODE_CATEGORIES.map((category) => ({
+      id: category.id,
+      label: category.label,
+      icon: category.icon,
+    })),
   ];
-
-  // Collapsed: show only first row (All tag + up to 2 categories), plus expand button
-  const VISIBLE_COUNT = 3; // "全部" + first 2 categories
-  const visibleTags = expanded ? allTags : allTags.slice(0, VISIBLE_COUNT);
+  const visibleTags = expanded ? allTags : allTags.slice(0, 3);
 
   return (
     <div className="shrink-0 border-b border-border px-2 py-2">
@@ -139,24 +149,22 @@ function TagFilterBar({ selectedCategoryId, onSelect }: TagFilterBarProps) {
               key={tag.id}
               type="button"
               onClick={() => onSelect(tag.id)}
-              className={`relative overflow-hidden inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors border ${
+              className={`relative inline-flex items-center gap-1.5 overflow-hidden rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
                 isActive
-                  ? 'node-paper-bg text-primary border-primary/30 shadow-sm'
-                  : 'bg-muted/60 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground'
+                  ? 'node-paper-bg border-primary/30 text-primary shadow-sm'
+                  : 'border-border/50 bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
-              <div className="tag-paper-texture absolute inset-0 z-0 pointer-events-none opacity-60" />
-              <tag.icon className={`relative z-10 w-[14px] h-[14px] ${isActive ? 'text-primary' : 'text-slate-500'}`} />
+              <div className="tag-paper-texture pointer-events-none absolute inset-0 z-0 opacity-60" />
+              <tag.icon className={`relative z-10 h-[14px] w-[14px] ${isActive ? 'text-primary' : 'text-slate-500'}`} />
               <span className="relative z-10 hidden sm:inline">{tag.id === ALL_TAG ? '全部' : tag.label.split(' ')[0]}</span>
             </button>
           );
         })}
 
-        {/* Expand / collapse toggle */}
         <button
           type="button"
-          onClick={() => setExpanded((e) => !e)}
-          title={expanded ? '收起筛选器' : '展开全部筛选器'}
+          onClick={() => setExpanded((prev) => !prev)}
           className="ml-auto flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <ChevronsUpDown className="h-3 w-3" />
@@ -167,7 +175,6 @@ function TagFilterBar({ selectedCategoryId, onSelect }: TagFilterBarProps) {
   );
 }
 
-/* ─── Single node item ─── */
 function NodeStoreItem({ nodeType }: { nodeType: NodeType }) {
   const meta = NODE_TYPE_META[nodeType];
   const [hovered, setHovered] = useState(false);
@@ -175,16 +182,16 @@ function NodeStoreItem({ nodeType }: { nodeType: NodeType }) {
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleDragStart = useCallback(
-    (e: React.DragEvent) => {
-      e.dataTransfer.setData('application/studysolo-node-type', nodeType);
-      e.dataTransfer.effectAllowed = 'move';
+    (event: React.DragEvent) => {
+      event.dataTransfer.setData('application/studysolo-node-type', nodeType);
+      event.dataTransfer.effectAllowed = 'move';
     },
-    [nodeType]
+    [nodeType],
   );
 
   const handleClick = useCallback(() => {
     window.dispatchEvent(
-      new CustomEvent('node-store:add-node', { detail: { nodeType } })
+      new CustomEvent('node-store:add-node', { detail: { nodeType } }),
     );
   }, [nodeType]);
 
@@ -193,12 +200,14 @@ function NodeStoreItem({ nodeType }: { nodeType: NodeType }) {
   }, []);
 
   const handlePointerLeave = useCallback(() => {
-    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+    }
     setHovered(false);
   }, []);
 
-  const anchorRect = itemRef.current?.getBoundingClientRect();
   const nodeTheme = getNodeTheme(nodeType);
+  const anchorRect = itemRef.current?.getBoundingClientRect();
 
   return (
     <>
@@ -229,97 +238,98 @@ function NodeStoreItem({ nodeType }: { nodeType: NodeType }) {
   );
 }
 
-/* ─── Collapsible category section ─── */
 function CategorySection({
-  id,
   label,
   types,
   searchQuery,
 }: {
-  id: string;
   label: string;
   types: NodeType[];
   searchQuery: string;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-
   const filtered = useMemo(() => {
-    if (!searchQuery) return types;
-    const q = searchQuery.toLowerCase();
-    return types.filter((t) => {
-      const m = NODE_TYPE_META[t];
+    if (!searchQuery) {
+      return types;
+    }
+    const query = searchQuery.toLowerCase();
+    return types.filter((type) => {
+      const meta = NODE_TYPE_META[type];
       return (
-        m.label.toLowerCase().includes(q) ||
-        m.description.toLowerCase().includes(q) ||
-        t.toLowerCase().includes(q)
+        meta.label.toLowerCase().includes(query) ||
+        meta.description.toLowerCase().includes(query) ||
+        type.toLowerCase().includes(query)
       );
     });
-  }, [types, searchQuery]);
+  }, [searchQuery, types]);
 
-  if (filtered.length === 0) return null;
+  if (filtered.length === 0) {
+    return null;
+  }
 
   return (
     <div className="mb-1.5">
       <button
         type="button"
-        onClick={() => setCollapsed((c) => !c)}
+        onClick={() => setCollapsed((prev) => !prev)}
         className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/70 transition-colors hover:text-muted-foreground"
       >
-        {collapsed ? (
-          <ChevronRight className="h-3 w-3" />
-        ) : (
-          <ChevronDown className="h-3 w-3" />
-        )}
+        {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
         {label}
         <span className="ml-auto text-[9px] text-muted-foreground/40">{filtered.length}</span>
       </button>
-      {!collapsed && (
+      {!collapsed ? (
         <div className="mt-0.5 space-y-0">
           {filtered.map((nodeType) => (
             <NodeStoreItem key={nodeType} nodeType={nodeType} />
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
 
-/* ─── Main panel ─── */
-export default function NodeStorePanel() {
+function DefaultNodeStoreView() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>(ALL_TAG);
 
-  // Categories to display based on selected tag
   const visibleCategories = useMemo(() => {
-    if (selectedCategory === ALL_TAG) return NODE_CATEGORIES;
-    return NODE_CATEGORIES.filter((c) => c.id === selectedCategory);
+    if (selectedCategory === ALL_TAG) {
+      return NODE_CATEGORIES;
+    }
+    return NODE_CATEGORIES.filter((category) => category.id === selectedCategory);
   }, [selectedCategory]);
 
   const totalFiltered = useMemo(() => {
-    const q = search.toLowerCase();
-    return visibleCategories.reduce((sum, cat) => {
-      if (!search) return sum + cat.types.length;
-      return sum + cat.types.filter((t) => {
-        const m = NODE_TYPE_META[t];
-        return m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || t.toLowerCase().includes(q);
+    const query = search.toLowerCase();
+    return visibleCategories.reduce((sum, category) => {
+      if (!search) {
+        return sum + category.types.length;
+      }
+      return sum + category.types.filter((type) => {
+        const meta = NODE_TYPE_META[type];
+        return (
+          meta.label.toLowerCase().includes(query) ||
+          meta.description.toLowerCase().includes(query) ||
+          type.toLowerCase().includes(query)
+        );
       }).length;
     }, 0);
   }, [search, visibleCategories]);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Search bar */}
-      <div className="shrink-0 px-2 pt-2 pb-1.5">
+      <div className="shrink-0 px-2 pb-1.5 pt-2">
         <div className="relative">
           <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             placeholder="搜索节点..."
-            className="w-full rounded-lg border border-border/50 bg-white/3 py-1.5 pl-7 pr-7 text-[11px] text-foreground placeholder-muted-foreground/60 outline-none transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+            className="w-full rounded-lg border border-border/50 bg-white/3 py-1.5 pl-7 pr-7 text-[11px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
           />
-          {search && (
+          {search ? (
             <button
               type="button"
               onClick={() => setSearch('')}
@@ -327,44 +337,77 @@ export default function NodeStorePanel() {
             >
               <X className="h-3 w-3" />
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* Tag filter bar */}
       <TagFilterBar
         selectedCategoryId={selectedCategory}
         onSelect={setSelectedCategory}
       />
 
-      {/* Result hint */}
       <div className="shrink-0 px-3 py-1">
         <p className="text-[9px] text-muted-foreground/50">
           {search
             ? `找到 ${totalFiltered} 个节点`
             : selectedCategory === ALL_TAG
-            ? '拖拽到画布，或点击添加'
-            : `已筛选：${NODE_CATEGORIES.find((c) => c.id === selectedCategory)?.label}`}
+              ? '拖拽到画布，或点击添加'
+              : `已筛选：${NODE_CATEGORIES.find((category) => category.id === selectedCategory)?.label}`}
         </p>
       </div>
 
-      {/* Node list */}
       <div className="scrollbar-hide flex-1 overflow-y-auto px-2 pb-2">
-        {visibleCategories.map((cat) => (
+        {visibleCategories.map((category) => (
           <CategorySection
-            key={cat.id}
-            id={cat.id}
-            label={cat.label}
-            types={cat.types}
+            key={category.id}
+            label={category.label}
+            types={category.types}
             searchQuery={search}
           />
         ))}
-        {totalFiltered === 0 && (
+        {totalFiltered === 0 ? (
           <p className="px-2 py-6 text-center text-[11px] text-muted-foreground/60">
             没有匹配的节点
           </p>
-        )}
+        ) : null}
       </div>
+    </div>
+  );
+}
+
+export default function NodeStorePanel() {
+  const [view, setView] = useState<'default' | 'community'>('default');
+
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-border px-2 py-2">
+        <div className="inline-flex rounded-lg border border-border bg-muted/40 p-1">
+          <button
+            type="button"
+            onClick={() => setView('default')}
+            className={`rounded-md px-3 py-1.5 text-[11px] transition-colors ${
+              view === 'default'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground'
+            }`}
+          >
+            默认
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('community')}
+            className={`rounded-md px-3 py-1.5 text-[11px] transition-colors ${
+              view === 'community'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground'
+            }`}
+          >
+            共享
+          </button>
+        </div>
+      </div>
+
+      {view === 'default' ? <DefaultNodeStoreView /> : <CommunityNodeList />}
     </div>
   );
 }

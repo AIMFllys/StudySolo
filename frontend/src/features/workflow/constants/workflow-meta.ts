@@ -265,6 +265,15 @@ export const NODE_TYPE_META: Record<NodeType, NodeTypeMeta> = {
     inputs: [{ key: '初始数据', description: '注入到该容器的种子数据', required: false }],
     outputs: [{ key: '累积结果', description: '循环结束后汇聚的总数据', required: false }],
   },
+  community_node: {
+    label: '社区节点',
+    icon: Globe,
+    description: '社区共享的封装 AI 节点',
+    accentClassName: 'from-teal-500/20 to-cyan-500/5 text-teal-100 ring-teal-400/30',
+    requiresModel: true,
+    inputs: [{ key: '上游输入', description: '社区节点所需的原始输入或上游内容', required: true }],
+    outputs: [{ key: '节点输出', description: '社区节点生成的结果', required: true }],
+  },
 };
 
 export function getStatusMeta(status?: string) {
@@ -363,6 +372,14 @@ export function getNodeTheme(nodeType: string) {
       borderClass: 'border-2 border-amber-600 dark:border-amber-500',
       innerBorderClass: 'border-[0.5px] border-dashed border-amber-600/50 dark:border-amber-500/50',
       headerTextColor: 'text-amber-700 dark:text-amber-500',
+    };
+  }
+  if (nodeType === 'community_node') {
+    return {
+      category: 'COMMUNITY',
+      borderClass: 'border-2 border-teal-700 dark:border-teal-500 shadow-[0_0_0_2px_rgba(13,148,136,0.08)]',
+      innerBorderClass: 'border-[0.5px] border-dashed border-teal-700/45 dark:border-teal-500/40',
+      headerTextColor: 'text-teal-800 dark:text-teal-400',
     };
   }
   // 8. VISUALIZE (图表渲染) - 紫色相框质感
