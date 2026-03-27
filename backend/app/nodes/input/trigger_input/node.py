@@ -16,6 +16,23 @@ class TriggerInputNode(BaseNode):
     output_format = "passthrough"
     icon = "▶️"
     color = "#10b981"
+    config_schema = [
+        {
+            "key": "input_template",
+            "type": "textarea",
+            "label": "输入模板",
+            "default": "",
+            "description": "当没有自动注入 user_content 时，作为默认输入模板。",
+        },
+        {
+            "key": "example_placeholder",
+            "type": "text",
+            "label": "示例占位",
+            "default": "",
+            "description": "为当前触发节点记录一个推荐输入示例。",
+        },
+    ]
+    output_capabilities = ["preview", "compact"]
 
     async def execute(
         self,
@@ -23,6 +40,7 @@ class TriggerInputNode(BaseNode):
         llm_caller: Any,
     ) -> AsyncIterator[str]:
         """Pass through user content as-is — no LLM call needed."""
-        output = node_input.user_content or ""
+        config = node_input.node_config or {}
+        output = node_input.user_content or config.get("input_template", "") or ""
         if output:
             yield output

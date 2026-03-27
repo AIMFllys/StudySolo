@@ -48,6 +48,19 @@ async def execute_workflow_sse(
     edges = workflow.get("edges_json") or []
     user_id = current_user["id"]
     user_tier = current_user.get("tier", "free")
+    workflow_input = next(
+        (
+            (node.get("data") or {}).get("user_content")
+            or (node.get("data") or {}).get("label")
+            for node in nodes
+            if node.get("type") == "trigger_input"
+        ),
+        None,
+    )
+    implicit_context = {
+        "user_id": user_id,
+        "workflow_id": workflow_id,
+    }
 
     # Tier enforcement: validate all AI node model selections before execution.
     # Prevents bypassing the frontend greyed-out PRO badge to run premium models.
@@ -81,9 +94,11 @@ async def execute_workflow_sse(
             "id": run_id,
             "workflow_id": workflow_id,
             "user_id": user_id,
+            "input": workflow_input,
             "status": "running",
             "started_at": started_at,
         }).execute()
+        implicit_context["workflow_run_id"] = run_id
     except Exception as e:
         workflow_run_ref = None
         logger.error("Failed to insert ss_workflow_runs record: %s", e)
@@ -108,7 +123,11 @@ async def execute_workflow_sse(
         with bind_usage_request(usage_request):
             try:
                 async for event in execute_workflow(
-                    workflow_id, nodes, edges, save_callback=_save_results
+                    workflow_id,
+                    nodes,
+                    edges,
+                    implicit_context=implicit_context,
+                    save_callback=_save_results,
                 ):
                     yield event
                     try:
@@ -156,7 +175,18 @@ async def _finalize_run(
             "tokens_used": total_tokens,
         }
         if final_output is not None:
-            payload["output"] = final_output
+            current = (
+                await db.from_("ss_workflow_runs")
+                .select("output")
+                .eq("id", run_id)
+                .single()
+                .execute()
+            )
+            current_output = current.data.get("output") if current.data else {}
+            if not isinstance(current_output, dict):
+                current_output = {}
+            current_output["workflow_status"] = final_output
+            payload["output"] = current_output
         await db.from_("ss_workflow_runs").update(payload).eq("id", run_id).execute()
     except Exception as e:
         logger.error("Failed to update ss_workflow_runs record %s: %s", run_id, e)

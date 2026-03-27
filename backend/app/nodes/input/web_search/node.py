@@ -24,6 +24,30 @@ class WebSearchNode(BaseNode):
     output_format = "markdown"
     icon = "🌐"
     color = "#0ea5e9"
+    config_schema = [
+        {
+            "key": "max_results",
+            "type": "number",
+            "label": "结果数量",
+            "default": 5,
+            "min": 1,
+            "max": 10,
+            "step": 1,
+            "description": "返回的搜索结果数量上限。",
+        },
+        {
+            "key": "search_depth",
+            "type": "select",
+            "label": "搜索深度",
+            "default": "basic",
+            "options": [
+                {"label": "基础", "value": "basic"},
+                {"label": "深入", "value": "advanced"},
+            ],
+            "description": "深入搜索会更慢，但通常返回更完整的结果。",
+        },
+    ]
+    output_capabilities = ["preview", "compact"]
 
     async def execute(self, node_input: NodeInput, llm_caller: Any) -> AsyncIterator[str]:
         """Execute web search.

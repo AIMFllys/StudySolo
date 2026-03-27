@@ -20,6 +20,28 @@ class CompareNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     output_format = "json"
     icon = "⚖️"
     color = "#06b6d4"
+    config_schema = [
+        {
+            "key": "dimensions",
+            "type": "textarea",
+            "label": "对比维度",
+            "default": "",
+            "description": "可填多行，对比时优先覆盖这些维度。",
+        },
+        {
+            "key": "summary_style",
+            "type": "select",
+            "label": "结论风格",
+            "default": "balanced",
+            "options": [
+                {"label": "平衡", "value": "balanced"},
+                {"label": "强调差异", "value": "difference"},
+                {"label": "强调适用场景", "value": "scenario"},
+            ],
+            "description": "决定 comparison summary 的表达重点。",
+        },
+    ]
+    output_capabilities = ["preview", "compact"]
 
     async def execute(self, node_input: NodeInput, llm_caller: Any) -> AsyncIterator[str]:
         system = self.system_prompt + self.build_context_prompt(node_input.implicit_context)

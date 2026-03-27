@@ -301,6 +301,16 @@ def _build_input_snapshot(node_input: NodeInput) -> str:
     return json.dumps(snapshot, ensure_ascii=False)
 
 
+def _resolve_user_content(node_data: dict) -> str:
+    """Resolve effective user content with config fallback for input nodes."""
+    config = node_data.get("config")
+    if isinstance(config, dict):
+        template = config.get("input_template")
+        if isinstance(template, str) and template.strip():
+            return node_data.get("user_content") or template
+    return node_data.get("user_content") or node_data.get("label", "")
+
+
 # ── Single node execution ────────────────────────────────────────────────────
 
 async def _execute_single_node(
@@ -327,7 +337,7 @@ async def _execute_single_node(
     node_instance = NodeClass()
 
     node_input = NodeInput(
-        user_content=node_data.get("label", ""),
+        user_content=_resolve_user_content(node_data),
         upstream_outputs=upstream_outputs,
         implicit_context=implicit_context,
         node_config=node_data.get("config"),
@@ -479,7 +489,7 @@ async def execute_workflow(
             }
 
             node_input = NodeInput(
-                user_content=node_data.get("label", ""),
+                user_content=_resolve_user_content(node_data),
                 upstream_outputs=upstream_outputs,
                 implicit_context=implicit_context,
                 node_config=node_data.get("config"),
@@ -545,7 +555,7 @@ async def execute_workflow(
                 # Construct node input for the snapshot
                 node_data = node_cfg.get("data", {})
                 node_input = NodeInput(
-                    user_content=node_data.get("label", ""),
+                    user_content=_resolve_user_content(node_data),
                     upstream_outputs=upstream_outputs,
                     implicit_context=implicit_context,
                     node_config=node_data.get("config"),

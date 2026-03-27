@@ -8,6 +8,9 @@ interface KnowledgeDocumentListProps {
   deleteConfirm: string | null;
   onDeleteConfirmChange: (documentId: string | null) => void;
   onDelete: (documentId: string) => void;
+  onSelect?: (documentId: string) => void;
+  selectedDocumentId?: string | null;
+  showDelete?: boolean;
 }
 
 export function KnowledgeDocumentList({
@@ -15,6 +18,9 @@ export function KnowledgeDocumentList({
   deleteConfirm,
   onDeleteConfirmChange,
   onDelete,
+  onSelect,
+  selectedDocumentId = null,
+  showDelete = true,
 }: KnowledgeDocumentListProps) {
   if (documents.length === 0) {
     return (
@@ -37,7 +43,10 @@ export function KnowledgeDocumentList({
         return (
           <div
             key={document.id}
-            className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-primary/30 hover:shadow-md"
+            className={`group flex items-center gap-4 rounded-xl border bg-card p-4 transition-all duration-200 hover:border-primary/30 hover:shadow-md ${
+              selectedDocumentId === document.id ? 'border-primary/40 ring-1 ring-primary/20' : 'border-border'
+            } ${onSelect ? 'cursor-pointer' : ''}`}
+            onClick={() => onSelect?.(document.id)}
           >
             <div className="text-2xl flex-shrink-0">{icon}</div>
 
@@ -67,30 +76,39 @@ export function KnowledgeDocumentList({
               ) : null}
             </div>
 
-            {deleteConfirm === document.id ? (
+            {showDelete && deleteConfirm === document.id ? (
               <div className="flex flex-shrink-0 items-center gap-2">
                 <button
-                  onClick={() => onDelete(document.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDelete(document.id);
+                  }}
                   className="rounded bg-destructive px-2 py-1 text-xs text-white transition-colors hover:bg-destructive/90"
                 >
                   确认删除
                 </button>
                 <button
-                  onClick={() => onDeleteConfirmChange(null)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDeleteConfirmChange(null);
+                  }}
                   className="px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                 >
                   取消
                 </button>
               </div>
-            ) : (
+            ) : showDelete ? (
               <button
-                onClick={() => onDeleteConfirmChange(document.id)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDeleteConfirmChange(document.id);
+                }}
                 className="flex-shrink-0 p-2 text-muted-foreground opacity-0 transition-all duration-200 hover:text-destructive group-hover:opacity-100"
                 title="删除文档"
               >
                 🗑️
               </button>
-            )}
+            ) : null}
           </div>
         );
       })}

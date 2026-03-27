@@ -39,6 +39,18 @@ export function useKnowledgeDocuments() {
     void fetchDocuments();
   }, [fetchDocuments]);
 
+  useEffect(() => {
+    if (!documents.some((document) => document.status === 'processing')) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      void fetchDocuments();
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, [documents, fetchDocuments]);
+
   const uploadFile = useCallback(async (file: File) => {
     setUploading(true);
     setError(null);
@@ -109,6 +121,7 @@ export function useKnowledgeDocuments() {
     setDragOver,
     setDeleteConfirm,
     clearError: () => setError(null),
+    refreshDocuments: fetchDocuments,
     handleDrop,
     handleFileInput,
     handleDelete,

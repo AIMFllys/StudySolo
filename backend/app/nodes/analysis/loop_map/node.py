@@ -36,6 +36,26 @@ class LoopMapNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     output_format = "json"
     icon = "🔄"
     color = "#8b5cf6"
+    config_schema = [
+        {
+            "key": "item_hint",
+            "type": "text",
+            "label": "拆分提示",
+            "default": "",
+            "description": "告诉模型按什么粒度拆分列表项。",
+        },
+        {
+            "key": "max_items",
+            "type": "number",
+            "label": "最多项数",
+            "default": 8,
+            "min": 1,
+            "max": 20,
+            "step": 1,
+            "description": "限制一次循环拆分出的项目数量。",
+        },
+    ]
+    output_capabilities = ["preview", "compact"]
 
     async def execute(self, node_input: NodeInput, llm_caller: Any) -> AsyncIterator[str]:
         """Ask LLM to split content into processable items."""

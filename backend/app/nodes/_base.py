@@ -11,10 +11,35 @@ Architecture inspired by:
 """
 
 from abc import ABC, abstractmethod
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, AsyncIterator, ClassVar
 
 from pydantic import BaseModel, Field
+
+
+# ── Shared prompt fragment loader (cached per process) ───────────────────────
+
+_NODES_DIR = Path(__file__).parent
+_PROMPTS_DIR = _NODES_DIR.parent / "prompts"
+
+
+@lru_cache(maxsize=1)
+def _load_identity_prompt() -> str:
+    """Load identity.md from the prompts/ directory (cached)."""
+    path = _PROMPTS_DIR / "identity.md"
+    if path.exists():
+        return path.read_text(encoding="utf-8").strip()
+    return ""
+
+
+@lru_cache(maxsize=1)
+def _load_base_prompt() -> str:
+    """Load _base_prompt.md from the nodes/ directory (cached)."""
+    path = _NODES_DIR / "_base_prompt.md"
+    if path.exists():
+        return path.read_text(encoding="utf-8").strip()
+    return ""
 
 
 # ── Standard I/O models ──────────────────────────────────────────────────────
@@ -67,19 +92,56 @@ class BaseNode(ABC):
     output_format: ClassVar[str] = "markdown"   # "markdown" | "json" | "passthrough"
     icon: ClassVar[str] = "⚙️"
     color: ClassVar[str] = "#6366f1"
+    config_schema: ClassVar[list[dict[str, Any]]] = []
+    output_capabilities: ClassVar[list[str]] = []
+    supports_upload: ClassVar[bool] = False
+    supports_preview: ClassVar[bool] = True
+    deprecated_surface: ClassVar[str | None] = None
 
-    # ── System prompt (auto-loaded from prompt.md next to node.py) ───────────
+    # ── System prompt (unified three-segment assembly) ─────────────────────────
 
     @property
     def system_prompt(self) -> str:
-        """Load system prompt from prompt.md in the same directory as node.py."""
+        """Assemble: identity + base rules + node-specific prompt.
+
+        Segments:
+        1. identity.md  — platform identity, safety rules
+        2. _base_prompt.md — universal execution discipline
+        3. prompt.md — node-specific instructions (next to node.py)
+        """
+        node_prompt = self._load_node_prompt()
+        return self._assemble_prompt(node_prompt)
+
+    @staticmethod
+    def _assemble_prompt(node_prompt: str) -> str:
+        """Join non-empty segments with double newlines."""
+        segments = [
+            _load_identity_prompt(),
+            _load_base_prompt(),
+            node_prompt,
+        ]
+        return "\n\n".join(s for s in segments if s)
+
+    def _load_node_prompt(self) -> str:
+        """Load prompt.md from the same directory as the concrete node.py."""
         node_file = Path(self.__class__.__module__.replace(".", "/") + ".py")
         prompt_file = node_file.parent / "prompt.md"
         if prompt_file.exists():
             return prompt_file.read_text(encoding="utf-8").strip()
         return ""
 
-    # ── Core execution (subclasses MUST implement) ───────────────────────────
+    @classmethod
+    def get_system_prompt_for_type(cls, node_type: str) -> str:
+        """Get the unified system prompt by node type string.
+
+        Used by api/ai.py BUILD path to replace SYSTEM_PROMPTS dict lookups.
+        Falls back to empty string if the node type is not registered.
+        """
+        node_class = cls._registry.get(node_type)
+        if not node_class:
+            return ""
+        instance = node_class()
+        return instance.system_prompt
 
     @abstractmethod
     async def execute(
@@ -122,6 +184,12 @@ class BaseNode(ABC):
             parts.append(f"前序节点输出：\n{upstream_text}")
         if node_input.user_content:
             parts.append(f"当前任务：{node_input.user_content}")
+        if node_input.node_config:
+            import json
+            parts.append(
+                "节点配置（如与默认行为冲突，优先遵守这些参数）：\n"
+                + json.dumps(node_input.node_config, ensure_ascii=False, indent=2)
+            )
         return "\n\n".join(parts)
 
     # ── Context prompt builder ───────────────────────────────────────────────
@@ -161,6 +229,11 @@ class BaseNode(ABC):
                 "output_format": nc.output_format,
                 "icon": nc.icon,
                 "color": nc.color,
+                "config_schema": nc.config_schema,
+                "output_capabilities": nc.output_capabilities,
+                "supports_upload": nc.supports_upload,
+                "supports_preview": nc.supports_preview,
+                "deprecated_surface": nc.deprecated_surface,
             }
-            for nc in cls._registry.values()
+            for _, nc in sorted(cls._registry.items(), key=lambda item: item[0])
         ]

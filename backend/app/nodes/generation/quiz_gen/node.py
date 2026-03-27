@@ -26,6 +26,38 @@ class QuizGenNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     output_format = "json"
     icon = "📝"
     color = "#ef4444"
+    config_schema = [
+        {
+            "key": "question_count",
+            "type": "number",
+            "label": "题目数量",
+            "default": 6,
+            "min": 3,
+            "max": 20,
+            "step": 1,
+            "description": "生成的题目总数。",
+        },
+        {
+            "key": "difficulty",
+            "type": "select",
+            "label": "难度",
+            "default": "standard",
+            "options": [
+                {"label": "基础", "value": "basic"},
+                {"label": "标准", "value": "standard"},
+                {"label": "进阶", "value": "advanced"},
+            ],
+            "description": "控制题目难度。",
+        },
+        {
+            "key": "question_types",
+            "type": "text",
+            "label": "题型",
+            "default": "choice,true_false,fill_blank",
+            "description": "逗号分隔，例如 choice,true_false。",
+        },
+    ]
+    output_capabilities = ["preview", "compact"]
 
     async def execute(self, node_input: NodeInput, llm_caller: Any) -> AsyncIterator[str]:
         system = self.system_prompt + self.build_context_prompt(node_input.implicit_context)

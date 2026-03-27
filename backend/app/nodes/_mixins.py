@@ -35,6 +35,21 @@ class LLMStreamMixin:
         async for token in token_stream:
             yield token
 
+    async def call_llm_stream(
+        self,
+        node_input: Any,
+        llm_caller: Any,
+    ) -> AsyncIterator[str]:
+        """Build default system/user messages and stream tokens."""
+        system = self.system_prompt + self.build_context_prompt(node_input.implicit_context)
+        user_msg = self.build_user_message(node_input)
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_msg},
+        ]
+        async for token in self.stream_llm(messages, llm_caller):
+            yield token
+
 
 class JsonOutputMixin:
     """JSON output validation and repair.

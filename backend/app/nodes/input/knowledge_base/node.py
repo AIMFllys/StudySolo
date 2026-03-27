@@ -27,6 +27,39 @@ class KnowledgeBaseNode(BaseNode):
     output_format = "markdown"
     icon = "📚"
     color = "#8b5cf6"
+    config_schema = [
+        {
+            "key": "top_k",
+            "type": "number",
+            "label": "返回片段数",
+            "default": 5,
+            "min": 1,
+            "max": 10,
+            "step": 1,
+            "description": "每次检索返回的片段数量。",
+        },
+        {
+            "key": "threshold",
+            "type": "number",
+            "label": "相似度阈值",
+            "default": 0.7,
+            "min": 0.1,
+            "max": 0.95,
+            "step": 0.05,
+            "description": "越高越严格，低于阈值的片段将被过滤。",
+        },
+        {
+            "key": "document_ids",
+            "type": "multi_select",
+            "label": "指定文档",
+            "default": [],
+            "description": "只从选中的文档中检索。留空表示检索所有文档。",
+            "dynamic_options": True,
+        },
+    ]
+    output_capabilities = ["preview", "compact", "upload"]
+    supports_upload = True
+    deprecated_surface = "knowledge_page"
 
     async def execute(self, node_input: NodeInput, llm_caller: Any) -> AsyncIterator[str]:
         """Execute knowledge base retrieval.
@@ -71,9 +104,11 @@ class KnowledgeBaseNode(BaseNode):
         # Get retrieval config
         top_k = 5
         threshold = 0.7
+        document_ids: list[str] = []
         if node_input.node_config:
             top_k = node_input.node_config.get("top_k", 5)
             threshold = node_input.node_config.get("threshold", 0.7)
+            document_ids = node_input.node_config.get("document_ids", [])
 
         # Perform retrieval
         try:
@@ -84,10 +119,11 @@ class KnowledgeBaseNode(BaseNode):
                 db=db,
                 top_k=top_k,
                 threshold=threshold,
+                document_ids=document_ids if document_ids else None,
             )
 
             if not results:
-                yield "📚 未在知识库中找到与当前主题相关的内容。\n\n建议：请先在知识库管理页面上传相关学习材料。"
+                yield "📚 未在知识库中找到与当前主题相关的内容。\n\n建议：请先在当前节点配置面板上传或检查相关学习材料。"
                 return
 
             # Format and yield results

@@ -64,6 +64,41 @@ export type NodeStatus =
   | 'skipped'
   | 'paused';
 
+export interface NodeConfigFieldSchemaOption {
+  label: string;
+  value: string;
+}
+
+export interface NodeConfigFieldSchema {
+  key: string;
+  type: 'text' | 'textarea' | 'number' | 'select' | 'boolean' | 'multi_select';
+  label: string;
+  default?: string | number | boolean | string[];
+  description?: string;
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: NodeConfigFieldSchemaOption[];
+  /** If true, options should be fetched dynamically from the API */
+  dynamic_options?: boolean;
+}
+
+export interface NodeManifestItem {
+  type: NodeType;
+  category: string;
+  description: string;
+  is_llm_node: boolean;
+  output_format: string;
+  icon: string;
+  color: string;
+  config_schema: NodeConfigFieldSchema[];
+  output_capabilities: string[];
+  supports_upload: boolean;
+  supports_preview: boolean;
+  deprecated_surface?: string | null;
+}
+
 /** AI 步骤节点数据（存储在 WorkflowNode.data 中） */
 export interface AIStepNodeData {
   label: string;
@@ -76,6 +111,7 @@ export interface AIStepNodeData {
   output_format?: string;
   input_snapshot?: string;
   execution_time_ms?: number;
+  config?: Record<string, unknown>;
 }
 
 /** 循环容器块节点数据 */
@@ -136,6 +172,39 @@ export interface WorkflowEdge {
   targetHandle?: HandlePosition;
   type?: EdgeType;
   data?: WorkflowEdgeData;
+}
+
+export interface NodeExecutionTrace {
+  nodeId: string;
+  nodeType: string;
+  nodeName: string;
+  category: string;
+  status: NodeStatus;
+  executionOrder: number;
+  startedAt?: number;
+  finishedAt?: number;
+  durationMs?: number;
+  isParallel: boolean;
+  parallelGroupId?: string;
+  inputSummary?: string;
+  rawInputSnapshot?: string;
+  streamingOutput: string;
+  finalOutput?: string;
+  outputFormat?: string;
+  errorMessage?: string;
+  modelRoute?: string;
+}
+
+export interface WorkflowExecutionSession {
+  sessionId: string;
+  workflowId: string;
+  startedAt: number;
+  finishedAt?: number;
+  totalDurationMs?: number;
+  overallStatus: 'running' | 'completed' | 'error';
+  traces: NodeExecutionTrace[];
+  completedCount: number;
+  totalCount: number;
 }
 
 /** 兼容旧数据 — 为缺失字段补充默认值，旧类型统一迁移为 sequential */

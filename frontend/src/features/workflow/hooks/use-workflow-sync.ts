@@ -43,6 +43,9 @@ function snapshotHash(nodes: Node[], edges: Edge[]): string {
     const d = n.data as Record<string, unknown>;
     if (d.status) h += `:${d.status as string}`;
     if (d.output) h += `:${(d.output as string).length}`;
+    if (d.label) h += `:${String(d.label)}`;
+    if (d.model_route) h += `:${String(d.model_route)}`;
+    if (d.config) h += `:${JSON.stringify(d.config)}`;
   }
   return h;
 }

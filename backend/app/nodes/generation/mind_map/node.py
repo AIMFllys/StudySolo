@@ -20,6 +20,31 @@ class MindMapNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     output_format = "json"
     icon = "🧠"
     color = "#10b981"
+    config_schema = [
+        {
+            "key": "max_depth",
+            "type": "number",
+            "label": "最大层级",
+            "default": 4,
+            "min": 2,
+            "max": 8,
+            "step": 1,
+            "description": "限制思维导图的层级深度。",
+        },
+        {
+            "key": "branch_style",
+            "type": "select",
+            "label": "分支风格",
+            "default": "balanced",
+            "options": [
+                {"label": "平衡", "value": "balanced"},
+                {"label": "发散", "value": "divergent"},
+                {"label": "归纳", "value": "hierarchical"},
+            ],
+            "description": "决定导图更偏发散还是层级归纳。",
+        },
+    ]
+    output_capabilities = ["preview", "compact"]
 
     async def execute(self, node_input: NodeInput, llm_caller: Any) -> AsyncIterator[str]:
         system = self.system_prompt + self.build_context_prompt(node_input.implicit_context)

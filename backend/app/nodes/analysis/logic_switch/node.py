@@ -34,6 +34,23 @@ class LogicSwitchNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     output_format = "json"
     icon = "🔀"
     color = "#f59e0b"
+    config_schema = [
+        {
+            "key": "branch_options",
+            "type": "textarea",
+            "label": "候选分支",
+            "default": "A: 满足主条件\nB: 走备选方案\ndefault: 兜底路径",
+            "description": "用多行文本描述可选分支与命名。",
+        },
+        {
+            "key": "default_branch",
+            "type": "text",
+            "label": "默认分支",
+            "default": "default",
+            "description": "模型无法明确判断时使用的兜底分支名。",
+        },
+    ]
+    output_capabilities = ["preview", "compact"]
 
     async def execute(self, node_input: NodeInput, llm_caller: Any) -> AsyncIterator[str]:
         """Ask LLM to decide which branch to take."""

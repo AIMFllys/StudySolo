@@ -13,6 +13,33 @@ class SummaryNode(BaseNode, LLMStreamMixin):
     output_format = "markdown"
     icon = "📝"
     color = "#3b82f6"
+    config_schema = [
+        {
+            "key": "summary_length",
+            "type": "select",
+            "label": "总结长度",
+            "default": "balanced",
+            "options": [
+                {"label": "简短", "value": "short"},
+                {"label": "标准", "value": "balanced"},
+                {"label": "详细", "value": "long"},
+            ],
+            "description": "控制总结篇幅。",
+        },
+        {
+            "key": "style",
+            "type": "select",
+            "label": "总结风格",
+            "default": "study_notes",
+            "options": [
+                {"label": "学习笔记", "value": "study_notes"},
+                {"label": "复习提纲", "value": "revision"},
+                {"label": "结论导向", "value": "conclusion"},
+            ],
+            "description": "控制总结组织方式。",
+        },
+    ]
+    output_capabilities = ["preview", "compact"]
 
     async def execute(self, node_input: NodeInput, llm_caller: Any) -> AsyncIterator[str]:
         system = self.system_prompt + self.build_context_prompt(node_input.implicit_context)

@@ -25,6 +25,7 @@ export interface NodeRendererProps {
     format: string;
     nodeType: string;
     isStreaming: boolean;
+    compact?: boolean;
 }
 
 /**
@@ -50,7 +51,7 @@ const RENDERER_REGISTRY: Record<string, React.FC<NodeRendererProps>> = {
 
     // Passthrough (no output display)
     trigger_input: PassthroughRenderer,
-    write_db: PassthroughRenderer,
+    write_db: JsonRenderer,
 
     // ── P1 新增节点渲染器 ──
     compare: CompareRenderer,

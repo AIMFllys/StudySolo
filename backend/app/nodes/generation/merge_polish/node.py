@@ -18,6 +18,28 @@ class MergePolishNode(BaseNode, LLMStreamMixin):
     output_format = "markdown"
     icon = "✏️"
     color = "#8b5cf6"
+    config_schema = [
+        {
+            "key": "tone",
+            "type": "select",
+            "label": "润色语气",
+            "default": "professional",
+            "options": [
+                {"label": "专业", "value": "professional"},
+                {"label": "教学", "value": "teaching"},
+                {"label": "简洁", "value": "concise"},
+            ],
+            "description": "控制最终文本的整体语气。",
+        },
+        {
+            "key": "keep_structure",
+            "type": "boolean",
+            "label": "保留原结构",
+            "default": True,
+            "description": "开启后优先保留上游已有的章节结构。",
+        },
+    ]
+    output_capabilities = ["preview", "compact"]
 
     def build_user_message(self, node_input: NodeInput) -> str:
         """Override: emphasize that we're merging multiple upstream outputs."""
@@ -28,6 +50,8 @@ class MergePolishNode(BaseNode, LLMStreamMixin):
                 parts.append(f"--- 第 {i} 部分（来自 {nid}）---\n{out}\n")
         if node_input.user_content:
             parts.append(f"\n润色要求：{node_input.user_content}")
+        if node_input.node_config:
+            parts.append(f"\n节点配置：{node_input.node_config}")
         return "\n".join(parts)
 
     async def execute(self, node_input: NodeInput, llm_caller: Any) -> AsyncIterator[str]:

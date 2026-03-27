@@ -15,6 +15,7 @@ class AIAnalyzerNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     output_format = "json"
     icon = "🔍"
     color = "#8b5cf6"
+    output_capabilities = ["preview", "compact"]
 
     async def execute(
         self,

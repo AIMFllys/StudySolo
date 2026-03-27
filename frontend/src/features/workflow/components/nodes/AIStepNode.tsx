@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Settings2 } from 'lucide-react';
 import type { AIStepNodeData } from '@/types';
 import { getNodeTypeMeta, getNodeTheme } from '@/features/workflow/constants/workflow-meta';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
@@ -10,20 +11,21 @@ import { NodeModelSelector } from './NodeModelSelector';
 import { NodeInputBadges } from './NodeInputBadges';
 import { NodeResultSlip } from './NodeResultSlip';
 
+type WorkflowNodeVisualData = AIStepNodeData & { hideSlip?: boolean };
+
 function AIStepNode({ data, selected, type, id }: NodeProps) {
-  const nodeData = data as unknown as AIStepNodeData;
+  const nodeData = data as unknown as WorkflowNodeVisualData;
   const { error, label, model_route, output, output_format, status, input_snapshot, execution_time_ms } = nodeData;
   const nodeType = nodeData.type ?? type ?? 'chat_response';
   const isLogicSwitch = nodeType === 'logic_switch';
   const typeMeta = getNodeTypeMeta(nodeType);
-  const isActive = status === 'running' || status === 'waiting' || selected;
   const nodeTheme = getNodeTheme(nodeType);
   const statusBadge = status === 'running' ? '(ACTIVE)' : status === 'waiting' ? '(WAIT)' : '';
   
   // Independent Selection Trackers
   const [activePart, setActivePart] = useState<'card' | 'slip'>('card');
   const showAllNodeSlips = useWorkflowStore((s) => s.showAllNodeSlips);
-  const hideSlip = (nodeData as any).hideSlip === true;
+  const hideSlip = nodeData.hideSlip === true;
   const isSlipVisible = showAllNodeSlips && !hideSlip;
   
   const cardShadow = selected && activePart === 'card' ? 'ring-2 ring-primary/40 shadow-xl shadow-primary/10 scale-[1.02]' : '';
@@ -63,9 +65,9 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
       aria-label={`节点: ${label}`}
     >
       {/* 主卡片 */}
-      <div 
-        className={`${cardShadow} node-paper-bg relative w-full rounded-md transition-all duration-200 ${nodeTheme.borderClass} p-6 flex flex-col z-20`}
-        onClick={(e) => {
+        <div 
+          className={`${cardShadow} node-paper-bg relative w-full rounded-md transition-all duration-200 ${nodeTheme.borderClass} p-6 flex flex-col z-20`}
+        onClick={() => {
           setActivePart('card');
           // Allow ReactFlow to select the node normally.
         }}
@@ -89,9 +91,23 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
                 </span>
               )}
             </div>
-            {typeMeta.requiresModel && (
-              <NodeModelSelector nodeId={id} currentModel={model_route ?? ''} nodeThemeColor="currentColor" />
-            )}
+            <div className="flex items-center gap-1.5">
+              {typeMeta.requiresModel && (
+                <NodeModelSelector nodeId={id} currentModel={model_route ?? ''} nodeThemeColor="currentColor" />
+              )}
+              <button
+                type="button"
+                className="rounded-sm border border-black/10 px-1.5 py-1 text-black/45 transition-colors hover:bg-black/5 hover:text-black dark:border-white/10 dark:text-white/45 dark:hover:bg-white/5 dark:hover:text-white"
+                title="节点配置"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  window.dispatchEvent(new CustomEvent('workflow:open-node-config', { detail: { nodeId: id } }));
+                }}
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
           {/* Title & Desc */}

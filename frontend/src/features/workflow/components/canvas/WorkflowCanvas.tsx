@@ -20,7 +20,7 @@ import {
 import type { Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import BottomDrawer from '@/features/workflow/components/panel/BottomDrawer';
+import ExecutionTraceDrawer from '@/features/workflow/components/execution/ExecutionTraceDrawer';
 import FloatingToolbar from '@/features/workflow/components/toolbar/FloatingToolbar';
 import type { CanvasTool } from '@/features/workflow/components/toolbar/FloatingToolbar';
 import AnimatedEdge from '@/features/workflow/components/canvas/edges/AnimatedEdge';
@@ -34,10 +34,13 @@ import CanvasMiniMap from '@/features/workflow/components/canvas/CanvasMiniMap';
 import CanvasContextMenu, { buildCanvasMenuItems } from '@/features/workflow/components/canvas/CanvasContextMenu';
 import NodeContextMenu, { buildNodeMenuGroups } from '@/features/workflow/components/canvas/NodeContextMenu';
 import EdgeContextMenu from '@/features/workflow/components/canvas/EdgeContextMenu';
+import NodeConfigDrawer from '@/features/workflow/components/node-config/NodeConfigDrawer';
 import { useLoopGroupDrop } from '@/features/workflow/hooks/use-loop-group-drop';
 import { NODE_TYPE_META } from '@/features/workflow/constants/workflow-meta';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
-import type { AIStepNodeData, NodeType } from '@/types';
+import type { NodeType } from '@/types';
+
+type WorkflowCanvasNodeData = Record<string, unknown> & { hideSlip?: boolean };
 
 /* ── Canvas background presets ── */
 const BG_PRESETS = [
@@ -95,6 +98,7 @@ function createDefaultNodeData(nodeType: string): Record<string, unknown> {
     model_route: '',
     status: 'pending',
     output: '',
+    config: {},
   };
 }
 
@@ -134,14 +138,13 @@ function WorkflowCanvasInner() {
     onConnect,
     onEdgesChange,
     onNodesChange,
-    selectedNodeId,
     setSelectedNodeId,
     setNodes,
   } = useWorkflowStore();
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [canvasTool, setCanvasTool] = useState<CanvasTool>('pan');
   const [modal, setModal] = useState<{ title: string; message: string } | null>(null);
   const [placementMode, setPlacementMode] = useState<string | null>(null);
+  const [configNodeId, setConfigNodeId] = useState<string | null>(null);
   const reactFlowInstance = useReactFlow();
   const annotationCountRef = useRef(0);
   const handleNodeDragStop = useLoopGroupDrop();
@@ -197,14 +200,6 @@ function WorkflowCanvasInner() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
-  const selectedNodeData = useMemo(
-    () =>
-      ((selectedNodeId
-        ? nodes.find((node) => node.id === selectedNodeId)?.data
-        : null) as unknown as AIStepNodeData | null) ?? null,
-    [nodes, selectedNodeId]
-  );
-
   const defaultEdgeOptions = useMemo(
     () => ({
       type: 'default',
@@ -225,9 +220,6 @@ function WorkflowCanvasInner() {
   const handleNodeClick: NodeMouseHandler = useCallback(
     (_event, node) => {
       setSelectedNodeId(node.id);
-      if (typeof window !== 'undefined' && window.innerWidth < 768) {
-        setDrawerOpen(true);
-      }
     },
     [setSelectedNodeId]
   );
@@ -256,7 +248,7 @@ function WorkflowCanvasInner() {
           position: { x: flowPos.x - (isLoop ? 150 : 176), y: flowPos.y - (isLoop ? 100 : 70) },
           data: isLoop
             ? { label: '循环块', maxIterations: 3, intervalSeconds: 0 }
-            : { label: '逻辑分支', type: 'logic_switch', system_prompt: '', model_route: '', status: 'pending', output: '' },
+            : { label: '逻辑分支', type: 'logic_switch', system_prompt: '', model_route: '', status: 'pending', output: '', config: {} },
           ...(isLoop ? { style: { width: 500, height: 350 } } : {}),
         };
 
@@ -279,10 +271,6 @@ function WorkflowCanvasInner() {
     },
     [setSelectedNodeId]
   );
-
-  const handleDrawerClose = useCallback(() => {
-    setDrawerOpen(false);
-  }, []);
 
   // ── Canvas right-click handler ────────────────────────────────────────────
   const handlePaneContextMenu = useCallback((event: MouseEvent | React.MouseEvent) => {
@@ -330,7 +318,7 @@ function WorkflowCanvasInner() {
   }, []);
 
   // ── Edge click handler ────────────────────────────────────────────────────
-  const handleEdgeClick: EdgeMouseHandler = useCallback((_event, _edge) => {
+  const handleEdgeClick: EdgeMouseHandler = useCallback(() => {
     // Edge selection is handled natively by React Flow
     setCanvasMenu(null);
     setNodeMenu(null);
@@ -656,6 +644,17 @@ function WorkflowCanvasInner() {
     return () => window.removeEventListener('node-store:add-node', handler);
   }, [reactFlowInstance, setSelectedNodeId]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { nodeId?: string };
+      if (detail?.nodeId) {
+        setConfigNodeId(detail.nodeId);
+      }
+    };
+    window.addEventListener('workflow:open-node-config', handler);
+    return () => window.removeEventListener('workflow:open-node-config', handler);
+  }, []);
+
   // ── Compute React Flow props based on active tool ──────────────────────────
   const isSelectMode = canvasTool === 'select';
   const bgPreset = BG_PRESETS[bgIndex];
@@ -719,12 +718,7 @@ function WorkflowCanvasInner() {
 
       <FloatingToolbar />
 
-      <BottomDrawer
-        open={drawerOpen}
-        onClose={handleDrawerClose}
-        nodeId={selectedNodeId}
-        nodeData={selectedNodeData}
-      />
+      <ExecutionTraceDrawer />
 
       {/* Canvas modal for edit/upload messages */}
       {modal && (
@@ -757,19 +751,27 @@ function WorkflowCanvasInner() {
           y={nodeMenu.y}
           groups={buildNodeMenuGroups({
             onCopy: () => void handleCopyNode(nodeMenu.nodeId),
+            onConfigure: () => setConfigNodeId(nodeMenu.nodeId),
             onDelete: () => handleDeleteNode(nodeMenu.nodeId),
             onToggleSlip: () => {
               const node = useWorkflowStore.getState().nodes.find(n => n.id === nodeMenu.nodeId);
-              const hideSlip = (node?.data as any)?.hideSlip || false;
+              const hideSlip = (node?.data as WorkflowCanvasNodeData | undefined)?.hideSlip === true;
               useWorkflowStore.getState().updateNodeData(nodeMenu.nodeId, { hideSlip: !hideSlip });
             },
             onToggleGlobalSlips: () => useWorkflowStore.getState().toggleGlobalNodeSlips(),
-            isSlipHidden: (useWorkflowStore.getState().nodes.find(n => n.id === nodeMenu.nodeId)?.data as any)?.hideSlip || false,
+            isSlipHidden:
+              (useWorkflowStore.getState().nodes.find(n => n.id === nodeMenu.nodeId)?.data as WorkflowCanvasNodeData | undefined)?.hideSlip === true,
             isGlobalSlipsHidden: !useWorkflowStore.getState().showAllNodeSlips,
           })}
           onClose={() => setNodeMenu(null)}
         />
       )}
+
+      <NodeConfigDrawer
+        key={configNodeId ?? 'node-config-drawer'}
+        nodeId={configNodeId}
+        onClose={() => setConfigNodeId(null)}
+      />
 
       {/* ── Edge right-click context menu ── */}
       {edgeMenu && (

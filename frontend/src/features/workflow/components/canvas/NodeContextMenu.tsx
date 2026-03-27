@@ -109,6 +109,7 @@ export default function NodeContextMenu({
 
 export function buildNodeMenuGroups({
   onCopy,
+  onConfigure,
   onDelete,
   onToggleSlip,
   onToggleGlobalSlips,
@@ -116,6 +117,7 @@ export function buildNodeMenuGroups({
   isGlobalSlipsHidden,
 }: {
   onCopy: () => void;
+  onConfigure: () => void;
   onDelete: () => void;
   onToggleSlip: () => void;
   onToggleGlobalSlips: () => void;
@@ -138,8 +140,7 @@ export function buildNodeMenuGroups({
         {
           label: '节点配置',
           icon: <Settings2 size={14} />,
-          disabled: true,
-          onClick: () => {},
+          onClick: onConfigure,
         },
         {
           label: '重新执行',

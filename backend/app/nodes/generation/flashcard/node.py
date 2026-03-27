@@ -15,6 +15,42 @@ class FlashcardNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     output_format = "json"
     icon = "🃏"
     color = "#f59e0b"
+    config_schema = [
+        {
+            "key": "card_count",
+            "type": "number",
+            "label": "闪卡数量",
+            "default": 8,
+            "min": 3,
+            "max": 24,
+            "step": 1,
+            "description": "建议生成的闪卡总数。",
+        },
+        {
+            "key": "difficulty",
+            "type": "select",
+            "label": "难度",
+            "default": "standard",
+            "options": [
+                {"label": "基础", "value": "basic"},
+                {"label": "标准", "value": "standard"},
+                {"label": "进阶", "value": "advanced"},
+            ],
+            "description": "控制题目难度与答案深度。",
+        },
+        {
+            "key": "answer_style",
+            "type": "select",
+            "label": "答案风格",
+            "default": "concise",
+            "options": [
+                {"label": "简明", "value": "concise"},
+                {"label": "解释型", "value": "explanatory"},
+            ],
+            "description": "决定答案是短答还是带解释。",
+        },
+    ]
+    output_capabilities = ["preview", "compact"]
 
     async def execute(self, node_input: NodeInput, llm_caller: Any) -> AsyncIterator[str]:
         system = self.system_prompt + self.build_context_prompt(node_input.implicit_context)

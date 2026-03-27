@@ -13,6 +13,28 @@ class ChatResponseNode(BaseNode, LLMStreamMixin):
     output_format = "markdown"
     icon = "💬"
     color = "#ec4899"
+    config_schema = [
+        {
+            "key": "tone",
+            "type": "select",
+            "label": "回复语气",
+            "default": "friendly",
+            "options": [
+                {"label": "友好", "value": "friendly"},
+                {"label": "专业", "value": "professional"},
+                {"label": "鼓励式", "value": "coaching"},
+            ],
+            "description": "控制最终回复的语气。",
+        },
+        {
+            "key": "include_next_steps",
+            "type": "boolean",
+            "label": "包含下一步建议",
+            "default": True,
+            "description": "在回复尾部加入后续行动建议。",
+        },
+    ]
+    output_capabilities = ["preview", "compact"]
 
     async def execute(self, node_input: NodeInput, llm_caller: Any) -> AsyncIterator[str]:
         system = self.system_prompt + self.build_context_prompt(node_input.implicit_context)
