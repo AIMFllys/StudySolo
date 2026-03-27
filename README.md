@@ -140,10 +140,6 @@ cd backend
 | :--- | :--- | :--- |
 | **workflow-node-builder** | [`.agent/skills/workflow-node-builder/SKILL.md`](./.agent/skills/workflow-node-builder/SKILL.md) | 新增工作流节点 / 对接 AI 模型 / 对接外部 API 时自动触发，强制按 SOP 执行 |
 | **project-context** | [`.agent/skills/project-context/SKILL.md`](./.agent/skills/project-context/SKILL.md) | 项目架构全景上下文，涵盖技术栈、端口、API 分组、节点体系、数据库域的完整映射 |
-| **clean-code** | [`.agent/skills/clean-code/SKILL.md`](./.agent/skills/clean-code/SKILL.md) | 全局代码质量约束——简洁、自文档化、测试金字塔、性能标准 |
-| **testing-patterns** | [`.agent/skills/testing-patterns/SKILL.md`](./.agent/skills/testing-patterns/SKILL.md) | 单元测试 / 集成测试 / Mock 策略标准 |
-| **frontend-design** | [`.agent/skills/frontend-design/SKILL.md`](./.agent/skills/frontend-design/SKILL.md) | Web UI 设计原则与决策框架 |
-| **database-design** | [`.agent/skills/database-design/SKILL.md`](./.agent/skills/database-design/SKILL.md) | Schema 设计、索引策略、ORM 选型、Supabase 最佳实践 |
 
 > **`shared/` 说明**：本仓库中 `shared/` 为 Git Submodule。使用 `git clone --recurse-submodules` 完整克隆，或在克隆后执行 `git submodule update --init`。
 
