@@ -6,11 +6,9 @@ import { ExecutionProgressHeader } from '@/features/workflow/components/executio
 import { ExecutionTraceList } from '@/features/workflow/components/execution/ExecutionTraceList';
 
 export default function ExecutionTraceDrawer() {
-  const { executionSession, clearExecutionSession, nodes } = useWorkflowStore((state) => ({
-    executionSession: state.executionSession,
-    clearExecutionSession: state.clearExecutionSession,
-    nodes: state.nodes,
-  }));
+  const executionSession = useWorkflowStore((state) => state.executionSession);
+  const clearExecutionSession = useWorkflowStore((state) => state.clearExecutionSession);
+  const nodes = useWorkflowStore((state) => state.nodes);
 
   const nodeNameMap = useMemo(
     () => Object.fromEntries(
