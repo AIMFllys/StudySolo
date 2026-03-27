@@ -30,8 +30,8 @@ export default async function WorkspacePage() {
   return (
     <div className="p-8 max-w-[1400px] mx-auto flex flex-col gap-6 lg:p-10">
       {/* 顶部 Banner — 纸质风格 */}
-      <div className="relative overflow-hidden rounded-[1.5rem] bg-[#fbfaf8] border border-black/[0.06] p-7 md:p-8 shadow-[inset_0_1px_0_rgba(255,255,255,1),_0_2px_8px_rgba(0,0,0,0.02)] mb-4">
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#f0eee9]/40 to-transparent pointer-events-none" />
+      <div className="relative z-20 rounded-[1.5rem] bg-[#fbfaf8] border border-black/[0.06] p-7 md:p-8 shadow-[inset_0_1px_0_rgba(255,255,255,1),_0_2px_8px_rgba(0,0,0,0.02)] mb-4">
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#f0eee9]/40 to-transparent pointer-events-none rounded-b-[1.5rem]" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
           {/* 左侧标题 */}

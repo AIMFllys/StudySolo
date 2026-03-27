@@ -189,7 +189,7 @@ export default function WorkspaceCapacityBadge({ quota }: WorkspaceCapacityBadge
               <div className="flex flex-col gap-2 pt-1 border-t border-dashed border-black/[0.06]">
                 {upgradeTier ? (
                   <a
-                    href="/pricing"
+                    href="/upgrade"
                     className="flex items-center justify-center gap-2 w-full rounded-xl bg-slate-800 text-white text-[13px] font-medium py-2.5 hover:bg-slate-700 transition-colors group"
                   >
                     <span>升级 {upgradeTier}，工作流扩容至 {upgradeTier === 'Pro' ? '50' : '200'} 个</span>
@@ -197,7 +197,7 @@ export default function WorkspaceCapacityBadge({ quota }: WorkspaceCapacityBadge
                   </a>
                 ) : null}
                 <a
-                  href="/settings/addons"
+                  href="/upgrade#addons"
                   className="text-center text-[12px] text-slate-500 hover:text-slate-700 transition-colors py-1 underline underline-offset-2 decoration-slate-300"
                 >
                   仅需扩容？购买工作流增值包 (+5/+10/+20 个)

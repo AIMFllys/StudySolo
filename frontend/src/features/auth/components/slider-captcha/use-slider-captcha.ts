@@ -21,6 +21,8 @@ async function readErrorDetail(response: Response) {
   }
 }
 
+const MAX_CHALLENGE_RETRIES = 3;
+
 export function useSliderCaptcha({ disabled = false, onVerified }: SliderCaptchaOptions) {
   const [seed, setSeed] = useState<number | null>(null);
   const [sliderLeft, setSliderLeft] = useState(0);
@@ -35,6 +37,7 @@ export function useSliderCaptcha({ disabled = false, onVerified }: SliderCaptcha
   const originX = useRef(0);
   const challengeRef = useRef('');
   const targetXRef = useRef(0);
+  const retryCountRef = useRef(0);
 
   const fetchChallenge = useCallback(async () => {
     try {
@@ -44,11 +47,19 @@ export function useSliderCaptcha({ disabled = false, onVerified }: SliderCaptcha
       }
       const data = await response.json();
       challengeRef.current = data.challenge;
+      retryCountRef.current = 0;
       setSeed(data.seed);
     } catch {
+      if (retryCountRef.current >= MAX_CHALLENGE_RETRIES) {
+        setApiError(true);
+        setFailed(true);
+        return;
+      }
+      retryCountRef.current += 1;
+      const delay = 2000 * Math.pow(2, retryCountRef.current - 1);
       setTimeout(() => {
         void fetchChallenge();
-      }, 2000);
+      }, delay);
     }
   }, []);
 
@@ -104,6 +115,7 @@ export function useSliderCaptcha({ disabled = false, onVerified }: SliderCaptcha
     setApiError(false);
     setSeed(null);
     challengeRef.current = '';
+    retryCountRef.current = 0;
     void fetchChallenge();
   }, [fetchChallenge]);
 

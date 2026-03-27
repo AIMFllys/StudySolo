@@ -9,7 +9,7 @@ export default function AddonsSection({ region }: AddonsSectionProps) {
   const sym = getCurrencySymbol(region);
 
   return (
-    <div className="mt-20 w-full max-w-5xl paper-card stitched-border rounded-none p-10 transform rotate-[0.2deg]">
+    <div id="addons" className="mt-20 w-full max-w-5xl paper-card stitched-border rounded-none p-10 transform rotate-[0.2deg]">
       {/* Header */}
       <div className="flex items-center justify-between mb-10 border-b border-[#e2e2d5] pb-6">
         <h3 className="text-xl font-bold text-[#2c5282] flex items-center gap-3 font-serif">

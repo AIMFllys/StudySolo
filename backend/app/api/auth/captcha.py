@@ -2,6 +2,7 @@
 
 import hashlib
 import hmac
+import logging
 import os
 import time
 import uuid
@@ -9,10 +10,12 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import AsyncClient
 
+from app.core.config import get_settings
 from app.core.deps import get_supabase_client
 from app.models.user import CaptchaVerifyRequest
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 _PIECE_L = 42
 _PIECE_R = 9
@@ -58,9 +61,10 @@ def _compute_target_x(seed: int) -> int:
 
 
 def _get_captcha_secret() -> str:
-    secret = os.getenv("CAPTCHA_SECRET")
+    secret = get_settings().captcha_secret
     if not secret:
-        raise RuntimeError("CAPTCHA_SECRET 未配置")
+        logger.error("CAPTCHA_SECRET 环境变量未配置，验证码服务不可用")
+        raise HTTPException(status_code=503, detail="验证码服务暂时不可用，请联系管理员")
     return secret
 
 

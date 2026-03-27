@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     # Security
     jwt_secret: str
+    captcha_secret: str = ""
     cors_origin: str = "http://localhost:2037"
 
     # Server
