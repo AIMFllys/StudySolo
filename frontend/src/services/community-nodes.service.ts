@@ -74,7 +74,7 @@ export async function publishCommunityNode(
     formData.append('knowledge_file', input.knowledge_file);
   }
 
-  const response = await fetch('/api/community-nodes/', {
+  const response = await fetch('/api/community-nodes', {
     method: 'POST',
     credentials: 'include',
     body: formData,

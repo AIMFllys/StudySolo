@@ -118,6 +118,8 @@ export interface AIStepNodeData {
   community_icon?: string;
   input_hint?: string;
   model_preference?: string;
+  /** trigger_input 节点的用户内联输入内容（工作流入口的学习目标文本） */
+  user_content?: string;
 }
 
 /** 循环容器块节点数据 */

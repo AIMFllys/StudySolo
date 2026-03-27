@@ -281,7 +281,7 @@ export default function Sidebar({ workflows }: SidebarProps) {
               style={{ width: leftPanelWidth }}
             >
               {/* Panel Header */}
-              {activeSidebarPanel !== 'ai-chat' && (
+              {activeSidebarPanel !== 'ai-chat' && activeSidebarPanel !== 'node-store' && (
                 <div className="shrink-0 border-b border-dashed border-border/50 px-3 py-3 flex items-center justify-between">
                   <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground/80 font-serif">
                     {getPanelLabel(activeSidebarPanel!)}

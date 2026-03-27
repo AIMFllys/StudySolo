@@ -128,6 +128,11 @@ async def _maybe_store_knowledge_file(
     return storage_path, knowledge_file.filename, len(content), knowledge_text
 
 
+@router.get("", response_model=CommunityNodeListResponse, include_in_schema=False)
+# Next.js dev rewrites can normalize a trailing slash away before proxying.
+# Keep both root variants stable so authenticated requests do not fall through
+# to a 404 when the browser ultimately sends /api/community-nodes.
+@router.get("", response_model=CommunityNodeListResponse, include_in_schema=False)
 @router.get("/", response_model=CommunityNodeListResponse)
 async def get_public_nodes(
     page: int = Query(1, ge=1),
@@ -170,6 +175,8 @@ async def get_node_detail(
     )
 
 
+@router.post("", response_model=CommunityNodeMine, status_code=status.HTTP_201_CREATED, include_in_schema=False)
+@router.post("", response_model=CommunityNodeMine, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("/", response_model=CommunityNodeMine, status_code=status.HTTP_201_CREATED)
 async def publish_community_node(
     name: str = Form(...),

@@ -25,6 +25,7 @@ import type { CanvasTool } from '@/features/workflow/components/toolbar/Floating
 import AnimatedEdge from '@/features/workflow/components/canvas/edges/AnimatedEdge';
 import SequentialEdge from '@/features/workflow/components/canvas/edges/SequentialEdge';
 import AIStepNode from '@/features/workflow/components/nodes/AIStepNode';
+import TriggerInputNode from '@/features/workflow/components/nodes/TriggerInputNode';
 import GeneratingNode from '@/features/workflow/components/nodes/GeneratingNode';
 import AnnotationNode from '@/features/workflow/components/nodes/AnnotationNode';
 import LoopGroupNode from '@/features/workflow/components/nodes/LoopGroupNode';
@@ -52,7 +53,7 @@ const BG_PRESETS = [
 
 const nodeTypes: NodeTypes = {
   // ── 原始节点 (9) ──
-  trigger_input: AIStepNode,
+  trigger_input: TriggerInputNode,
   ai_analyzer: AIStepNode,
   ai_planner: AIStepNode,
   outline_gen: AIStepNode,
@@ -92,6 +93,18 @@ const edgeTypes: EdgeTypes = {
 function createDefaultNodeData(nodeType: string): Record<string, unknown> {
   if (nodeType === 'loop_group') {
     return { label: '循环块', maxIterations: 3, intervalSeconds: 0 };
+  }
+  if (nodeType === 'trigger_input') {
+    return {
+      label: '输入触发',
+      type: 'trigger_input',
+      system_prompt: '',
+      model_route: '',
+      status: 'pending',
+      output: '',
+      config: {},
+      user_content: '', // 内联编辑入口
+    };
   }
   if (nodeType === 'community_node') {
     return {
