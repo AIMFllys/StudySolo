@@ -1,6 +1,10 @@
 # StudySolo AI 工作流生成架构修复总结
 
-## 概述
+> **日期**：2026-03-27  
+> **类型**：架构修复 + UI 异常处理 + 全链路健壮性增强  
+> **涉及模块**：后处理路由（Backend API）、大模型规划 Prompt（LLM Config）、执行与映射引擎（Frontend Node Executor）
+
+---
 
 本次优化彻底解决了 StudySolo 项目里“AI 生成工作流”在 `BUILD`（全量生成）和 `MODIFY`（增量修改）阶段展现出的结构缺陷、UI 坐标堆叠以及组件空白等关键性问题。通过本次修订，打通了自提示词定义层（Prompt）、后端调度层（Backend Processor）到前端响应层（Frontend Executor）的全链路一致性。系统现已能够强劲、规整、无死角地生成符合逻辑的 AI 执行拓扑图。
 
