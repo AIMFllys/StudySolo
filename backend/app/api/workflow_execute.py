@@ -30,7 +30,7 @@ def _resolve_requested_graph(
 
     if body.nodes_json is None or body.edges_json is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="nodes_json 和 edges_json 必须同时提供，不能只提交半张图",
         )
 

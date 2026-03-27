@@ -78,13 +78,13 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
 
   const handleSelect = useCallback((model: AIModelOption) => {
     if (!canAccessModel(userTier, model)) return;
-    updateNodeData(nodeId, { model_route: model.model });
+    updateNodeData(nodeId, { model_route: model.skuId });
     setOpen(false);
     setVendorSafe(null, true);
   }, [userTier, updateNodeData, nodeId, setVendorSafe]);
 
   const selectedModelInfo = currentModel
-    ? models.find((m) => m.model === currentModel)
+    ? models.find((m) => m.skuId === currentModel || m.model === currentModel)
     : undefined;
 
   const isUnset = !currentModel || !selectedModelInfo;
@@ -178,7 +178,7 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
                       </div>
                     {vendorModels.map((model) => {
                       const accessible = canAccessModel(userTier, model);
-                      const isActive = model.model === currentModel;
+                      const isActive = model.skuId === currentModel || model.model === currentModel;
 
                       return (
                         <button

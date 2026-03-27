@@ -1,0 +1,89 @@
+﻿2026-03-27 | feat:更新执行面板可显示配置、更新拓展面板
+2026-03-27 | feat:合并运行面板和执行面板
+2026-03-27 | docs:补充adds用户提交节点和拓展面板规划
+2026-03-27 | feat(workflow): finalize execution flow, config popover, chain filtering, and docs
+2026-03-27 | fix:优化节点配置UI，合并运行面板
+2026-03-27 | fix(workflow/slip): resolve fatal re-render loop by migrating unstable Zustand derived selector to useMemo
+2026-03-27 | fix(workflow): remove destructive useWorkflowStore object destructuring to resolve infinite loop regressions
+2026-03-27 | fix(workflow): resolve infinite loop caused by zustand inline object selector in ExecutionTraceDrawer
+2026-03-27 | docs: rename node capability and analysis docs to mark them as completed
+2026-03-27 | docs(workflow): add detailed analysis of next phase tasks and tech debt
+2026-03-27 | docs(summary): append dynamic config options and node closure updates to the summary
+2026-03-27 | fix(config-drawer): lint clean + remove redundant loop_group hardcode
+2026-03-27 | feat(config): dynamic config options + multi_select control
+2026-03-27 | feat(nodes): round-3 closure — loop_group registry, export download, kb doc filter, audit spec
+2026-03-27 | feat(workflow): complete node system foundation - SOP, manifest, config, prompt, execution trace
+2026-03-27 | feat(workflow): harden AI-to-canvas actions, add execution trace drawer, and sync workflow node specs
+2026-03-27 | docs: add workflow canvas prompt system analysis and update plan status
+2026-03-27 | fix(workflow): resolved ai_step node missing error and updated docs
+2026-03-27 | docs: standardize filename and metadata for ai workflow fix summary
+2026-03-27 | docs: move and improve ai workflow generation fix summary to correct location
+2026-03-27 | fix(workflow-gen): resolve ai workflow structure generation & ui layout overlap
+2026-03-27 | feat:增加兑换码机制 修复七牛云错误API UTL
+2026-03-27 | fix:修复登录页面验证机制Bug
+2026-03-27 | docs:补充未commit内容
+2026-03-27 | feat(ai-chat): lazy loading skeleton + catalog data fix + startup validation
+2026-03-27 | feat(auth/compliance): implement ToS and Cookie consent mechanisms
+2026-03-27 | feat:增加AI身份认同 部分修复节点无法手动新增
+2026-03-27 | fix:修复节点下方详情无法单独选中并右键
+2026-03-27 | feat:节点和状态栏分离化
+2026-03-27 | feat:更新AI对话和节点AI选择机制
+2026-03-27 | fix:修复工作流节点模型无法选择
+2026-03-26 | refactor：修复项目架构问题
+2026-03-26 | fix:修复工作流节点3个bug，同步在summary文 档docs\summary\2026-03-26-workflow-systems-completion.md
+2026-03-26 | fix(workflow-node): unset model placeholder, fix isLogicSwitch scope, user-keyed catalog cache
+2026-03-26 | fix(workflow): requiresModel meta-flag, idle result slip, fix model_route:'B' test remnant
+2026-03-26 | feat:更新工作流可以同时显示与公开和收藏栏目的机制
+2026-03-26 | docs:更新用户手册
+2026-03-26 | docs:放行部分文档
+2026-03-26 | feat(workflow): NodeModelSelector wires to real AI catalog via useWorkflowCatalog hook
+2026-03-26 | refactor:彻底重构AI API整体调用架构
+2026-03-26 | fix(workflow): Improve input snapshot display, fix timing, and guard model_route condition
+2026-03-26 | docs: Mark node UI redesign plan as completed
+2026-03-26 | feat(workflow): Complete Phase 2, 3 & 4 - Node UI redesign with 3-layer slots and NodeResultSlip
+2026-03-26 | feat(workflow): Complete Phase 1 - Add node_input SSE and execution_time_ms tracking
+2026-03-26 | fix:继续优化计费同步仪表盘和后台管理页面对应计费接口
+2026-03-26 | feat:增加AI 使用量与计费同步AI 使用量与计费同步
+2026-03-26 | fix:修复部分共享工作流页面Bug】
+2026-03-26 | fix(ui): resolve SSR hydration mismatch on public workflow share url and soften heavy shadows across floating UI elements
+2026-03-26 | fix(ui): resolve collaboration popover z-index and refactor public workflow view to fullscreen floating canvas layout with share modal
+2026-03-26 | docs: use professional terminology and exact plan breakdowns in 2026-03-26-workflow-systems-completion.md
+2026-03-26 | feat(edge-system): complete Phase 2.3 + 5.1 — branch panel & smoke tests
+2026-03-26 | feat:后台管理面板功能对接后端和数据库成功
+2026-03-26 | feat:consolidate workflow canvas control flow
+2026-03-26 | feat: consolidate workflow canvas control flow
+2026-03-26 | feat(public-view): login prompt dialog for unauthenticated social actions
+2026-03-26 | feat(marketplace): Phase 1 - preview-first routing + ReadOnlyCanvas + is_owner
+2026-03-26 | fix(marketplace): deep refactor of workflow interactions and error handling
+2026-03-26 | fix:左侧面板支持同步工作流
+2026-03-25 | fix:修复工作流体系重构：UI 微类纸化 + 路由架构升级 + 全栈社交 API 贯通
+2026-03-25 | Merge pull request #16 from SukhoiFlanker/chore/15-security-hardening
+2026-03-25 | Merge branch 'chore/15-security-hardening' into main
+2026-03-25 | fix(auth): harden markdown rendering auth and captcha flows
+2026-03-25 | fix:强化Markdown渲染、认证与验证码流程的安全性
+2026-03-25 | fix:清理主页工作流页面冗余代码
+2026-03-25 | feat:更新主页面工作流展示、侧边栏工作流展示，增加更多功能
+2026-03-25 | feat:设置页面增加用户反馈评分渠道
+2026-03-25 | fix:会员等级全链路修复 AI 对话流式升级
+2026-03-25 | fix:优化后台管理面板进入问题、安全问题；增加AI对话的thinking模式
+2026-03-25 | feat:优化后台管理面板页面设计；优化AI对话懒加载和状态
+2026-03-25 | refactor(db): baseline squash migrations + security fixes
+2026-03-24 | docs: 更新项目文档体系 — 新增AI聊天系统原理, 更新shared/project-context v2.0
+2026-03-24 | feat(ai): fix streaming pipeline and modernize chat UI. Refactored backend middleware to Pure ASGI for SSE, added Next.js App Router SSE proxy, updated useStreamChat with robust parsing, and implemented Antigravity-style Markdown/LaTeX layout with custom StudySolo AI branding.
+2026-03-24 | fix:修复AI对话bug 优化架构
+2026-03-24 | feat:增加AI对话多元化功能-控制节点，直接对话等等
+2026-03-24 | fix: 修复侧边栏组件审查中发现的14项问题 — 统一node-paper-bg、清除死代码、修复无效类名和dark模式兼容
+2026-03-24 | style: 继续优化侧边栏组件视觉，全面适配手绘笔记纸张风格
+2026-03-24 | style: 完善侧边栏各面板样式至轻柔纸张手绘风，移除笨重设计
+2026-03-24 | style: 深度重构左侧导航栏全部组件至手绘笔记纸面风格，钱包设置新增 MCP 集成配置区域
+2026-03-19 | Merge pull request #13 from SukhoiFlanker/fix/#12-workflow-save-feedback
+2026-03-19 | fix(workflow): improve save feedback and avoid update 500
+2026-03-19 | chore: copy start-studysolo.sh from local
+2026-03-19 | fix:修复部分工作流连接点问题，优化顺序、条件、循环展示机制；优化会员定价机制；优化用户头像显示会员等级
+2026-03-18 | feat:优化AI和钱包页面；修复连线问题至p2
+2026-03-18 | feat:初版节点连线机制生成；增加AI对话侧边栏和钱包侧边栏设计
+2026-03-18 | feat(font): 全局应用科研美学字体体系
+2026-03-18 | feat:调整字体样式，增加画布和节点右键菜单
+2026-03-18 | feat:优化画布地图，增加放大，点击，最小化等功能，支持菜单设置
+2026-03-18 | feat:补齐部分画布菜单栏功能
+2026-03-17 | feat:优化工作流云端同步功能，新增懒加载

@@ -4,7 +4,9 @@ import sys
 from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock
 
+import jwt
 from fastapi.testclient import TestClient
+from tests._helpers import TEST_JWT_SECRET
 
 
 def _install_supabase_stub():
@@ -29,6 +31,7 @@ os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 from app.main import app  # noqa: E402
 from app.core import deps  # noqa: E402
 from app.api import workflow_execute as workflow_execute_module  # noqa: E402
+from app.middleware import auth as auth_middleware  # noqa: E402
 
 
 class _DbMock:
@@ -105,6 +108,23 @@ def _install_execution_stubs(monkeypatch, captured: dict):
     monkeypatch.setattr(workflow_execute_module, "_update_usage_daily", fake_noop)
 
 
+def _make_auth_headers() -> dict[str, str]:
+    token = jwt.encode({"sub": "user-1", "email": "user-1@example.com"}, TEST_JWT_SECRET, algorithm="HS256")
+    return {"Authorization": f"Bearer {token}"}
+
+
+def _install_auth_stub(monkeypatch) -> dict[str, str]:
+    async def fake_get_user(_token: str):
+        return SimpleNamespace(user=SimpleNamespace(id="user-1", email="user-1@example.com"))
+
+    async def fake_get_db():
+        auth = SimpleNamespace(get_user=fake_get_user)
+        return SimpleNamespace(auth=auth)
+
+    monkeypatch.setattr(auth_middleware, "get_db", fake_get_db)
+    return _make_auth_headers()
+
+
 def test_post_execute_prefers_request_body(monkeypatch):
     workflow = {
         "id": "wf-1",
@@ -113,6 +133,7 @@ def test_post_execute_prefers_request_body(monkeypatch):
     }
     captured: dict = {}
     _install_execution_stubs(monkeypatch, captured)
+    headers = _install_auth_stub(monkeypatch)
 
     app.dependency_overrides[deps.get_current_user] = lambda: {"id": "user-1", "tier": "free"}
     app.dependency_overrides[deps.get_supabase_client] = lambda: _DbMock(workflow)
@@ -122,6 +143,7 @@ def test_post_execute_prefers_request_body(monkeypatch):
         client = TestClient(app, raise_server_exceptions=False)
         response = client.post(
             "/api/workflow/wf-1/execute",
+            headers=headers,
             json={
                 "nodes_json": [{"id": "body-node", "type": "summary", "data": {"label": "body"}}],
                 "edges_json": [{"id": "e-1", "source": "body-node", "target": "body-node"}],
@@ -144,6 +166,7 @@ def test_post_execute_without_body_falls_back_to_db(monkeypatch):
     }
     captured: dict = {}
     _install_execution_stubs(monkeypatch, captured)
+    headers = _install_auth_stub(monkeypatch)
 
     app.dependency_overrides[deps.get_current_user] = lambda: {"id": "user-1", "tier": "free"}
     app.dependency_overrides[deps.get_supabase_client] = lambda: _DbMock(workflow)
@@ -151,7 +174,7 @@ def test_post_execute_without_body_falls_back_to_db(monkeypatch):
 
     try:
         client = TestClient(app, raise_server_exceptions=False)
-        response = client.post("/api/workflow/wf-1/execute")
+        response = client.post("/api/workflow/wf-1/execute", headers=headers)
 
         assert response.status_code == 200, response.text
         assert captured["nodes"][0]["id"] == "db-node"
@@ -167,6 +190,7 @@ def test_post_execute_rejects_half_graph(monkeypatch):
         "edges_json": [],
     }
 
+    headers = _install_auth_stub(monkeypatch)
     app.dependency_overrides[deps.get_current_user] = lambda: {"id": "user-1", "tier": "free"}
     app.dependency_overrides[deps.get_supabase_client] = lambda: _DbMock(workflow)
     app.dependency_overrides[deps.get_db] = lambda: _DbMock(workflow)
@@ -175,6 +199,7 @@ def test_post_execute_rejects_half_graph(monkeypatch):
         client = TestClient(app, raise_server_exceptions=False)
         response = client.post(
             "/api/workflow/wf-1/execute",
+            headers=headers,
             json={"nodes_json": [{"id": "body-node", "type": "summary", "data": {"label": "body"}}]},
         )
 
@@ -191,6 +216,7 @@ def test_get_execute_route_still_streams(monkeypatch):
     }
     captured: dict = {}
     _install_execution_stubs(monkeypatch, captured)
+    headers = _install_auth_stub(monkeypatch)
 
     app.dependency_overrides[deps.get_current_user] = lambda: {"id": "user-1", "tier": "free"}
     app.dependency_overrides[deps.get_supabase_client] = lambda: _DbMock(workflow)
@@ -198,7 +224,7 @@ def test_get_execute_route_still_streams(monkeypatch):
 
     try:
         client = TestClient(app, raise_server_exceptions=False)
-        response = client.get("/api/workflow/wf-1/execute")
+        response = client.get("/api/workflow/wf-1/execute", headers=headers)
 
         assert response.status_code == 200, response.text
         assert response.headers["content-type"].startswith("text/event-stream")

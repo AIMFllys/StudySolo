@@ -1,4 +1,7 @@
 import importlib
+import os
+import sys
+from types import ModuleType
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -11,6 +14,28 @@ _ADMIN_API_MODULES = (
     "app.api.admin_notices",
     "app.api.admin_users",
 )
+
+
+def _install_supabase_stub() -> None:
+    if "supabase" not in sys.modules:
+        stub = ModuleType("supabase")
+        stub.AsyncClient = object  # type: ignore[attr-defined]
+        stub.create_async_client = AsyncMock()  # type: ignore[attr-defined]
+        sys.modules["supabase"] = stub
+
+    for submodule in ("supabase._async", "supabase._async.client", "supabase.lib"):
+        sys.modules.setdefault(submodule, ModuleType(submodule))
+
+    async_client_mod = sys.modules["supabase._async.client"]
+    if not hasattr(async_client_mod, "AsyncClient"):
+        async_client_mod.AsyncClient = object  # type: ignore[attr-defined]
+
+
+_install_supabase_stub()
+os.environ.setdefault("JWT_SECRET", "test-secret-for-property-tests-32-bytes-long")
+os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
+os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
+os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 
 
 def _make_admin_middleware_db(base_db):

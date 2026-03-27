@@ -38,7 +38,7 @@ import type { NodeConfigAnchorRect } from '@/features/workflow/components/node-c
 import { useLoopGroupDrop } from '@/features/workflow/hooks/use-loop-group-drop';
 import { NODE_TYPE_META } from '@/features/workflow/constants/workflow-meta';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
-import type { NodeType } from '@/types';
+import type { CommunityNodeInsertPayload, NodeType } from '@/types';
 
 type WorkflowCanvasNodeData = Record<string, unknown> & { hideSlip?: boolean };
 
@@ -79,6 +79,8 @@ const nodeTypes: NodeTypes = {
   annotation: AnnotationNode,
   // ── 循环容器块 ──
   loop_group: LoopGroupNode,
+  // ── 社区节点 ──
+  community_node: AIStepNode,
 };
 
 const edgeTypes: EdgeTypes = {
@@ -91,6 +93,19 @@ function createDefaultNodeData(nodeType: string): Record<string, unknown> {
   if (nodeType === 'loop_group') {
     return { label: '循环块', maxIterations: 3, intervalSeconds: 0 };
   }
+  if (nodeType === 'community_node') {
+    return {
+      label: '社区节点',
+      type: nodeType,
+      system_prompt: '',
+      model_route: '',
+      status: 'pending',
+      output: '',
+      output_format: 'markdown',
+      input_hint: '',
+      config: {},
+    };
+  }
   const meta = NODE_TYPE_META[nodeType as NodeType];
   return {
     label: meta?.label ?? nodeType,
@@ -100,6 +115,26 @@ function createDefaultNodeData(nodeType: string): Record<string, unknown> {
     status: 'pending',
     output: '',
     config: {},
+  };
+}
+
+function createCommunityNodeData(
+  communityNode: CommunityNodeInsertPayload | null | undefined,
+): Record<string, unknown> {
+  return {
+    label: communityNode?.name || '社区节点',
+    type: 'community_node',
+    system_prompt: '',
+    model_route: '',
+    status: 'pending',
+    output: '',
+    config: {},
+    community_node_id: communityNode?.id || '',
+    community_icon: communityNode?.icon || 'Bot',
+    output_format: communityNode?.output_format || 'markdown',
+    model_preference: communityNode?.model_preference || 'auto',
+    input_hint: communityNode?.input_hint || '',
+    description: communityNode?.description || '',
   };
 }
 
@@ -171,6 +206,36 @@ function WorkflowCanvasInner() {
 
       const isLoop = nodeType === 'loop_group';
       const nodeId = `${nodeType}-${Date.now().toString(36)}`;
+
+      if (nodeType === 'community_node') {
+        const communityId = e.dataTransfer.getData('application/studysolo-community-id');
+        const metaStr = e.dataTransfer.getData('application/studysolo-community-meta');
+        const communityNode = metaStr ? JSON.parse(metaStr) as CommunityNodeInsertPayload : null;
+        const newNode: Node = {
+          id: nodeId,
+          type: 'community_node',
+          position: {
+            x: flowPos.x - 176,
+            y: flowPos.y - 70,
+          },
+          data: createCommunityNodeData({
+            ...(communityNode ?? {
+              id: communityId,
+              name: '社区节点',
+              icon: 'Bot',
+              input_hint: '',
+              output_format: 'markdown',
+              model_preference: 'auto',
+              description: '',
+            }),
+            id: communityId || communityNode?.id || '',
+          }),
+        };
+
+        store.setNodes([...store.nodes, newNode]);
+        setSelectedNodeId(nodeId);
+        return;
+      }
 
       const newNode: Node = {
         id: nodeId,
@@ -612,8 +677,11 @@ function WorkflowCanvasInner() {
 
   // ── Listen for node-store click-to-add events ─────────────────────────────
   useEffect(() => {
-    const handler = (e: Event) => {
-      const { nodeType } = (e as CustomEvent).detail as { nodeType: string };
+      const handler = (e: Event) => {
+      const { nodeType, communityNode } = (e as CustomEvent).detail as {
+        nodeType: string;
+        communityNode?: CommunityNodeInsertPayload;
+      };
       if (!nodeType) return;
 
       const store = useWorkflowStore.getState();
@@ -626,16 +694,27 @@ function WorkflowCanvasInner() {
         y: window.innerHeight / 2,
       });
 
-      const newNode: Node = {
-        id: nodeId,
-        type: nodeType,
-        position: {
-          x: canvasCenter.x - (isLoop ? 250 : 176),
-          y: canvasCenter.y - (isLoop ? 175 : 70),
-        },
-        data: createDefaultNodeData(nodeType),
-        ...(isLoop ? { style: { width: 500, height: 350 } } : {}),
-      };
+      const newNode: Node =
+        nodeType === 'community_node'
+          ? {
+              id: nodeId,
+              type: 'community_node',
+              position: {
+                x: canvasCenter.x - 176,
+                y: canvasCenter.y - 70,
+              },
+              data: createCommunityNodeData(communityNode),
+            }
+          : {
+              id: nodeId,
+              type: nodeType,
+              position: {
+                x: canvasCenter.x - (isLoop ? 250 : 176),
+                y: canvasCenter.y - (isLoop ? 175 : 70),
+              },
+              data: createDefaultNodeData(nodeType),
+              ...(isLoop ? { style: { width: 500, height: 350 } } : {}),
+            };
 
       store.setNodes([...store.nodes, newNode]);
       setSelectedNodeId(nodeId);

@@ -52,7 +52,9 @@ export type NodeType =
   | 'logic_switch'
   | 'loop_map'
   // ── 结构节点 ──
-  | 'loop_group';
+  | 'loop_group'
+  // ── 社区节点 ──
+  | 'community_node';
 
 /** 节点生命周期状态 */
 export type NodeStatus =
@@ -112,6 +114,10 @@ export interface AIStepNodeData {
   input_snapshot?: string;
   execution_time_ms?: number;
   config?: Record<string, unknown>;
+  community_node_id?: string;
+  community_icon?: string;
+  input_hint?: string;
+  model_preference?: string;
 }
 
 /** 循环容器块节点数据 */
