@@ -1,17 +1,27 @@
-fastapi>=0.115.0,<1.0.0
-uvicorn[standard]>=0.32.0,<1.0.0
-gunicorn>=23.0.0,<24.0.0
-pydantic[email]>=2.10.0,<3.0.0
-pydantic-settings>=2.7.0,<3.0.0
-supabase>=2.11.0,<3.0.0
-openai>=1.60.0,<2.0.0
-sse-starlette>=2.2.0,<3.0.0
-slowapi>=0.1.9,<1.0.0
-pyyaml>=6.0.0,<7.0.0
-python-jose[cryptography]>=3.3.0,<4.0.0
-bcrypt>=4.0.0,<5.0.0
-pypdf>=5.0.0,<6.0.0
-python-docx>=1.1.0,<2.0.0
-httpx>=0.27.0,<1.0.0
-markdown>=3.7.0,<4.0.0
-python-multipart>=0.0.9,<1.0.0
+# ==========================================
+# ⚠️ 宝塔面板部署注意 / WARNING
+# ==========================================
+# 为了兼容宝塔面板的 Python 项目管理器图形界面，
+# 本文件的所有依赖项必须使用严格等于(==)版本号的格式。
+# 宝塔的 UI 解析器无法正确处理 >=、< 范围符号，
+# 也无法正确解析 [extras] (例如 pydantic[email])，这会导致漏装依赖。
+# ==========================================
+fastapi==0.115.12
+uvicorn==0.34.3
+gunicorn==23.0.0
+pydantic==2.12.5
+email-validator==2.1.0
+pydantic-settings==2.7.0
+supabase==2.15.2
+openai==1.85.0
+sse-starlette==2.3.6
+slowapi==0.1.9
+pyyaml==6.0.2
+python-jose==3.3.0
+cryptography==46.0.5
+bcrypt==4.0.0
+pypdf==5.0.0
+python-docx==1.1.0
+httpx==0.28.1
+markdown==3.7.0
+python-multipart==0.0.20

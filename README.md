@@ -7,7 +7,7 @@
     <a href="https://StudyFlow.1037solo.com"><img src="https://img.shields.io/badge/Live%20Demo-StudyFlow.1037solo.com-4F46E5?style=flat-square&logo=googlechrome&logoColor=white" alt="Live Demo" /></a>
     <a href="https://b23.tv/uPd6KUr"><img src="https://img.shields.io/badge/Demo%20Video-Bilibili-00A1D6?style=flat-square&logo=bilibili&logoColor=white" alt="Demo Video" /></a>
     <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License" /></a>
-    <a href="#tech-stack"><img src="https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js" alt="Next.js" /></a>
+    <a href="#tech-stack"><img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js" /></a>
     <a href="#tech-stack"><img src="https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi" alt="FastAPI" /></a>
     <a href="#tech-stack"><img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase" alt="Supabase" /></a>
   </p>
@@ -35,48 +35,65 @@
 
 | 层级 | 技术选型 | 说明 |
 | :--- | :--- | :--- |
-| **前端框架** | Next.js 15 + React 19 + TypeScript | App Router，SSR + CSR 混合渲染 |
+| **前端框架** | Next.js 16 + React 19 + TypeScript | App Router，SSR + CSR 混合渲染 |
 | **前端样式** | Tailwind CSS v4 | CSS-first 配置，设计令牌统一管理 |
 | **画布引擎** | @xyflow/react (React Flow) | 工业级节点画布，支持拖拽、连线、分组、缩放 |
 | **前端状态** | Zustand | 轻量级状态管理，内置 Undo/Redo 快照 |
-| **后端框架** | Python + FastAPI ≥0.115 | 高性能异步框架，原生支持 SSE 流式推送 |
+| **后端框架** | Python 3.11 + FastAPI ≥0.115 | 高性能异步框架，原生支持 SSE 流式推送 |
 | **执行引擎** | 自研 DAG Executor | 拓扑排序 + ExecutionContext 黑板模型 |
 | **数据库** | Supabase (PostgreSQL) + RLS | 多租户数据隔离，Row Level Security 全覆盖 |
 | **认证** | Supabase Auth + JWT | Canvas 拼图验证码 + IP 登录锁定 |
 | **实时通信** | Server-Sent Events (SSE) | 节点执行进度流式推送至前端 |
-| **生产部署** | 阿里云 ECS + Nginx | 已在线运行，域名：StudyFlow.1037solo.com |
+| **介绍页** | Vite 7 + React 19 | 独立静态 SPA，Nginx 直接托管 |
+| **生产部署** | 阿里云 ECS + Nginx + PM2 | 已在线运行，域名：StudyFlow.1037solo.com |
 
 ## 📂 仓库结构
 
+本项目采用 **Polyglot Monorepo**（多语言单仓）架构，所有子项目统一版本管控。
+
 ```text
 StudySolo/
-├── frontend/                 # Next.js 前端服务 (Port: 2037)
+├── frontend/                 # 🖥️  Next.js 前端主应用 (Port: 2037)
 │   └── src/features/workflow # 工作流核心模块（画布 / 节点 / 执行面板）
-├── backend/                  # FastAPI 后端服务 (Port: 2038)
+├── backend/                  # ⚙️  Python FastAPI 后端 (Port: 2038)
 │   ├── app/engine/           # DAG 执行引擎
 │   ├── app/nodes/            # 18 种工作流节点
 │   ├── app/prompts/          # 模块化 Prompt 文件（Markdown + 模板变量）
 │   └── app/api/              # REST API 路由
-├── supabase/migrations/      # 数据库结构迁移脚本
-├── shared/                   # 跨项目共享模块 (Git Submodule)
-├── docs/                     # 架构文档 / 每日更新 / 功能规划 / SOP
-├── .agent/skills/            # SOP 化开发技能（节点新增标准流程）
-└── scripts/                  # 一键启动 / 环境检测脚本
+├── introduce/                # 🎯 产品介绍页 (Vite React SPA, 静态部署)
+│   └── dist/                 # 构建产物，Nginx alias 托管于 /introduce/
+├── wiki/                     # 📖 官方文档站 (Next.js, 开发中)
+├── shared/                   # 🔗 跨项目共享模块 (Git Submodule)
+├── supabase/migrations/      # 🗄️  数据库结构迁移脚本
+├── docs/                     # 📚 架构文档 / 每日更新 / 功能规划 / SOP
+├── .agent/skills/            # 🤖 SOP 化 AI 开发技能
+└── scripts/                  # 🚀 一键启动 / 环境检测脚本
 ```
+
+### 子项目速览
+
+| 子项目 | 技术栈 | 运行方式 | 线上路径 | 详情 |
+| :--- | :--- | :--- | :--- | :--- |
+| **frontend/** | Next.js 16 | PM2 守护 Node.js 进程 | `studyflow.1037solo.com/` | [frontend/README.md](./frontend/README.md) |
+| **backend/** | Python FastAPI | 宝塔 Python 管理器 | `studyflow.1037solo.com/api/` | [backend/README.md](./backend/README.md) |
+| **introduce/** | Vite + React SPA | Nginx 静态文件托管 | `studyflow.1037solo.com/introduce/` | [introduce/README.md](./introduce/README.md) |
+| **wiki/** | Next.js (开发中) | 预留 PM2 进程 | `studyflow.1037solo.com/wiki/` | [wiki/README.md](./wiki/README.md) |
+| **shared/** | TypeScript | Git Submodule | — | [shared/README.md](./shared/README.md) |
 
 ## 🚀 快速开始
 
 ### 环境要求
 
-- **Node.js** ≥ 18 / **pnpm** ≥ 8
-- **Python** ≥ 3.10
-- 已配置 Supabase 项目与环境变量（参考 `.env.example`）
+- **Node.js** ≥ 18 / **pnpm** ≥ 8（或 npm）
+- **Python** ≥ 3.11
+- 已配置 Supabase 项目与环境变量（参考各子项目的 `.env.example`）
 
 ### 1. 前端
 
 ```bash
 cd frontend
 pnpm install
+cp .env.example .env.local   # 填入 Supabase 真实凭据
 pnpm dev
 # http://localhost:2037
 ```
@@ -98,7 +115,16 @@ uvicorn app.main:app --reload --port 2038
 # Swagger: http://localhost:2038/docs
 ```
 
-### 3. 一键启动（Windows PowerShell）
+### 3. 介绍页
+
+```bash
+cd introduce
+npm install
+npm run dev       # 本地开发
+npm run build     # 构建产物输出到 dist/
+```
+
+### 4. 一键启动（Windows PowerShell）
 
 ```powershell
 powershell scripts/start-studysolo.ps1
@@ -129,7 +155,8 @@ cd backend
 | [AI 工作流底层原理](./docs/项目规范与框架流程/项目介绍/AI工作流系统底层原理.md) | DAG 执行引擎与节点交互机制 |
 | [命名与代码规范](./docs/项目规范与框架流程/项目规范/naming.md) | 文件命名、变量、注释规范 |
 | [后端 API 规范](./docs/项目规范与框架流程/项目规范/api.md) | 接口设计标准 |
-| [节点新增 SOP](./docs/项目规范与框架流程/功能流程/新增AI工具/) | 标准化节点开发流程（A/B/C 型分类判断 + 全流程 Checklist） |
+| [节点新增 SOP](./docs/项目规范与框架流程/功能流程/新增AI工具/) | 标准化节点开发流程（A/B/C 型判断 + Checklist） |
+| [部署指南](./docs/技术指导/服务器与宝塔部署完整指南.md) | 服务器部署全流程（宝塔 + Nginx + PM2） |
 | [Shared 子模块说明](./shared/README.md) | 共享层使用规范 |
 
 ### 🤖 AI 开发技能（`.agent/skills/`）
@@ -145,12 +172,27 @@ cd backend
 
 > **`shared/` 说明**：本仓库中 `shared/` 为 Git Submodule。使用 `git clone --recurse-submodules` 完整克隆，或在克隆后执行 `git submodule update --init`。
 
+## 🌐 生产部署
+
+StudySolo 部署在阿里云 ECS 上，通过 Nginx 统一网关分发请求：
+
+```text
+studyflow.1037solo.com
+  ├── /              → Next.js 前端 (PM2, port 2037)
+  ├── /api/          → Python FastAPI 后端 (port 2038)
+  ├── /introduce/    → Vite SPA 静态文件 (Nginx alias)
+  └── /wiki/         → Next.js 文档站 (预留, port 2039)
+```
+
+详细部署流程请参考 [服务器与宝塔部署完整指南](./docs/技术指导/服务器与宝塔部署完整指南.md)。
+
 ## 🔮 开发规划
 
 | 功能 | 状态 |
 | :--- | :--- |
 | MCP 协议接入 | 🔧 开发中 |
 | 外部 API 对接 | 🔧 开发中 |
+| Wiki 官方文档站 | 🔧 开发中 |
 | 用户自有 API Key 支持 | 📋 规划中 |
 | 社区节点内容审核机制 | 📋 规划中 |
 | 社区节点安全沙箱 | 📋 规划中 |
