@@ -8,7 +8,7 @@ from typing import Any, AsyncIterator
 
 from app.core.database import get_db
 from app.nodes._base import BaseNode, NodeInput, NodeOutput
-from app.services.community_node_service import get_node_with_prompt
+from app.services.community_node_queries import get_node_with_prompt
 
 
 def _build_json_constraint_prompt(output_schema: dict) -> str:
