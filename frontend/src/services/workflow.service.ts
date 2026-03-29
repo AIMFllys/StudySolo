@@ -86,11 +86,15 @@ export async function fetchWorkflowContent(
     );
 
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new ApiError('Unauthorized', 401);
+      }
       console.error('[fetchWorkflowContent] HTTP', response.status, 'for', workflowId);
       return null;
     }
     return (await response.json()) as WorkflowContent;
   } catch (e) {
+    if (e instanceof ApiError) throw e;
     console.error('[fetchWorkflowContent] network error:', e);
     return null;
   }

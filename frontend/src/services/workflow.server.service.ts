@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import {
+  ApiError,
   fetchPublicWorkflow,
   fetchWorkflowContent,
   fetchWorkflowList,
@@ -12,6 +13,34 @@ async function getAccessTokenFromCookieStore() {
   return cookieStore.get('access_token')?.value;
 }
 
+/**
+ * Attempt to refresh the access token server-side using the refresh_token cookie.
+ * Returns the new access_token or undefined if refresh failed.
+ */
+async function tryServerRefresh(): Promise<string | undefined> {
+  const cookieStore = await cookies();
+  const refreshToken = cookieStore.get('refresh_token')?.value;
+  if (!refreshToken) return undefined;
+
+  try {
+    // Forward refresh_token and remember_me cookies to the backend refresh endpoint
+    const cookieParts = [`refresh_token=${refreshToken}`];
+    const rememberMe = cookieStore.get('remember_me')?.value;
+    if (rememberMe) cookieParts.push(`remember_me=${rememberMe}`);
+
+    const res = await fetch(buildApiUrl('/api/auth/refresh'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookieParts.join('; ') },
+      cache: 'no-store',
+    });
+    if (!res.ok) return undefined;
+    const data = await res.json();
+    return data.access_token ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function fetchWorkflowListForServer(): Promise<WorkflowMeta[]> {
   const token = await getAccessTokenFromCookieStore();
   return fetchWorkflowList(token, 30);
@@ -21,7 +50,22 @@ export async function fetchWorkflowContentForServer(
   workflowId: string
 ): Promise<WorkflowContent | null> {
   const token = await getAccessTokenFromCookieStore();
-  return fetchWorkflowContent(workflowId, token);
+  try {
+    return await fetchWorkflowContent(workflowId, token);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) {
+      // Token expired — try refreshing and retry once
+      const freshToken = await tryServerRefresh();
+      if (freshToken) {
+        try {
+          return await fetchWorkflowContent(workflowId, freshToken);
+        } catch {
+          return null;
+        }
+      }
+    }
+    return null;
+  }
 }
 
 export async function fetchPublicWorkflowForServer(
