@@ -97,7 +97,7 @@ export function AuthShell({
               </div>
               <div className="flex items-center gap-3 mb-8 mt-6">
                 <div className="flex-1 border-t border-slate-200/80 md:border-slate-200" />
-                <span className="text-xs text-slate-400 font-medium tracking-wide">或使用邮箱验证</span>
+                <span className="text-xs text-slate-400 font-medium tracking-wide">或使用邮箱登录</span>
                 <div className="flex-1 border-t border-slate-200/80 md:border-slate-200" />
               </div>
             </>
