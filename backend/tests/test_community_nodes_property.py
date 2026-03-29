@@ -99,9 +99,9 @@ async def test_build_node_llm_caller_prefers_direct_sku(monkeypatch):
     async def fake_call_llm(*args, **kwargs):  # pragma: no cover - should not be called
         raise AssertionError("fallback router should not be used when sku exists")
 
-    monkeypatch.setattr(executor, "get_sku_by_id", fake_get_sku_by_id)
-    monkeypatch.setattr(executor, "call_llm_direct", fake_call_llm_direct)
-    monkeypatch.setattr(executor, "call_llm", fake_call_llm)
+    monkeypatch.setattr("app.engine.node_runner.get_sku_by_id", fake_get_sku_by_id)
+    monkeypatch.setattr("app.engine.node_runner.call_llm_direct", fake_call_llm_direct)
+    monkeypatch.setattr("app.engine.node_runner.call_llm", fake_call_llm)
 
     caller = executor._build_node_llm_caller({"model_route": "sku-123"})
     result = await caller("summary", [{"role": "user", "content": "hello"}], stream=True)
@@ -130,9 +130,9 @@ async def test_build_node_llm_caller_falls_back_to_task_route(monkeypatch):
             "stream": stream,
         }
 
-    monkeypatch.setattr(executor, "get_sku_by_id", fake_get_sku_by_id)
-    monkeypatch.setattr(executor, "call_llm_direct", fake_call_llm_direct)
-    monkeypatch.setattr(executor, "call_llm", fake_call_llm)
+    monkeypatch.setattr("app.engine.node_runner.get_sku_by_id", fake_get_sku_by_id)
+    monkeypatch.setattr("app.engine.node_runner.call_llm_direct", fake_call_llm_direct)
+    monkeypatch.setattr("app.engine.node_runner.call_llm", fake_call_llm)
 
     caller = executor._build_node_llm_caller({"model_route": "missing-sku"})
     result = await caller("chat_response", [{"role": "user", "content": "hi"}], stream=False)

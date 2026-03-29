@@ -58,11 +58,9 @@ class BranchingNode(BaseNode):
 
 @pytest.mark.asyncio
 async def test_execute_workflow_emits_skipped_status_for_non_selected_branch(monkeypatch):
-    monkeypatch.setattr(
-        executor_module,
-        "NODE_REGISTRY",
-        {"logic_switch": BranchingNode, "summary": EchoNode},
-    )
+    registry = {"logic_switch": BranchingNode, "summary": EchoNode}
+    monkeypatch.setattr("app.engine.level_runner.NODE_REGISTRY", registry)
+    monkeypatch.setattr("app.engine.node_runner.NODE_REGISTRY", registry)
 
     nodes = [
         {"id": "switch", "type": "logic_switch", "data": {"label": "branch", "status": "pending", "output": ""}},
@@ -89,16 +87,15 @@ async def test_execute_workflow_emits_skipped_status_for_non_selected_branch(mon
 
 @pytest.mark.asyncio
 async def test_execute_workflow_emits_loop_iteration_events(monkeypatch):
-    monkeypatch.setattr(
-        executor_module,
-        "NODE_REGISTRY",
-        {"summary": EchoNode},
-    )
+    registry = {"summary": EchoNode}
+    monkeypatch.setattr("app.engine.level_runner.NODE_REGISTRY", registry)
+    monkeypatch.setattr("app.engine.node_runner.NODE_REGISTRY", registry)
 
     async def fake_sleep(_seconds: float):
         return None
 
-    monkeypatch.setattr(executor_module.asyncio, "sleep", fake_sleep)
+    import app.engine.loop_runner as loop_runner_module
+    monkeypatch.setattr(loop_runner_module.asyncio, "sleep", fake_sleep)
 
     nodes = [
         {

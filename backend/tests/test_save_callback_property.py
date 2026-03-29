@@ -168,7 +168,7 @@ async def test_save_error_event_emitted_when_callback_raises():
             yield  # make it an async generator
         return empty_gen()
 
-    with patch("app.engine.executor.call_llm", side_effect=mock_call_llm):
+    with patch("app.engine.node_runner.call_llm", side_effect=mock_call_llm):
         gen = execute_workflow(
             workflow_id=workflow_id,
             nodes=nodes,
@@ -214,7 +214,7 @@ async def test_workflow_done_emitted_even_when_save_fails():
             yield
         return empty_gen()
 
-    with patch("app.engine.executor.call_llm", side_effect=mock_call_llm):
+    with patch("app.engine.node_runner.call_llm", side_effect=mock_call_llm):
         gen = execute_workflow(
             workflow_id=workflow_id,
             nodes=nodes,
@@ -252,7 +252,7 @@ async def test_no_save_error_when_callback_succeeds():
             yield
         return empty_gen()
 
-    with patch("app.engine.executor.call_llm", side_effect=mock_call_llm):
+    with patch("app.engine.node_runner.call_llm", side_effect=mock_call_llm):
         gen = execute_workflow(
             workflow_id=workflow_id,
             nodes=nodes,
@@ -290,7 +290,7 @@ async def test_no_save_callback_does_not_error():
             yield
         return empty_gen()
 
-    with patch("app.engine.executor.call_llm", side_effect=mock_call_llm):
+    with patch("app.engine.node_runner.call_llm", side_effect=mock_call_llm):
         gen = execute_workflow(
             workflow_id=workflow_id,
             nodes=nodes,
