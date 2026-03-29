@@ -1,0 +1,67 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Node Handles — smart show/hide + click-to-connect visual feedback
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Node Handle: 智能显隐 ─── */
+.node-handle {
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  pointer-events: auto;
+}
+
+.react-flow__node:hover .node-handle {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.react-flow__node.selected .node-handle {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.react-flow__node.connecting .node-handle,
+.react-flow.connecting .node-handle {
+  opacity: 0.7;
+  transform: scale(1);
+}
+
+.node-handle:hover {
+  transform: scale(1.5) !important;
+  opacity: 1 !important;
+  box-shadow: 0 0 8px currentColor;
+  transition: transform 0.15s ease, opacity 0.1s ease, box-shadow 0.15s ease;
+}
+
+.react-flow__handle.connected.node-handle {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ─── Click-to-Connect 视觉反馈 ─── */
+.node-handle-click-source-active {
+  opacity: 1 !important;
+  transform: scale(1.4) !important;
+  pointer-events: auto !important;
+  box-shadow: 0 0 12px currentColor, 0 0 4px currentColor;
+  animation: handlePulse 1.2s ease-in-out infinite;
+}
+
+@keyframes handlePulse {
+  0%, 100% { box-shadow: 0 0 6px currentColor; transform: scale(1.3); }
+  50% { box-shadow: 0 0 16px currentColor, 0 0 6px currentColor; transform: scale(1.6); }
+}
+
+.node-handle-click-target {
+  opacity: 0.8 !important;
+  transform: scale(1.2) !important;
+  pointer-events: auto !important;
+  box-shadow: 0 0 6px #22c55e;
+  border-color: #22c55e !important;
+  animation: targetGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes targetGlow {
+  0%, 100% { box-shadow: 0 0 4px #22c55e; }
+  50% { box-shadow: 0 0 10px #22c55e, 0 0 4px #22c55e; }
+}

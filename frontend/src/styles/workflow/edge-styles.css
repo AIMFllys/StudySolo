@@ -1,0 +1,211 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Edge Styles — animations, pencil strokes, types, labels
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Edge animations ─── */
+@keyframes edge-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.edge-animated-pulse {
+  animation: edge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes border-pulse {
+  0%,
+  100% {
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+  50% {
+    border-color: rgba(99, 102, 241, 0.7);
+  }
+}
+
+.animate-border-pulse {
+  animation: border-pulse 2s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Pencil-style Edge Paths — ink/hand-drawn aesthetic
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.workflow-canvas {
+  --edge-marker-color: #57534e;
+}
+
+.dark .workflow-canvas {
+  --edge-marker-color: #78716c;
+}
+
+.pencil-edge-main {
+  stroke: #57534e;
+  stroke-width: 2.5;
+  stroke-opacity: 0.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dark .pencil-edge-main {
+  stroke: #78716c;
+  stroke-opacity: 0.7;
+}
+
+.pencil-edge-bg {
+  stroke: #44403c;
+  stroke-width: 5;
+  stroke-opacity: 0.06;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dark .pencil-edge-bg {
+  stroke: #78716c;
+  stroke-opacity: 0.08;
+}
+
+.pencil-edge-active {
+  stroke: #4f46e5;
+  stroke-opacity: 0.75;
+  animation: edge-pulse 2s ease-in-out infinite;
+}
+
+.dark .pencil-edge-active {
+  stroke: #6366f1;
+  stroke-opacity: 0.85;
+}
+
+.pencil-edge-glow {
+  stroke: #4f46e5;
+  stroke-width: 8;
+  stroke-opacity: 0.08;
+  stroke-linecap: round;
+  animation: edge-pulse 2s ease-in-out infinite;
+}
+
+.dark .pencil-edge-glow {
+  stroke: #6366f1;
+  stroke-opacity: 0.12;
+}
+
+.workflow-canvas .react-flow__edge-path {
+  stroke: #57534e;
+  stroke-opacity: 0.6;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dark .workflow-canvas .react-flow__edge-path {
+  stroke: #78716c;
+  stroke-opacity: 0.7;
+}
+
+.workflow-canvas .react-flow__edge .react-flow__arrowhead {
+  fill: #57534e;
+}
+
+.dark .workflow-canvas .react-flow__edge .react-flow__arrowhead {
+  fill: #78716c;
+}
+
+/* ─── Edge 类型基础样式 ─── */
+.react-flow__edge.sequential-edge .react-flow__edge-path {
+  stroke: var(--edge-color-sequential, #78716c);
+  stroke-width: 2;
+}
+
+.react-flow__edge.conditional-edge .react-flow__edge-path {
+  stroke: var(--edge-color-conditional, #d97706);
+  stroke-width: 2;
+  stroke-dasharray: 8 5;
+}
+
+.react-flow__edge.loop-edge .react-flow__edge-path {
+  stroke: var(--edge-color-loop, #059669);
+  stroke-width: 2.5;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 3.5;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+/* ─── Edge Labels ─── */
+.edge-label-container {
+  background: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.light .edge-label-container {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.edge-label-container:hover {
+  background: rgba(30, 30, 30, 0.95);
+}
+
+.light .edge-label-container:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+.edge-label-branch {
+  border-color: rgba(217, 119, 6, 0.4);
+  color: #d97706;
+}
+
+.light .edge-label-branch {
+  border-color: rgba(217, 119, 6, 0.3);
+  color: #b45309;
+}
+
+.edge-label-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  width: 80px;
+  padding: 0;
+}
+
+.edge-label-editing {
+  border-style: solid;
+  border-color: #6366f1;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+.edge-wait-badge {
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  border-radius: 999px;
+  background: rgba(120, 113, 108, 0.1);
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+.edge-wait-badge:hover {
+  background: rgba(120, 113, 108, 0.18);
+}

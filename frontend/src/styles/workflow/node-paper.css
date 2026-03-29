@@ -1,0 +1,112 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Node Paper Texture — notebook school aesthetic + trace loader + skeleton
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.node-paper-bg {
+  background-color: #faf9f6;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.06'/%3E%3C/svg%3E");
+  box-shadow: 
+    0 2px 5px rgba(0,0,0,0.02),
+    0 5px 15px -3px rgba(0,0,0,0.04),
+    0 0 0 1px rgba(0,0,0,0.04);
+}
+
+.dark .node-paper-bg {
+  background-color: #1a1b1e;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+  box-shadow: 
+    0 2px 5px rgba(0,0,0,0.2),
+    0 5px 15px -3px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(255,255,255,0.06);
+}
+
+.tag-paper-texture {
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 0.5rem 0.5rem;
+}
+
+.light .tag-paper-texture {
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Canvas Trace Loader
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.wf-trace-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  background: var(--background);
+}
+
+.wf-trace-svg {
+  width: min(90%, 460px);
+  opacity: 0.85;
+}
+
+.wf-trace-bg {
+  stroke: rgba(120, 113, 108, 0.2);
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dark .wf-trace-bg { stroke: rgba(148, 163, 184, 0.15); }
+
+.wf-trace-flow {
+  stroke-width: 1.8;
+  fill: none;
+  stroke-dasharray: 40 400;
+  stroke-dashoffset: 438;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px currentColor);
+  animation: wf-trace-flow 3s cubic-bezier(0.5, 0, 0.9, 1) infinite;
+}
+
+.wf-trace-ink { stroke: #78716c; color: #78716c; }
+.dark .wf-trace-ink { stroke: #94a3b8; color: #94a3b8; }
+
+@keyframes wf-trace-flow { to { stroke-dashoffset: 0; } }
+
+.wf-chip-body {
+  fill: none;
+  stroke: rgba(120, 113, 108, 0.3);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 2;
+}
+
+.dark .wf-chip-body { stroke: rgba(148, 163, 184, 0.2); }
+
+.wf-chip-pin {
+  fill: rgba(120, 113, 108, 0.35);
+  stroke: none;
+  animation: wf-pin-pulse 2s ease-in-out infinite;
+}
+
+.dark .wf-chip-pin { fill: rgba(148, 163, 184, 0.3); }
+
+@keyframes wf-pin-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+
+.wf-chip-text {
+  font-family: 'Noto Serif SC', 'Georgia', serif;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  fill: rgba(120, 113, 108, 0.5);
+  animation: wf-text-breathe 2.5s ease-in-out infinite;
+}
+
+.dark .wf-chip-text { fill: rgba(148, 163, 184, 0.4); }
+
+@keyframes wf-text-breathe {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}

@@ -1,0 +1,137 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Canvas Core — cursor, controls, minimap, selection, connection, handles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Canvas cursor ─── */
+.workflow-canvas .react-flow__pane {
+  cursor: grab;
+}
+
+.workflow-canvas .react-flow__pane:active {
+  cursor: grabbing;
+}
+
+.workflow-canvas .react-flow__background {
+  opacity: 0.8;
+}
+
+/* ─── Controls (zoom +/-/fit) — position bottom-right ─── */
+.workflow-controls.react-flow__controls {
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  bottom: 16px;
+  right: 16px;
+}
+
+.dark .workflow-controls.react-flow__controls {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.workflow-controls .react-flow__controls-button {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #78716c;
+  transition: all 0.2s ease;
+}
+
+.workflow-controls .react-flow__controls-button:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #1c1917;
+}
+
+.dark .workflow-controls .react-flow__controls-button {
+  color: #94a3b8;
+}
+
+.dark .workflow-controls .react-flow__controls-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+}
+
+.workflow-controls .react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+/* ─── MiniMap ─── */
+.workflow-canvas .react-flow__minimap {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
+  bottom: 16px;
+  left: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.dark .workflow-canvas .react-flow__minimap {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+/* ─── Selection glow ─── */
+.workflow-canvas .react-flow__node.selected > div {
+  box-shadow: none;
+}
+
+.light .workflow-canvas .react-flow__node.selected > div {
+  box-shadow: none;
+}
+
+/* ─── Connection drag line ─── */
+.workflow-canvas .react-flow__connection-path {
+  stroke: rgba(129, 140, 248, 0.75);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 4;
+}
+
+.light .workflow-canvas .react-flow__connection-path {
+  stroke: rgba(79, 70, 229, 0.55);
+}
+
+/* ─── Handles ─── */
+.workflow-canvas .react-flow__handle {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.workflow-canvas .react-flow__handle:hover {
+  transform: scale(1.15);
+}
+
+/* ─── Selection Box ─── */
+.workflow-canvas .react-flow__selection {
+  border: 1.5px dashed rgba(99, 102, 241, 0.6) !important;
+  background: rgba(99, 102, 241, 0.06) !important;
+  border-radius: 4px;
+}
+
+.light .workflow-canvas .react-flow__selection {
+  border-color: rgba(79, 70, 229, 0.5) !important;
+  background: rgba(79, 70, 229, 0.04) !important;
+}
+
+.cursor-crosshair .react-flow__pane {
+  cursor: crosshair !important;
+}
+
+.cursor-crosshair .react-flow__pane:active {
+  cursor: crosshair !important;
+}

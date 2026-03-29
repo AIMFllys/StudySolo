@@ -1,0 +1,136 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Loop Nodes — loop region + loop group container
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Loop Region Node ─── */
+.loop-region-node {
+  min-width: 200px;
+  min-height: 150px;
+  border: 2px dashed rgba(5, 150, 105, 0.4);
+  border-radius: 12px;
+  background: rgba(5, 150, 105, 0.03);
+  position: relative;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.dark .loop-region-node {
+  background: rgba(5, 150, 105, 0.05);
+  border-color: rgba(5, 150, 105, 0.3);
+}
+
+.loop-region-selected {
+  border-color: rgba(5, 150, 105, 0.7) !important;
+  background: rgba(5, 150, 105, 0.06) !important;
+  box-shadow: 0 0 20px rgba(5, 150, 105, 0.1);
+}
+
+.loop-region-header {
+  position: absolute;
+  top: -1px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px dashed rgba(5, 150, 105, 0.4);
+  border-radius: 0 0 6px 6px;
+  font-family: var(--font-serif), 'Noto Serif SC', serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #059669;
+  letter-spacing: 0.5px;
+}
+
+.dark .loop-region-header {
+  background: rgba(25, 25, 30, 0.95);
+  color: #34d399;
+  border-color: rgba(5, 150, 105, 0.3);
+}
+
+.loop-region-delete {
+  margin-left: 6px;
+  padding: 1px;
+  border-radius: 4px;
+  color: #059669;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: none;
+  border: none;
+}
+
+.loop-region-delete:hover {
+  opacity: 1;
+  background: rgba(5, 150, 105, 0.1);
+}
+
+/* ─── Loop Group Node ─── */
+.loop-group-container {
+  width: 100%;
+  height: 100%;
+  min-width: 300px;
+  min-height: 200px;
+  border: 2px dashed rgba(5, 150, 105, 0.4);
+  border-radius: 12px;
+  background: rgba(5, 150, 105, 0.03);
+  display: flex;
+  flex-direction: column;
+}
+
+.loop-group-container-running {
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.15), 0 0 0 3px rgba(16, 185, 129, 0.08);
+}
+
+.light .loop-group-container {
+  background: rgba(5, 150, 105, 0.04);
+  border-color: rgba(5, 150, 105, 0.3);
+}
+
+.loop-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px dashed rgba(5, 150, 105, 0.2);
+  background: rgba(5, 150, 105, 0.06);
+  border-radius: 10px 10px 0 0;
+  flex-shrink: 0;
+}
+
+.loop-group-body {
+  flex: 1;
+  min-height: 120px;
+  padding: 8px;
+}
+
+.loop-group-param-input {
+  width: 40px;
+  padding: 1px 4px;
+  border: 1px solid rgba(5, 150, 105, 0.3);
+  border-radius: 4px;
+  background: rgba(5, 150, 105, 0.08);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #059669;
+  outline: none;
+  text-align: center;
+}
+
+.loop-group-param-input:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.2);
+}
+
+/* Resizer styling */
+.loop-group-resizer-line {
+  border-color: rgba(5, 150, 105, 0.4) !important;
+}
+
+.loop-group-resizer-handle {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 2px !important;
+  background: #059669 !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}

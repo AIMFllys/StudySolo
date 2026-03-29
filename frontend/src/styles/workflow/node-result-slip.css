@@ -1,0 +1,18 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Node UI — Result Slip & Selectors
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.node-result-slip {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transform-origin: top;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.node-result-slip-expanded {
+  /* Used for expanded state animation overrides if any */
+}
+
+.node-model-selector-trigger {
+  letter-spacing: 0.05em;
+}
