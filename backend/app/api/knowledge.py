@@ -3,7 +3,7 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
 from supabase import AsyncClient
 
 from app.core.deps import get_current_user, get_supabase_client
@@ -20,6 +20,9 @@ router = APIRouter()
 # Max file size: 10 MB
 MAX_FILE_SIZE = 10 * 1024 * 1024
 ALLOWED_EXTENSIONS = {"pdf", "docx", "md", "txt"}
+
+# Node types that produce knowledge items
+_KNOWLEDGE_NODE_TYPES = {"flashcard", "quiz_gen", "mind_map", "export_file"}
 
 
 # ── Upload endpoint ──────────────────────────────────────────────────────────
@@ -102,6 +105,59 @@ async def list_documents(
         .execute()
     )
     return result.data or []
+
+
+# ── Knowledge items (from workflow runs) ─────────────────────────────────────
+
+@router.get("/items")
+async def list_knowledge_items(
+    item_type: str | None = Query(None, pattern="^(flashcard|quiz_gen|mind_map|export_file)$"),
+    limit: int = Query(50, ge=1, le=200),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncClient = Depends(get_supabase_client),
+):
+    """List knowledge items extracted from completed workflow runs.
+
+    Scans the user's workflows for nodes of knowledge-producing types
+    (flashcard, quiz_gen, mind_map, export_file) that have output data.
+    """
+    user_id = current_user["id"]
+
+    # Fetch user's workflows with their nodes
+    wf_result = (
+        await db.from_("ss_workflows")
+        .select("id,name,nodes_json,updated_at")
+        .eq("user_id", user_id)
+        .order("updated_at", desc=True)
+        .execute()
+    )
+
+    items: list[dict] = []
+    for wf in (wf_result.data or []):
+        nodes = wf.get("nodes_json") or []
+        for node in nodes:
+            node_type = node.get("type", "")
+            if node_type not in _KNOWLEDGE_NODE_TYPES:
+                continue
+            if item_type and node_type != item_type:
+                continue
+            data = node.get("data") or {}
+            output = data.get("output", "")
+            if not output or not str(output).strip():
+                continue
+            items.append({
+                "id": node.get("id", ""),
+                "type": node_type,
+                "name": data.get("label", node_type),
+                "output_preview": str(output)[:200],
+                "source_workflow_id": wf["id"],
+                "source_workflow_name": wf.get("name", "未命名工作流"),
+                "updated_at": wf.get("updated_at", ""),
+            })
+        if len(items) >= limit:
+            break
+
+    return items[:limit]
 
 
 # ── Get document details ─────────────────────────────────────────────────────

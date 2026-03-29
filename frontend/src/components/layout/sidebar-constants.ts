@@ -1,6 +1,6 @@
 import {
   LayoutList, MessageSquareCode, Store, BookTemplate,
-  LayoutDashboard, Puzzle, Wallet, Settings, UserCircle, PanelRightDashed,
+  LayoutDashboard, Puzzle, Wallet, Settings, UserCircle, PanelRightDashed, Database,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { SidebarPanel } from '@/stores/use-panel-store';
@@ -9,7 +9,8 @@ export const PANEL_CONFIG: Record<SidebarPanel, { icon: LucideIcon; label: strin
   'workflows':          { icon: LayoutList,        label: '工作流' },
   'ai-chat':            { icon: MessageSquareCode, label: 'AI 对话' },
   'node-store':         { icon: Store,             label: '节点商店' },
-  'workflow-examples':  { icon: BookTemplate,      label: '工作流样例' },
+  'workflow-examples':  { icon: Database,           label: '工作流样例' },
+  'knowledge-base':     { icon: BookTemplate,      label: '知识库' },
   'dashboard':          { icon: LayoutDashboard,   label: '仪表盘' },
   'extensions':         { icon: Puzzle,            label: '功能拓展' },
   'wallet':             { icon: Wallet,            label: '钱包设置' },
