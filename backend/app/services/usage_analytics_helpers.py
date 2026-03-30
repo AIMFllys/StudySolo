@@ -16,7 +16,7 @@ def utcnow() -> datetime:
 
 
 def parse_range(range_value: str) -> timedelta:
-    return {"24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30), "90d": timedelta(days=90)}[range_value]
+    return {"24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30), "90d": timedelta(days=90), "all": timedelta(days=3650)}[range_value]
 
 
 def parse_window(window_value: str) -> timedelta:
@@ -34,7 +34,10 @@ def bucket_sequence(range_value: str) -> list[str]:
     if range_value == "24h":
         start = (now - timedelta(hours=23)).replace(minute=0, second=0, microsecond=0)
         return [(start + timedelta(hours=i)).isoformat() for i in range(24)]
-    days = 7 if range_value == "7d" else 30
+    if range_value == "all":
+        days = 90
+    else:
+        days = 7 if range_value == "7d" else 30
     start_date = (now - timedelta(days=days - 1)).date()
     return [(start_date + timedelta(days=i)).isoformat() for i in range(days)]
 

@@ -47,10 +47,10 @@ const TICKER_ITEMS = [
 ];
 
 const STATS = [
-  { label: 'Execution Nodes', value: 18, suffix: '' },
-  { label: 'AI Models Routed', value: 8, suffix: '+' },
-  { label: 'Workflow Steps', value: 12, suffix: '+' },
-  { label: 'Response Latency', value: 800, suffix: 'ms' },
+  { label: 'Execution Nodes', value: 18, suffix: '', color: 'var(--accent-blue)' },
+  { label: 'AI Models Routed', value: 8, suffix: '+', color: 'var(--accent-green)' },
+  { label: 'Workflow Steps', value: 12, suffix: '+', color: 'var(--accent-purple)' },
+  { label: 'Response Latency', value: 800, suffix: 'ms', color: 'var(--accent-red)' },
 ];
 
 interface HeroProps {
@@ -77,181 +77,143 @@ export default function Hero({ onStart, onGuide }: HeroProps) {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        alignItems: 'center',
+        alignItems: 'flex-start', /* Align left to match notebook style */
         overflow: 'hidden',
         paddingTop: 80,
+        paddingLeft: '15%', /* Indent from the margin line */
       }}
     >
-      {/* Parallax Background Glow */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        pointerEvents: 'none',
-        transform: `translate(${parallax.x * 0.3}px, ${parallax.y * 0.3}px)`,
-        transition: 'transform 0.1s ease-out',
-      }}>
-        <div style={{
-          position: 'absolute',
-          top: '30%',
-          left: '20%',
-          width: 600,
-          height: 600,
-          background: 'radial-gradient(circle, rgba(0,255,136,0.04) 0%, transparent 70%)',
-          borderRadius: '50%',
-        }} />
-        <div style={{
-          position: 'absolute',
-          bottom: '20%',
-          right: '15%',
-          width: 400,
-          height: 400,
-          background: 'radial-gradient(circle, rgba(0,212,255,0.04) 0%, transparent 70%)',
-          borderRadius: '50%',
-        }} />
-      </div>
-
-      {/* Status Bar */}
-      <div style={{ position: 'absolute', top: 72, left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
-        <div className="label-green">
-          <span className="dot-live" />
-          SIGNAL: CONNECTED · HUST AI AGENT COMPETITION 2025
-        </div>
-      </div>
+      {/* Background Watermarks */}
+      <div className="watermark-text" style={{ top: '15%', left: '10%', transform: `translate(${parallax.x}px, ${parallax.y}px)` }}>化繁为简</div>
+      <div className="watermark-text" style={{ top: '65%', left: '30%', transform: `translate(${parallax.x * 0.5}px, ${parallax.y * 0.5}px)` }}>核心知识提炼网络</div>
 
       {/* Main Content */}
-      <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', padding: '0 24px', maxWidth: 900 }}>
+      <div style={{ position: 'relative', zIndex: 10, padding: '0 24px', maxWidth: 800 }}>
 
-        {/* Eyebrow */}
-        <div style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 12,
-          color: 'var(--text-dim)',
-          letterSpacing: '0.15em',
-          marginBottom: 32,
-          opacity: titleVisible ? 1 : 0,
-          transition: 'opacity 0.6s ease',
-        }}>
-          {'>'} STUDYSOLO v2.0 — AI WORKFLOW ENGINE
-        </div>
-
-        {/* Main Title */}
+        {/* Main Title - Replicating Image 1 */}
         <h1 style={{
           fontFamily: 'var(--font-display)',
-          fontWeight: 800,
-          fontSize: 'clamp(48px, 8vw, 88px)',
-          lineHeight: 1.05,
-          letterSpacing: '-0.03em',
+          fontWeight: 900,
+          fontSize: 'clamp(56px, 8vw, 96px)',
+          lineHeight: 1.1,
+          letterSpacing: '-0.04em',
           color: 'var(--text-primary)',
-          marginBottom: 16,
+          marginBottom: 32,
           opacity: titleVisible ? 1 : 0,
-          transform: titleVisible ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'opacity 0.8s ease 0.1s, transform 0.8s ease 0.1s',
+          transform: titleVisible ? 'translateY(0)' : 'translateY(24px)',
+          transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s',
         }}>
-          把学习
+          将繁杂的信息
           <br />
-          <span style={{ color: 'var(--accent-green)' }}>变成系统</span>
+          <span className="marker-highlight">结构化沉淀</span>
         </h1>
 
-        {/* Subtitle - terminal style */}
+        {/* Description - Replicating Image 1 */}
         <div style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 'clamp(13px, 2vw, 16px)',
-          color: 'var(--accent-cyan)',
-          marginBottom: 40,
-          opacity: titleVisible ? 1 : 0,
-          transition: 'opacity 0.8s ease 0.2s',
-          letterSpacing: '0.02em',
-        }}>
-          {'> '}18 nodes · 8 AI platforms · SSE real-time streaming · RLS security
-        </div>
-
-        {/* Description */}
-        <p style={{
-          fontSize: 17,
+          fontSize: 20,
           color: 'var(--text-secondary)',
-          maxWidth: 560,
-          margin: '0 auto 48px',
-          lineHeight: 1.7,
+          fontWeight: 500,
+          maxWidth: 480,
+          marginBottom: 48,
+          lineHeight: 1.8,
           opacity: titleVisible ? 1 : 0,
-          transition: 'opacity 0.8s ease 0.3s',
+          transform: titleVisible ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
         }}>
-          专为华科 AI 智能体大赛打造。不是对话框，是真实的 DAG 算子引擎。
-          用一句自然语言，驱动数十个节点自动串联执行完整学习工作流。
-        </p>
+          一款为终身学习者打造的研究引擎。<br/>
+          通过清晰的工作流，化繁为简<br/>
+          穿透信息噪音。
+        </div>
 
         {/* CTA Buttons */}
         <div style={{
           display: 'flex',
           gap: 16,
-          justifyContent: 'center',
           flexWrap: 'wrap',
           opacity: titleVisible ? 1 : 0,
-          transition: 'opacity 0.8s ease 0.4s',
+          transform: titleVisible ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s',
         }}>
-          <button className="btn-primary" onClick={onStart} style={{ fontSize: 15, padding: '14px 36px' }}>
-            立即体验平台 →
+          <button className="btn-primary btn-blue" onClick={onStart} style={{ padding: '16px 40px', fontSize: 16 }}>
+            进入平台核心 →
           </button>
-          <button className="btn-secondary" onClick={onGuide} style={{ fontSize: 15, padding: '14px 36px' }}>
-            查看 GitHub 源码
+          <button className="btn-primary" onClick={onGuide} style={{ padding: '16px 40px', fontSize: 16 }}>
+            系统架构白皮书
           </button>
+        </div>
+        
+        {/* Caption at bottom */}
+        <div style={{
+          marginTop: 64,
+          fontFamily: 'serif',
+          fontStyle: 'italic',
+          color: 'var(--text-dim)',
+          fontSize: 16,
+          opacity: titleVisible ? 1 : 0,
+          transition: 'opacity 1.2s ease 0.8s',
+        }}>
+          "Knowledge is recognizing the connections."<br/>
+          <span style={{ fontSize: 12, fontStyle: 'normal', fontFamily: 'var(--font-body)' }}>黑ICP备2025046407号-3</span>
         </div>
       </div>
 
-      {/* Stats Row */}
-      <div style={{
-        position: 'relative',
+      {/* Stats Floating Panel */}
+      <div className="panel" style={{
+        position: 'absolute',
+        right: '5%',
+        top: '50%',
+        transform: 'translateY(-50%)',
         zIndex: 10,
-        marginTop: 80,
         width: '100%',
-        maxWidth: 900,
-        padding: '0 24px',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 1,
-        background: 'var(--border-subtle)',
+        maxWidth: 320,
+        padding: 32,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 24,
         opacity: titleVisible ? 1 : 0,
-        transition: 'opacity 0.8s ease 0.5s',
+        transition: 'opacity 0.8s ease 0.6s',
       }}>
         {STATS.map((s) => (
           <div key={s.label} style={{
-            background: 'var(--bg-panel)',
-            padding: '24px 20px',
-            textAlign: 'center',
-            borderTop: '1px solid var(--border-subtle)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4
           }}>
-            <div className="counter-number" style={{ fontSize: 32, marginBottom: 6 }}>
+            <div className="counter-number" style={{ fontSize: 40, color: s.color }}>
               <Counter to={s.value} suffix={s.suffix} />
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: 600 }}>
               {s.label}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Ticker */}
+      {/* Ticker - Light styling */}
       <div style={{
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
         borderTop: '1px solid var(--border-subtle)',
-        backgroundColor: 'var(--bg-panel)',
-        padding: '10px 0',
+        backgroundColor: 'var(--bg-surface)',
+        padding: '12px 0',
         overflow: 'hidden',
+        boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.02)',
       }}>
         <div className="ticker-track">
           {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
             <span key={i} style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              color: 'var(--text-dim)',
-              letterSpacing: '0.1em',
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+              letterSpacing: '0.05em',
               textTransform: 'uppercase',
-              padding: '0 32px',
+              padding: '0 40px',
               whiteSpace: 'nowrap',
             }}>
-              <span style={{ color: 'var(--accent-green)', marginRight: 12 }}>◆</span>
+              <span style={{ color: 'var(--text-dim)', marginRight: 16, fontSize: 10 }}>●</span>
               {item}
             </span>
           ))}

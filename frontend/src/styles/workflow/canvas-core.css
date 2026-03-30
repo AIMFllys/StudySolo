@@ -2,6 +2,17 @@
    Canvas Core — cursor, controls, minimap, selection, connection, handles
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ─── Variables ─── */
+:root {
+  --minimap-node-bg: #94a3b8; /* slate-400 */
+  --minimap-mask-bg: rgba(248, 250, 252, 0.6); /* slate-50 with opacity */
+}
+
+.dark {
+  --minimap-node-bg: #cbd5e1; /* slate-300 */
+  --minimap-mask-bg: rgba(2, 6, 23, 0.45); /* slate-950 with opacity */
+}
+
 /* ─── Canvas cursor ─── */
 .workflow-canvas .react-flow__pane {
   cursor: grab;
@@ -20,10 +31,10 @@
   display: flex;
   flex-direction: row;
   gap: 2px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--card);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 4px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -32,7 +43,7 @@
 }
 
 .dark .workflow-controls.react-flow__controls {
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 23, 42, 0.85); /* fallback or explicit dark override */
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
@@ -46,17 +57,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #78716c;
+  color: var(--muted-foreground);
   transition: all 0.2s ease;
 }
 
 .workflow-controls .react-flow__controls-button:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: #1c1917;
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .dark .workflow-controls .react-flow__controls-button {
   color: #94a3b8;
+}
+
+.dark .workflow-controls .react-flow__controls-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
 }
 
 .dark .workflow-controls .react-flow__controls-button:hover {

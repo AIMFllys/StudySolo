@@ -41,6 +41,9 @@ export function TraceStepItem({ trace, nodeNameMap }: TraceStepItemProps) {
   const summaryClassName = trace.status === 'skipped'
     ? 'mt-1 text-xs leading-5 text-muted-foreground line-through decoration-muted-foreground/60'
     : 'mt-1 text-xs leading-5 text-muted-foreground';
+  const progressClassName = trace.status === 'error'
+    ? 'mt-2 text-xs leading-5 text-rose-500'
+    : 'mt-2 text-xs leading-5 text-primary';
 
   return (
     <div className={`relative border-l pl-5 ${timelineClassName}`}>
@@ -59,6 +62,14 @@ export function TraceStepItem({ trace, nodeNameMap }: TraceStepItemProps) {
             {trace.inputSummary && (
               <div className={summaryClassName}>{trace.inputSummary}</div>
             )}
+            {typeof trace.iteration === 'number' ? (
+              <div className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                循环第 {trace.iteration} 轮
+              </div>
+            ) : null}
+            {trace.progressMessage ? (
+              <div className={progressClassName}>{trace.progressMessage}</div>
+            ) : null}
             {trace.chainIds && trace.chainIds.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
                 {trace.chainIds.map((chainId) => (

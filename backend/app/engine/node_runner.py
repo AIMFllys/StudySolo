@@ -3,10 +3,13 @@
 import asyncio
 import json
 import logging
+from collections.abc import AsyncIterator
+from dataclasses import dataclass, field
 from typing import Any
 
 from app.nodes import NODE_REGISTRY
 from app.nodes._base import NodeInput
+from app.engine.events import sse_event
 from app.services.ai_catalog_service import get_sku_by_id
 from app.services.ai_router import call_llm, call_llm_direct
 from app.services.usage_ledger import bind_usage_call
@@ -14,6 +17,33 @@ from app.services.usage_ledger import bind_usage_call
 logger = logging.getLogger(__name__)
 
 DEFAULT_NODE_TIMEOUT = 120
+DEFAULT_NODE_STARTUP_TIMEOUT = 30
+
+_NODE_PROGRESS_MESSAGES: dict[str, str] = {
+    "knowledge_base": "正在检索知识库",
+    "web_search": "正在联网搜索",
+    "logic_switch": "正在分析分支条件",
+    "loop_group": "正在准备循环执行",
+}
+
+
+@dataclass
+class NodeExecutionResult:
+    """Mutable execution result populated while a node streams events."""
+    node_id: str
+    output: str | None = None
+    error: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+def build_parallel_group_id(node_ids: list[str]) -> str:
+    """Build a stable parallel group identifier shared with the frontend."""
+    return "|".join(sorted(node_ids))
+
+
+def get_node_progress_message(node_type: str) -> str:
+    """Resolve a user-facing progress label for long-running node phases."""
+    return _NODE_PROGRESS_MESSAGES.get(node_type, "正在执行节点")
 
 
 def build_input_snapshot(node_input: NodeInput) -> str:
@@ -104,6 +134,110 @@ async def execute_single_node(
     except Exception as e:
         logger.error("Node %s execution failed: %s", node_id, e)
         return (node_id, None, str(e))
+
+
+async def stream_single_node_events(
+    node_id: str,
+    node_config: dict,
+    upstream_outputs: dict[str, str],
+    implicit_context: dict | None,
+    result: NodeExecutionResult,
+    *,
+    event_meta: dict[str, Any] | None = None,
+    timeout_seconds: int = DEFAULT_NODE_TIMEOUT,
+    startup_timeout_seconds: int = DEFAULT_NODE_STARTUP_TIMEOUT,
+) -> AsyncIterator[str]:
+    """Execute a single node and emit SSE frames as work progresses."""
+    node_type_str = node_config.get("type", "chat_response")
+    node_data = node_config.get("data", {})
+
+    NodeClass = NODE_REGISTRY.get(node_type_str)
+    if not NodeClass:
+        NodeClass = NODE_REGISTRY.get("chat_response")
+        if not NodeClass:
+            result.error = f"Unknown node type: {node_type_str}"
+            yield sse_event("node_status", {
+                "node_id": node_id,
+                "status": "error",
+                "error": result.error,
+            }, event_meta)
+            return
+
+    runtime_config = build_runtime_config(node_data)
+    node_input = NodeInput(
+        user_content=resolve_user_content(node_data),
+        upstream_outputs=upstream_outputs,
+        implicit_context=implicit_context,
+        node_config=runtime_config,
+    )
+
+    yield sse_event("node_status", {"node_id": node_id, "status": "running"}, event_meta)
+    try:
+        yield sse_event("node_input", {"node_id": node_id, "input_snapshot": build_input_snapshot(node_input)}, event_meta)
+    except Exception as exc:
+        logger.warning("Failed to serialize input snapshot for node %s: %s", node_id, exc)
+
+    yield sse_event("node_progress", {
+        "node_id": node_id,
+        "message": get_node_progress_message(node_type_str),
+        "phase": "start",
+    }, event_meta)
+
+    node_instance = NodeClass()
+    llm_caller = build_node_llm_caller(runtime_config)
+    full_output = ""
+
+    try:
+        with bind_usage_call(node_id=node_id, node_type=node_type_str):
+            async with asyncio.timeout(timeout_seconds):
+                token_iter = node_instance.execute(node_input, llm_caller)
+
+                try:
+                    first_token = await asyncio.wait_for(
+                        token_iter.__anext__(),
+                        timeout=startup_timeout_seconds,
+                    )
+                except asyncio.TimeoutError:
+                    result.error = f"节点启动超时（{startup_timeout_seconds}秒）"
+                    yield sse_event("node_status", {
+                        "node_id": node_id,
+                        "status": "error",
+                        "error": result.error,
+                    }, event_meta)
+                    return
+                except StopAsyncIteration:
+                    first_token = None
+
+                if first_token is not None:
+                    full_output += first_token
+                    yield sse_event("node_token", {"node_id": node_id, "token": first_token}, event_meta)
+                    async for token in token_iter:
+                        full_output += token
+                        yield sse_event("node_token", {"node_id": node_id, "token": token}, event_meta)
+
+                yield sse_event("node_progress", {
+                    "node_id": node_id,
+                    "message": "正在整理节点结果",
+                    "phase": "postprocess",
+                }, event_meta)
+                output = await node_instance.post_process(full_output)
+    except TimeoutError:
+        result.error = f"节点执行超时（{timeout_seconds}秒）"
+    except Exception as exc:
+        logger.error("Node %s execution failed: %s", node_id, exc)
+        result.error = str(exc)
+    else:
+        result.output = output.content
+        result.metadata = dict(output.metadata or {})
+        yield sse_event("node_done", {"node_id": node_id, "full_output": output.content}, event_meta)
+        yield sse_event("node_status", {"node_id": node_id, "status": "done"}, event_meta)
+        return
+
+    yield sse_event("node_status", {
+        "node_id": node_id,
+        "status": "error",
+        "error": result.error,
+    }, event_meta)
 
 
 async def execute_single_node_with_timeout(

@@ -71,7 +71,7 @@ describe('integration-fixes: sidebar nav mapping', () => {
 });
 
 describe('integration-fixes: nginx domain consistency', () => {
-  const nginxConfPath = path.resolve(__dirname, '../../../scripts/nginx.conf');
+  const nginxConfPath = path.resolve(__dirname, '../../../scripts/deploy/nginx.conf');
   const nginxContent = fs.readFileSync(nginxConfPath, 'utf-8');
 
   it('does not contain placeholder domain', () => {
@@ -87,10 +87,15 @@ describe('integration-fixes: nginx domain consistency', () => {
     );
     const keyLines = lines.filter((line) => line.startsWith('ssl_certificate_key'));
 
-    [serverNameLines, certLines, keyLines].forEach((group) => {
+    expect(serverNameLines.length).toBeGreaterThan(0);
+    serverNameLines.forEach((line) => {
+      expect(line).toContain('studyflow.1037solo.com');
+    });
+
+    [certLines, keyLines].forEach((group) => {
       expect(group.length).toBeGreaterThan(0);
       group.forEach((line) => {
-        expect(line).toContain('studyflow.1037solo.com');
+        expect(line).toContain('/www/server/panel/vhost/cert/StudySolo-frontend/');
       });
     });
   });

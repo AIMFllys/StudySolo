@@ -21,7 +21,7 @@ import type {
 } from '@/types/usage';
 import { EmptyState, PageHeader } from '@/features/admin/shared';
 import { DashboardActivityTable } from './DashboardActivityTable';
-import { DashboardChartsSection } from './DashboardChartsSection';
+import { CostBreakdownCard, CostTrendChart, DashboardChartsSection } from './DashboardChartsSection';
 import { DashboardKpiSection } from './DashboardKpiSection';
 
 function formatCny(value: number) {
@@ -191,11 +191,9 @@ export function AdminDashboardPageView() {
           ) : null}
 
           {overview ? <DashboardKpiSection overview={overview} live={live} /> : null}
-          {timeseries && modelBreakdown && costSplit ? (
+          {timeseries ? (
             <DashboardChartsSection
               timeseries={timeseries}
-              modelBreakdown={modelBreakdown}
-              costSplit={costSplit}
               timeRange={timeRange}
               onTimeRangeChange={setTimeRange}
             />
@@ -269,6 +267,22 @@ export function AdminDashboardPageView() {
           </div>
         </aside>
       </motion.section>
+
+      {/* Full-width cards — outside the sidebar grid */}
+      {timeseries ? (
+        <CostTrendChart
+          timeseries={timeseries}
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+        />
+      ) : null}
+
+      {costSplit && modelBreakdown ? (
+        <CostBreakdownCard
+          costSplit={costSplit}
+          modelBreakdown={modelBreakdown}
+        />
+      ) : null}
 
       <DashboardActivityTable recentCalls={recentCalls} loading={loading} />
     </div>

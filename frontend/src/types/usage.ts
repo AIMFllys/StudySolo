@@ -98,6 +98,10 @@ export interface RecentCallItem {
 
 export interface RecentCallsResponse {
   calls: RecentCallItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }
 
 export interface CostSplitItem {

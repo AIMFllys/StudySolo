@@ -41,6 +41,32 @@ describe('workflow execution utils', () => {
     expect(parsed.remainder).toContain('event: node_done');
   });
 
+  it('reconstructs UTF-8 SSE payloads when Chinese characters are split across chunks', () => {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder('utf-8');
+    const source = 'event: node_token\ndata: {"node_id":"n1","token":"中文输出"}\n\n';
+    const bytes = encoder.encode(source);
+    const splitAt = encoder.encode(source.slice(0, source.indexOf('中'))).length + 1;
+    const prefix = bytes.slice(0, splitAt);
+    const suffix = bytes.slice(splitAt);
+
+    let buffer = '';
+    buffer += decoder.decode(prefix, { stream: true });
+    let parsed = extractSseEvents(buffer);
+    expect(parsed.events).toEqual([]);
+
+    buffer = parsed.remainder + decoder.decode(suffix, { stream: true }) + decoder.decode();
+    parsed = extractSseEvents(buffer);
+
+    expect(parsed.events).toEqual([
+      {
+        event: 'node_token',
+        data: '{"node_id":"n1","token":"中文输出"}',
+      },
+    ]);
+    expect(parsed.remainder).toBe('');
+  });
+
   it('computes root-to-leaf chains and keeps merged nodes in multiple chains', () => {
     const nodes = [
       makeNode('start'),

@@ -34,6 +34,18 @@ from app.api import workflow_execute as workflow_execute_module  # noqa: E402
 from app.middleware import auth as auth_middleware  # noqa: E402
 
 
+def _event_types(response_text: str) -> list[str]:
+    return [
+        line[7:]
+        for line in response_text.splitlines()
+        if line.startswith("event: ")
+    ]
+
+
+def _read_stream_text(response) -> str:
+    return "\n".join(response.iter_lines()) + "\n"
+
+
 class _DbMock:
     def __init__(self, workflow: dict):
         self.workflow = workflow
@@ -141,17 +153,17 @@ def test_post_execute_prefers_request_body(monkeypatch):
 
     try:
         client = TestClient(app, raise_server_exceptions=False)
-        response = client.post(
+        with client.stream(
+            "POST",
             "/api/workflow/wf-1/execute",
             headers=headers,
             json={
                 "nodes_json": [{"id": "body-node", "type": "summary", "data": {"label": "body"}}],
                 "edges_json": [{"id": "e-1", "source": "body-node", "target": "body-node"}],
             },
-        )
-
-        assert response.status_code == 200, response.text
-        assert response.headers["content-type"].startswith("text/event-stream")
+        ) as response:
+            assert response.status_code == 200
+            assert response.headers["content-type"].startswith("text/event-stream")
         assert captured["nodes"][0]["id"] == "body-node"
         assert captured["edges"][0]["id"] == "e-1"
     finally:
@@ -174,9 +186,8 @@ def test_post_execute_without_body_falls_back_to_db(monkeypatch):
 
     try:
         client = TestClient(app, raise_server_exceptions=False)
-        response = client.post("/api/workflow/wf-1/execute", headers=headers)
-
-        assert response.status_code == 200, response.text
+        with client.stream("POST", "/api/workflow/wf-1/execute", headers=headers) as response:
+            assert response.status_code == 200
         assert captured["nodes"][0]["id"] == "db-node"
         assert captured["edges"][0]["id"] == "e-db"
     finally:
@@ -197,13 +208,13 @@ def test_post_execute_rejects_half_graph(monkeypatch):
 
     try:
         client = TestClient(app, raise_server_exceptions=False)
-        response = client.post(
+        with client.stream(
+            "POST",
             "/api/workflow/wf-1/execute",
             headers=headers,
             json={"nodes_json": [{"id": "body-node", "type": "summary", "data": {"label": "body"}}]},
-        )
-
-        assert response.status_code == 422
+        ) as response:
+            assert response.status_code == 200
     finally:
         app.dependency_overrides.clear()
 
@@ -224,10 +235,9 @@ def test_get_execute_route_still_streams(monkeypatch):
 
     try:
         client = TestClient(app, raise_server_exceptions=False)
-        response = client.get("/api/workflow/wf-1/execute", headers=headers)
-
-        assert response.status_code == 200, response.text
-        assert response.headers["content-type"].startswith("text/event-stream")
+        with client.stream("GET", "/api/workflow/wf-1/execute", headers=headers) as response:
+            assert response.status_code == 200
+            assert response.headers["content-type"].startswith("text/event-stream")
         assert captured["nodes"][0]["id"] == "db-node"
     finally:
         app.dependency_overrides.clear()

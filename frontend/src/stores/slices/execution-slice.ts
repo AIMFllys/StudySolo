@@ -13,6 +13,7 @@ export interface ExecutionSlice {
   registerNodeTrace: (nodeId: string, order: number, isParallel: boolean, parallelGroupId?: string) => void;
   updateNodeTrace: (nodeId: string, updates: Partial<NodeExecutionTrace>) => void;
   appendNodeTraceToken: (nodeId: string, token: string) => void;
+  updateExecutionSessionMeta: (updates: Partial<WorkflowExecutionSession>) => void;
   finalizeExecutionSession: (status: 'completed' | 'error') => void;
   clearExecutionSession: () => void;
 }
@@ -62,6 +63,9 @@ export const createExecutionSlice: StateCreator<
           workflowName,
           startedAt: performance.now(),
           overallStatus: 'running',
+          phase: 'connected',
+          phaseMessage: '已建立执行会话',
+          lastActivityAt: performance.now(),
           traces,
           completedCount: 0,
           totalCount: traces.filter((t) => t.nodeType !== 'trigger_input').length,
@@ -76,8 +80,11 @@ export const createExecutionSlice: StateCreator<
       return {
         executionSession: {
           ...state.executionSession,
+          lastActivityAt: performance.now(),
           traces: state.executionSession.traces.map((t) =>
-            t.nodeId === nodeId ? { ...t, executionOrder: order, isParallel, parallelGroupId, status: 'running' } : t,
+            t.nodeId === nodeId
+              ? { ...t, executionOrder: order, isParallel, parallelGroupId, status: 'running', lastActivityAt: performance.now() }
+              : t,
           ),
         },
       };
@@ -104,9 +111,23 @@ export const createExecutionSlice: StateCreator<
       return {
         executionSession: {
           ...state.executionSession,
+          lastActivityAt: performance.now(),
           traces: state.executionSession.traces.map((t) =>
-            t.nodeId === nodeId ? { ...t, streamingOutput: t.streamingOutput + token } : t,
+            t.nodeId === nodeId
+              ? { ...t, streamingOutput: t.streamingOutput + token, lastActivityAt: performance.now() }
+              : t,
           ),
+        },
+      };
+    }),
+
+  updateExecutionSessionMeta: (updates) =>
+    set((state) => {
+      if (!state.executionSession) return state;
+      return {
+        executionSession: {
+          ...state.executionSession,
+          ...updates,
         },
       };
     }),
@@ -120,6 +141,7 @@ export const createExecutionSlice: StateCreator<
           ...state.executionSession,
           overallStatus: status,
           finishedAt: now,
+          lastActivityAt: now,
           totalDurationMs: Math.round(now - state.executionSession.startedAt),
         },
       };

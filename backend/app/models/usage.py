@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 UsageSourceType = Literal["assistant", "workflow"]
 UsageSourceFilter = Literal["assistant", "workflow", "all"]
-UsageRange = Literal["24h", "7d", "30d"]
+UsageRange = Literal["24h", "7d", "30d", "all"]
 UsageWindow = Literal["5m", "60m"]
 
 
@@ -104,6 +104,10 @@ class RecentCallItem(BaseModel):
 
 class RecentCallsResponse(BaseModel):
     calls: list[RecentCallItem] = Field(default_factory=list)
+    total: int = 0
+    page: int = 1
+    page_size: int = 10
+    total_pages: int = 1
 
 
 class CostSplitItem(BaseModel):

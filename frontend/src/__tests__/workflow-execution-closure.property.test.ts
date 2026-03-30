@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { NodeExecutionTrace, WorkflowChain } from '@/types';
+import type { NodeExecutionTrace, WorkflowChain, WorkflowExecutionSession } from '@/types';
 import {
   buildExecutionRequestBody,
   getExecutionFailureMessage,
@@ -50,9 +50,10 @@ describe('workflow execution closure helpers', () => {
   });
 
   it('marks interrupted execution only when stream did not complete and was not aborted', () => {
-    expect(shouldFinalizeExecutionAsInterrupted(false, false)).toBe(true);
-    expect(shouldFinalizeExecutionAsInterrupted(true, false)).toBe(false);
-    expect(shouldFinalizeExecutionAsInterrupted(false, true)).toBe(false);
+    expect(shouldFinalizeExecutionAsInterrupted(false, false, 30_000, 0)).toBe(true);
+    expect(shouldFinalizeExecutionAsInterrupted(false, false, 9_000, 0)).toBe(false);
+    expect(shouldFinalizeExecutionAsInterrupted(true, false, 30_000, 0)).toBe(false);
+    expect(shouldFinalizeExecutionAsInterrupted(false, true, 30_000, 0)).toBe(false);
   });
 
   it('builds config patches for generic nodes and loop groups', () => {
@@ -109,12 +110,15 @@ describe('workflow execution closure helpers', () => {
     const updateNodeTraceCalls: Array<{ nodeId: string; updates: Record<string, unknown> }> = [];
     const registerCalls: Array<{ nodeId: string; executionOrder: number; isParallel?: boolean; parallelGroupId?: string }> = [];
     const nodeDataState: Record<string, Record<string, unknown>> = {};
+    const sessionMetaUpdates: Array<Record<string, unknown>> = [];
+    const parallelGroupId = 'existing|new-node';
 
     const didComplete = applyWorkflowExecutionEvent(
       'node_input',
       JSON.stringify({
         type: 'node_input',
         node_id: 'new-node',
+        parallel_group_id: parallelGroupId,
         input_snapshot: JSON.stringify({
           topic: '工作流',
           section_text: '执行面板重构',
@@ -127,7 +131,7 @@ describe('workflow execution closure helpers', () => {
           workflowName: '执行测试',
           startedAt: 0,
           overallStatus: 'running',
-          traces: [makeTrace({ nodeId: 'existing', status: 'running' })],
+          traces: [makeTrace({ nodeId: 'existing', status: 'running', parallelGroupId })],
           completedCount: 0,
           totalCount: 1,
           chains: [],
@@ -148,6 +152,9 @@ describe('workflow execution closure helpers', () => {
           updateNodeTraceCalls.push({ nodeId, updates });
         },
         appendNodeTraceToken: () => {},
+        updateExecutionSessionMeta: (updates: Partial<WorkflowExecutionSession>) => {
+          sessionMetaUpdates.push(updates as Record<string, unknown>);
+        },
         finalizeExecutionSession: () => {},
         closeStream: () => {},
         resetTrackingState: () => {},
@@ -159,22 +166,17 @@ describe('workflow execution closure helpers', () => {
     expect(registerCalls[0].nodeId).toBe('new-node');
     expect(registerCalls[0].executionOrder).toBe(1);
     expect(registerCalls[0].isParallel).toBe(true);
-    expect(registerCalls[0].parallelGroupId).toBeTruthy();
-    expect(updateNodeTraceCalls[0]).toEqual({
-      nodeId: 'existing',
-      updates: {
-        isParallel: true,
-        parallelGroupId: registerCalls[0].parallelGroupId,
-      },
-    });
-    expect(updateNodeTraceCalls[1].nodeId).toBe('new-node');
-    expect(updateNodeTraceCalls[1].updates).toMatchObject({
+    expect(registerCalls[0].parallelGroupId).toBe(parallelGroupId);
+    expect(updateNodeTraceCalls[0].nodeId).toBe('new-node');
+    expect(updateNodeTraceCalls[0].updates).toMatchObject({
       status: 'running',
       inputSummary: '',
       rawInputSnapshot: JSON.stringify({
         topic: '工作流',
         section_text: '执行面板重构',
       }),
+      isParallel: true,
+      parallelGroupId,
     });
     expect(nodeDataState['new-node']).toEqual({
       input_snapshot: JSON.stringify({
@@ -182,6 +184,7 @@ describe('workflow execution closure helpers', () => {
         section_text: '执行面板重构',
       }),
     });
+    expect(sessionMetaUpdates[0]).toMatchObject({ lastActivityAt: 120 });
   });
 
   it('applies token, status, node_done and workflow_done events through one execution flow', () => {
@@ -193,6 +196,7 @@ describe('workflow execution closure helpers', () => {
     const traceTokens: string[] = [];
     const terminalStatuses: string[] = [];
     const errors: Array<string | null> = [];
+    const sessionMetaUpdates: Array<Record<string, unknown>> = [];
     let now = 130;
     const startTimeMap: Record<string, number> = { node: 100 };
     let closed = 0;
@@ -224,6 +228,9 @@ describe('workflow execution closure helpers', () => {
       },
       appendNodeTraceToken: (_nodeId: string, token: string) => {
         traceTokens.push(token);
+      },
+      updateExecutionSessionMeta: (updates: Partial<WorkflowExecutionSession>) => {
+        sessionMetaUpdates.push(updates as Record<string, unknown>);
       },
       finalizeExecutionSession: (status: 'completed' | 'error') => {
         terminalStatuses.push(`final:${status}`);
@@ -269,27 +276,121 @@ describe('workflow execution closure helpers', () => {
 
     expect(completed).toBe(true);
     expect(selectedNodeIds).toEqual(['node', 'node', 'node']);
-    expect(traceUpdates).toEqual([
-      {
-        nodeId: 'node',
-        updates: {
-          status: 'done',
-          errorMessage: undefined,
-          durationMs: 45,
-          finishedAt: 145,
-        },
+    expect(traceUpdates).toHaveLength(3);
+    expect(traceUpdates[0]).toMatchObject({
+      nodeId: 'node',
+      updates: {
+        lastActivityAt: 130,
       },
-      {
-        nodeId: 'node',
-        updates: {
-          status: 'done',
-          finalOutput: '最终输出',
-        },
+    });
+    expect(traceUpdates[1]).toMatchObject({
+      nodeId: 'node',
+      updates: {
+        status: 'done',
+        errorMessage: undefined,
+        durationMs: 45,
+        finishedAt: 145,
+        lastActivityAt: 145,
       },
-    ]);
+    });
+    expect(traceUpdates[2]).toMatchObject({
+      nodeId: 'node',
+      updates: {
+        status: 'done',
+        finalOutput: '最终输出',
+        progressMessage: undefined,
+        lastActivityAt: 145,
+      },
+    });
     expect(terminalStatuses).toEqual(['completed', 'final:completed']);
     expect(errors).toEqual([null]);
     expect(closed).toBe(1);
     expect(reset).toBe(1);
+    expect(sessionMetaUpdates.at(-1)).toMatchObject({
+      phase: 'completed',
+      phaseMessage: '执行完成',
+    });
+  });
+
+  it('updates session phase and trace progress for workflow_status, node_progress and heartbeat', () => {
+    const traceUpdates: Array<{ nodeId: string; updates: Record<string, unknown> }> = [];
+    const sessionMetaUpdates: Array<Record<string, unknown>> = [];
+
+    const deps = {
+      getExecutionSession: () => ({
+        sessionId: 'session-1',
+        workflowId: 'wf-1',
+        workflowName: '测试工作流',
+        startedAt: 0,
+        overallStatus: 'running',
+        traces: [makeTrace({ nodeId: 'node-1', status: 'running' })],
+        completedCount: 0,
+        totalCount: 1,
+        chains: [],
+      }),
+      now: () => 88,
+      nextTraceOrder: () => 1,
+      startTimeMap: {},
+      setStatus: () => {},
+      setError: () => {},
+      setSelectedNodeId: () => {},
+      updateNodeData: () => {},
+      registerNodeTrace: () => {},
+      updateNodeTrace: (nodeId: string, updates: Record<string, unknown>) => {
+        traceUpdates.push({ nodeId, updates });
+      },
+      appendNodeTraceToken: () => {},
+      updateExecutionSessionMeta: (updates: Partial<WorkflowExecutionSession>) => {
+        sessionMetaUpdates.push(updates as Record<string, unknown>);
+      },
+      finalizeExecutionSession: () => {},
+      closeStream: () => {},
+      resetTrackingState: () => {},
+    };
+
+    expect(applyWorkflowExecutionEvent(
+      'workflow_status',
+      JSON.stringify({ type: 'workflow_status', workflow_id: 'wf-1', phase: 'validating', message: '正在校验执行图' }),
+      deps,
+    )).toBe(false);
+    expect(applyWorkflowExecutionEvent(
+      'node_progress',
+      JSON.stringify({
+        type: 'node_progress',
+        node_id: 'node-1',
+        message: '正在联网搜索',
+        phase: 'start',
+        parallel_group_id: 'node-1|node-2',
+        iteration: 2,
+      }),
+      deps,
+    )).toBe(false);
+    expect(applyWorkflowExecutionEvent(
+      'heartbeat',
+      JSON.stringify({ type: 'heartbeat', workflow_id: 'wf-1', phase: 'executing', ts: '2026-03-30T10:00:00Z' }),
+      deps,
+    )).toBe(false);
+
+    expect(sessionMetaUpdates[0]).toMatchObject({
+      lastActivityAt: 88,
+    });
+    expect(sessionMetaUpdates[1]).toMatchObject({
+      phase: 'validating',
+      phaseMessage: '正在校验执行图',
+      lastActivityAt: 88,
+    });
+    expect(traceUpdates[0]).toMatchObject({
+      nodeId: 'node-1',
+      updates: {
+        status: 'running',
+        progressMessage: '正在联网搜索',
+        parallelGroupId: 'node-1|node-2',
+        iteration: 2,
+      },
+    });
+    expect(sessionMetaUpdates.at(-1)).toMatchObject({
+      phase: 'executing',
+      lastActivityAt: 88,
+    });
   });
 });

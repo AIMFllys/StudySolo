@@ -194,8 +194,13 @@ export interface NodeExecutionTrace {
   durationMs?: number;
   isParallel: boolean;
   parallelGroupId?: string;
+  loopGroupId?: string;
+  iteration?: number;
   inputSummary?: string;
   rawInputSnapshot?: string;
+  progressMessage?: string;
+  phase?: string;
+  lastActivityAt?: number;
   streamingOutput: string;
   finalOutput?: string;
   outputFormat?: string;
@@ -222,6 +227,9 @@ export interface WorkflowExecutionSession {
   completedCount: number;
   totalCount: number;
   chains?: WorkflowChain[];
+  phase?: string;
+  phaseMessage?: string;
+  lastActivityAt?: number;
 }
 
 /** 兼容旧数据 — 为缺失字段补充默认值，旧类型统一迁移为 sequential */

@@ -103,8 +103,8 @@ export const getAdminAiTimeseries = (range: AdminUsageRange = '7d', source: Usag
 export const getAdminAiModelBreakdown = (range: AdminUsageRange = '7d', source: UsageSourceFilter = 'all') =>
   adminFetch<ModelBreakdownResponse>(`/dashboard/ai-model-breakdown?range=${range}&source=${source}`);
 
-export const getAdminAiRecentCalls = (limit = 20) =>
-  adminFetch<RecentCallsResponse>(`/dashboard/ai-recent-calls?limit=${limit}`);
+export const getAdminAiRecentCalls = (page = 1, pageSize = 10) =>
+  adminFetch<RecentCallsResponse>(`/dashboard/ai-recent-calls?page=${page}&page_size=${pageSize}`);
 
 export const getAdminAiCostSplit = (range: AdminUsageRange = '7d') =>
   adminFetch<CostSplitResponse>(`/dashboard/ai-cost-split?range=${range}`);

@@ -18,9 +18,13 @@ from app.engine.events import sse_event as _sse_event
 
 VALID_EVENT_TYPES = {
     "node_status",
+    "node_input",
     "node_token",
     "node_done",
+    "node_progress",
     "loop_iteration",
+    "workflow_status",
+    "heartbeat",
     "workflow_done",
     "save_error",
 }
@@ -67,9 +71,13 @@ def test_sse_event_types_cover_all_required():
     """The valid event type set must contain the current executor event set."""
     required = {
         "node_status",
+        "node_input",
         "node_token",
         "node_done",
+        "node_progress",
         "loop_iteration",
+        "workflow_status",
+        "heartbeat",
         "workflow_done",
         "save_error",
     }
@@ -102,6 +110,12 @@ def test_workflow_done_event_structure(workflow_id, status):
     parsed = json.loads(data_line[len("data: "):])
     assert parsed["workflow_id"] == workflow_id
     assert parsed["status"] == status
+
+
+def test_sse_event_keeps_utf8_characters_readable():
+    result = _sse_event("node_progress", {"node_id": "n1", "message": "中文输出阶段"})
+    assert "\\u4e2d" not in result
+    assert "中文输出阶段" in result
 
 
 @given(

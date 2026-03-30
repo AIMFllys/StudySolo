@@ -6,6 +6,7 @@ import {
   buildExecutionRequestBody,
   getExecutionFailureMessage,
   shouldFinalizeExecutionAsInterrupted,
+  EXECUTION_ACTIVITY_GRACE_MS,
 } from '@/features/workflow/utils/execution-state';
 import { extractSseEvents } from '@/features/workflow/utils/parse-sse';
 import { applyWorkflowExecutionEvent } from '@/features/workflow/utils/workflow-execution-events';
@@ -19,6 +20,7 @@ export function useWorkflowExecution() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const startTimeMapRef = useRef<Record<string, number>>({});
   const traceOrderRef = useRef(1);
+  const lastActivityAtRef = useRef(0);
 
   const currentWorkflowId = useWorkflowStore((state) => state.currentWorkflowId);
   const currentWorkflowName = useWorkflowStore((state) => state.currentWorkflowName);
@@ -28,12 +30,14 @@ export function useWorkflowExecution() {
   const registerNodeTrace = useWorkflowStore((state) => state.registerNodeTrace);
   const updateNodeTrace = useWorkflowStore((state) => state.updateNodeTrace);
   const appendNodeTraceToken = useWorkflowStore((state) => state.appendNodeTraceToken);
+  const updateExecutionSessionMeta = useWorkflowStore((state) => state.updateExecutionSessionMeta);
   const finalizeExecutionSession = useWorkflowStore((state) => state.finalizeExecutionSession);
   const clearExecutionSession = useWorkflowStore((state) => state.clearExecutionSession);
 
   const resetTrackingState = useCallback(() => {
     startTimeMapRef.current = {};
     traceOrderRef.current = 1;
+    lastActivityAtRef.current = 0;
   }, []);
 
   const closeStream = useCallback(() => {
@@ -69,6 +73,7 @@ export function useWorkflowExecution() {
       setError(null);
       clearExecutionSession();
       startExecutionSession(id, workflowName);
+      lastActivityAtRef.current = performance.now();
       window.dispatchEvent(new Event('workflow:close-node-config'));
 
       const controller = new AbortController();
@@ -76,6 +81,7 @@ export function useWorkflowExecution() {
       let didComplete = false;
 
       const handleEvent = (event: string, payload: string) => {
+        lastActivityAtRef.current = performance.now();
         didComplete = applyWorkflowExecutionEvent(event, payload, {
           getExecutionSession: () => useWorkflowStore.getState().executionSession,
           now: () => performance.now(),
@@ -88,6 +94,7 @@ export function useWorkflowExecution() {
           registerNodeTrace,
           updateNodeTrace,
           appendNodeTraceToken,
+          updateExecutionSessionMeta,
           finalizeExecutionSession,
           closeStream,
           resetTrackingState,
@@ -114,7 +121,7 @@ export function useWorkflowExecution() {
         }
 
         const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        const decoder = new TextDecoder('utf-8');
         let buffer = '';
 
         while (true) {
@@ -138,8 +145,16 @@ export function useWorkflowExecution() {
           handleEvent(event.event, event.data);
         }
 
-        if (shouldFinalizeExecutionAsInterrupted(didComplete, controller.signal.aborted)) {
+        if (shouldFinalizeExecutionAsInterrupted(
+          didComplete,
+          controller.signal.aborted,
+          performance.now(),
+          lastActivityAtRef.current,
+          EXECUTION_ACTIVITY_GRACE_MS,
+        )) {
           finishWithError('执行流异常中断，请手动重新运行');
+        } else if (!didComplete && !controller.signal.aborted) {
+          finishWithError('执行连接已提前关闭，请查看后端日志或重试');
         }
       } catch (caught) {
         if (controller.signal.aborted) {
@@ -157,6 +172,7 @@ export function useWorkflowExecution() {
       currentWorkflowName,
       finishWithError,
       finalizeExecutionSession,
+      updateExecutionSessionMeta,
       registerNodeTrace,
       resetTrackingState,
       setSelectedNodeId,

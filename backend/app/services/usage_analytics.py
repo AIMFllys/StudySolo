@@ -134,15 +134,25 @@ async def get_model_breakdown(
     return ModelBreakdownResponse(range=range_value, source=source_filter, items=items)
 
 
-async def get_recent_calls(db: AsyncClient, *, limit: int, user_id: str | None = None) -> RecentCallsResponse:
+async def get_recent_calls(db: AsyncClient, *, page: int = 1, page_size: int = 10, user_id: str | None = None) -> RecentCallsResponse:
+    count_query = db.table("ss_ai_usage_events").select("id", count="exact")
+    if user_id:
+        count_query = count_query.eq("user_id", user_id)
+    count_res = await count_query.limit(1).execute()
+    total = count_res.count if count_res.count is not None else 0
+    total_pages = max(1, (total + page_size - 1) // page_size)
+
+    page = max(1, min(page, total_pages if total_pages > 0 else 1))
+    offset = (page - 1) * page_size
+
     query = db.table("ss_ai_usage_events").select(
         "id, request_id, source_type, source_subtype, sku_id, family_id, provider, vendor, model, "
         "billing_channel, node_id, status, is_fallback, latency_ms, total_tokens, cost_amount_cny, started_at"
-    ).order("started_at", desc=True).limit(limit)
+    ).order("started_at", desc=True).range(offset, offset + page_size - 1)
     if user_id:
         query = query.eq("user_id", user_id)
     result = await query.execute()
-    return RecentCallsResponse(calls=[
+    calls = [
         RecentCallItem(
             id=str(r["id"]), request_id=str(r["request_id"]),
             source_type=r["source_type"], source_subtype=r["source_subtype"],
@@ -158,7 +168,8 @@ async def get_recent_calls(db: AsyncClient, *, limit: int, user_id: str | None =
             started_at=datetime.fromisoformat(str(r["started_at"]).replace("Z", "+00:00")),
         )
         for r in (result.data or [])
-    ])
+    ]
+    return RecentCallsResponse(calls=calls, total=total, page=page, page_size=page_size, total_pages=total_pages)
 
 
 async def get_cost_split(db: AsyncClient, *, range_value: str, user_id: str | None = None) -> CostSplitResponse:

@@ -282,10 +282,11 @@ async def get_dashboard_ai_model_breakdown(
 
 @router.get("/dashboard/ai-recent-calls", response_model=RecentCallsResponse)
 async def get_dashboard_ai_recent_calls(
-    limit: int = Query(default=20, ge=1, le=100),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
     db: AsyncClient = Depends(get_db),
 ) -> RecentCallsResponse:
-    return await get_recent_calls(db, limit=limit)
+    return await get_recent_calls(db, page=page, page_size=page_size)
 
 
 @router.get("/dashboard/ai-cost-split", response_model=CostSplitResponse)

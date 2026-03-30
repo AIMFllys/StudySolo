@@ -68,18 +68,22 @@ _execute_single_node_with_timeout = execute_single_node_with_timeout
 def _merge_outputs(
     nodes: list[dict],
     accumulated_outputs: dict[str, str],
-    failed_nodes: set[str],
+    blocked_nodes: set[str],
+    error_nodes: set[str] | None = None,
 ) -> list[dict]:
     """Merge execution outputs back into a deep copy of the original nodes."""
     updated = copy.deepcopy(nodes)
+    node_errors = error_nodes or set()
     for node in updated:
         nid = node["id"]
         data = node.setdefault("data", {})
         if nid in accumulated_outputs:
             data["output"] = accumulated_outputs[nid]
             data["status"] = "done"
-        elif nid in failed_nodes:
+        elif nid in node_errors:
             data["status"] = "error"
+        elif nid in blocked_nodes:
+            data["status"] = "skipped"
     return updated
 
 
@@ -106,6 +110,7 @@ async def execute_workflow(
     node_map = {n["id"]: n for n in nodes}
     upstream_map = build_upstream_map(edges)
     downstream_map = build_downstream_map(edges)
+    error_nodes: set[str] = set()
     failed_nodes: set[str] = set()
     skipped_nodes: set[str] = set()
     accumulated_outputs: dict[str, str] = {}
@@ -115,7 +120,11 @@ async def execute_workflow(
             if nid in skipped_nodes:
                 yield sse_event("node_status", {"node_id": nid, "status": "skipped"})
             elif nid in failed_nodes:
-                yield sse_event("node_status", {"node_id": nid, "status": "pending"})
+                yield sse_event("node_status", {
+                    "node_id": nid,
+                    "status": "skipped",
+                    "error": "上游节点执行失败，已跳过",
+                })
 
         active_nodes = [
             nid for nid in level
@@ -127,22 +136,26 @@ async def execute_workflow(
         if len(active_nodes) == 1:
             async for ev in execute_single_level_node(
                 active_nodes[0], node_map, nodes, edges, upstream_map, downstream_map,
-                implicit_context, accumulated_outputs, failed_nodes, skipped_nodes,
+                implicit_context, accumulated_outputs, error_nodes, failed_nodes, skipped_nodes,
             ):
                 yield ev
         else:
             async for ev in execute_parallel_level(
                 active_nodes, node_map, edges, upstream_map, downstream_map,
-                implicit_context, accumulated_outputs, failed_nodes, skipped_nodes,
+                implicit_context, accumulated_outputs, error_nodes, failed_nodes, skipped_nodes,
             ):
                 yield ev
 
     if save_callback:
         try:
-            updated_nodes = _merge_outputs(nodes, accumulated_outputs, failed_nodes)
+            updated_nodes = _merge_outputs(nodes, accumulated_outputs, failed_nodes, error_nodes)
             await save_callback(workflow_id, updated_nodes)
         except Exception as e:
             logger.error("Auto-save failed for workflow %s: %s", workflow_id, e)
             yield sse_event("save_error", {"workflow_id": workflow_id, "error": str(e)})
 
-    yield sse_event("workflow_done", {"workflow_id": workflow_id, "status": "completed"})
+    yield sse_event("workflow_done", {
+        "workflow_id": workflow_id,
+        "status": "error" if error_nodes else "completed",
+        **({"error": f"{len(error_nodes)} 个节点执行失败"} if error_nodes else {}),
+    })

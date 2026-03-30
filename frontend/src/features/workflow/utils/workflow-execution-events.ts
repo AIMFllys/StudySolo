@@ -1,6 +1,6 @@
 import type { WorkflowSSEEvent } from '@/types/workflow-events';
 import type { WorkflowExecutionSession } from '@/types/workflow';
-import { buildParallelGroupId, parseInputSummary } from '@/features/workflow/utils/trace-helpers';
+import { parseInputSummary } from '@/features/workflow/utils/trace-helpers';
 
 type ExecutionTerminalStatus = 'completed' | 'error';
 type WorkflowNodeDataUpdate =
@@ -24,6 +24,7 @@ interface WorkflowExecutionEventDeps {
   ) => void;
   updateNodeTrace: (nodeId: string, updates: Record<string, unknown>) => void;
   appendNodeTraceToken: (nodeId: string, token: string) => void;
+  updateExecutionSessionMeta: (updates: Partial<WorkflowExecutionSession>) => void;
   finalizeExecutionSession: (status: ExecutionTerminalStatus) => void;
   closeStream: () => void;
   resetTrackingState: () => void;
@@ -35,40 +36,33 @@ export function applyWorkflowExecutionEvent(
   deps: WorkflowExecutionEventDeps,
 ): boolean {
   try {
+    const eventTime = deps.now();
+    deps.updateExecutionSessionMeta({ lastActivityAt: eventTime });
+
     if (event === 'node_input') {
       const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'node_input' }>;
       deps.startTimeMap[data.node_id] = deps.now();
-      const session = deps.getExecutionSession();
-      const runningNodeIds = (session?.traces ?? [])
-        .filter((trace) => trace.status === 'running' && trace.nodeId !== data.node_id)
-        .map((trace) => trace.nodeId);
-      const parallelGroupId = runningNodeIds.length > 0
-        ? buildParallelGroupId([...runningNodeIds, data.node_id])
-        : undefined;
-
-      if (parallelGroupId) {
-        for (const runningNodeId of runningNodeIds) {
-          deps.updateNodeTrace(runningNodeId, {
-            isParallel: true,
-            parallelGroupId,
-          });
-        }
-      }
-
       deps.registerNodeTrace(
         data.node_id,
         deps.nextTraceOrder(),
-        Boolean(parallelGroupId),
-        parallelGroupId,
+        Boolean(data.parallel_group_id),
+        data.parallel_group_id,
       );
       deps.updateNodeData(data.node_id, {
         input_snapshot: data.input_snapshot,
       });
       deps.updateNodeTrace(data.node_id, {
         status: 'running',
-        startedAt: deps.now(),
+        startedAt: eventTime,
         inputSummary: parseInputSummary(data.input_snapshot),
         rawInputSnapshot: data.input_snapshot,
+        isParallel: Boolean(data.parallel_group_id),
+        parallelGroupId: data.parallel_group_id,
+        loopGroupId: data.loop_group_id,
+        iteration: data.iteration,
+        phase: data.phase,
+        progressMessage: undefined,
+        lastActivityAt: eventTime,
       });
       return false;
     }
@@ -80,16 +74,18 @@ export function applyWorkflowExecutionEvent(
       const updates: Record<string, unknown> = {
         status: data.status,
         ...(data.error ? { error: data.error } : {}),
+        ...(data.phase ? { phase: data.phase } : {}),
+        ...(data.iteration ? { currentIteration: data.iteration } : {}),
       };
 
       if (data.status === 'running') {
         if (!deps.startTimeMap[data.node_id]) {
-          deps.startTimeMap[data.node_id] = deps.now();
+          deps.startTimeMap[data.node_id] = eventTime;
         }
-      } else if (data.status === 'done' || data.status === 'error') {
+      } else if (data.status === 'done' || data.status === 'error' || data.status === 'skipped') {
         const startT = deps.startTimeMap[data.node_id];
         if (startT) {
-          updates.execution_time_ms = Math.round(deps.now() - startT);
+          updates.execution_time_ms = Math.round(eventTime - startT);
           delete deps.startTimeMap[data.node_id];
         }
       }
@@ -99,10 +95,16 @@ export function applyWorkflowExecutionEvent(
         deps.updateNodeTrace(data.node_id, {
           status: data.status,
           errorMessage: data.error,
+          isParallel: Boolean(data.parallel_group_id),
+          parallelGroupId: data.parallel_group_id,
+          loopGroupId: data.loop_group_id,
+          iteration: data.iteration,
+          phase: data.phase,
           durationMs: typeof updates.execution_time_ms === 'number' ? updates.execution_time_ms : undefined,
-          finishedAt: data.status === 'done' || data.status === 'error'
-            ? deps.now()
+          finishedAt: data.status === 'done' || data.status === 'error' || data.status === 'skipped'
+            ? eventTime
             : undefined,
+          lastActivityAt: eventTime,
         });
       }
       return false;
@@ -115,6 +117,14 @@ export function applyWorkflowExecutionEvent(
         output: (prev.output ?? '') + data.token,
       }));
       deps.appendNodeTraceToken(data.node_id, data.token);
+      deps.updateNodeTrace(data.node_id, {
+        isParallel: Boolean(data.parallel_group_id),
+        parallelGroupId: data.parallel_group_id,
+        loopGroupId: data.loop_group_id,
+        iteration: data.iteration,
+        phase: data.phase,
+        lastActivityAt: eventTime,
+      });
       return false;
     }
 
@@ -128,7 +138,31 @@ export function applyWorkflowExecutionEvent(
       deps.updateNodeTrace(data.node_id, {
         status: 'done',
         finalOutput: data.full_output,
+        progressMessage: undefined,
+        isParallel: Boolean(data.parallel_group_id),
+        parallelGroupId: data.parallel_group_id,
+        loopGroupId: data.loop_group_id,
+        iteration: data.iteration,
+        phase: data.phase,
+        lastActivityAt: eventTime,
       });
+      return false;
+    }
+
+    if (event === 'node_progress') {
+      const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'node_progress' }>;
+      deps.setSelectedNodeId(data.node_id);
+      deps.updateNodeTrace(data.node_id, {
+        status: 'running',
+        progressMessage: data.message,
+        isParallel: Boolean(data.parallel_group_id),
+        parallelGroupId: data.parallel_group_id,
+        loopGroupId: data.loop_group_id,
+        iteration: data.iteration,
+        phase: data.phase,
+        lastActivityAt: eventTime,
+      });
+      deps.updateExecutionSessionMeta({ lastActivityAt: eventTime });
       return false;
     }
 
@@ -139,6 +173,32 @@ export function applyWorkflowExecutionEvent(
         currentIteration: data.iteration,
         totalIterations: data.total,
         status: 'running',
+      });
+      deps.updateNodeTrace(data.group_id, {
+        status: 'running',
+        loopGroupId: data.loop_group_id ?? data.group_id,
+        iteration: data.iteration,
+        progressMessage: `正在执行第 ${data.iteration}/${data.total} 轮循环`,
+        lastActivityAt: eventTime,
+      });
+      return false;
+    }
+
+    if (event === 'workflow_status') {
+      const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'workflow_status' }>;
+      deps.updateExecutionSessionMeta({
+        phase: data.phase,
+        phaseMessage: data.message,
+        lastActivityAt: eventTime,
+      });
+      return false;
+    }
+
+    if (event === 'heartbeat') {
+      const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'heartbeat' }>;
+      deps.updateExecutionSessionMeta({
+        phase: data.phase,
+        lastActivityAt: eventTime,
       });
       return false;
     }
@@ -154,6 +214,11 @@ export function applyWorkflowExecutionEvent(
       const nextStatus = data.status === 'completed' ? 'completed' : 'error';
       deps.setStatus(nextStatus);
       deps.setError(data.status === 'completed' ? null : (data.error ?? '工作流执行失败'));
+      deps.updateExecutionSessionMeta({
+        phase: nextStatus,
+        phaseMessage: data.status === 'completed' ? '执行完成' : (data.error ?? '工作流执行失败'),
+        lastActivityAt: eventTime,
+      });
       deps.finalizeExecutionSession(nextStatus);
       deps.closeStream();
       deps.resetTrackingState();

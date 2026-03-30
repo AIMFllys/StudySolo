@@ -1,5 +1,7 @@
 import type { Edge, Node } from '@xyflow/react';
 
+export const EXECUTION_ACTIVITY_GRACE_MS = 12_000;
+
 export function buildExecutionRequestBody(nodes: Node[], edges: Edge[]) {
   return {
     nodes_json: nodes,
@@ -16,6 +18,9 @@ export function getExecutionFailureMessage(error: unknown): string {
 export function shouldFinalizeExecutionAsInterrupted(
   didComplete: boolean,
   aborted: boolean,
+  now: number,
+  lastActivityAt: number,
+  graceMs: number = EXECUTION_ACTIVITY_GRACE_MS,
 ): boolean {
-  return !didComplete && !aborted;
+  return !didComplete && !aborted && now - lastActivityAt > graceMs;
 }

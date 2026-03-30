@@ -105,6 +105,7 @@ export default function RightPanelContent() {
   const focusStatusToneClassName = executionSession && focusTrace
     ? 'mt-2 text-[10px] uppercase tracking-[0.18em] text-primary'
     : null;
+  const executionPhaseMessage = executionSession?.phaseMessage ?? null;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -113,6 +114,11 @@ export default function RightPanelContent() {
           <p className="mb-3 text-sm text-muted-foreground">
             每个生成步骤都会在这里同步展示，便于看清当前逻辑链路和产出。
           </p>
+          {executionPhaseMessage ? (
+            <div className="mb-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2 text-xs text-muted-foreground">
+              {executionPhaseMessage}
+            </div>
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <StatusItem status="pending" count={pendingCount} />
             <StatusItem status="running" count={runningCount} />

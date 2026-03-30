@@ -60,9 +60,10 @@ def test_merge_outputs_sets_done_status_for_accumulated(node_ids, output_text):
     nodes = [make_node(nid) for nid in node_ids]
     # Use a subset of node_ids as accumulated outputs
     accumulated_outputs = {nid: f"{output_text}_{nid}" for nid in node_ids[:max(1, len(node_ids) // 2)]}
-    failed_nodes: set[str] = set()
+    blocked_nodes: set[str] = set()
+    error_nodes: set[str] = set()
 
-    result = _merge_outputs(nodes, accumulated_outputs, failed_nodes)
+    result = _merge_outputs(nodes, accumulated_outputs, blocked_nodes, error_nodes)
 
     # Length must equal input nodes
     assert len(result) == len(nodes), (
@@ -87,22 +88,22 @@ def test_merge_outputs_sets_error_status_for_failed(node_ids):
     """
     **Validates: Requirements 10.1**
 
-    For any nodes in failed_nodes (without accumulated output),
-    _merge_outputs must set data.status to 'error'.
+    For any nodes in blocked_nodes (without accumulated output),
+    _merge_outputs must set data.status to 'skipped'.
     """
     nodes = [make_node(nid) for nid in node_ids]
-    # No accumulated outputs; all nodes are failed
+    # No accumulated outputs; all nodes are blocked by upstream failures
     accumulated_outputs: dict[str, str] = {}
-    failed_nodes = set(node_ids)
+    blocked_nodes = set(node_ids)
 
-    result = _merge_outputs(nodes, accumulated_outputs, failed_nodes)
+    result = _merge_outputs(nodes, accumulated_outputs, blocked_nodes, set())
 
     assert len(result) == len(nodes)
 
     for node in result:
         nid = node["id"]
-        assert node["data"]["status"] == "error", (
-            f"Node {nid}: data.status must be 'error' when in failed_nodes"
+        assert node["data"]["status"] == "skipped", (
+            f"Node {nid}: data.status must be 'skipped' when in blocked_nodes"
         )
 
 
@@ -112,14 +113,14 @@ def test_merge_outputs_accumulated_takes_priority_over_failed(node_ids, output_t
     """
     **Validates: Requirements 10.1, 10.2**
 
-    When a node is in both accumulated_outputs and failed_nodes,
+    When a node is in both accumulated_outputs and error_nodes,
     accumulated output takes priority: status must be 'done'.
     """
     nodes = [make_node(nid) for nid in node_ids]
     accumulated_outputs = {nid: f"{output_text}_{nid}" for nid in node_ids}
-    failed_nodes = set(node_ids)  # same nodes in both
+    error_nodes = set(node_ids)  # same nodes in both
 
-    result = _merge_outputs(nodes, accumulated_outputs, failed_nodes)
+    result = _merge_outputs(nodes, accumulated_outputs, set(), error_nodes)
 
     for node in result:
         nid = node["id"]
@@ -139,7 +140,7 @@ def test_merge_outputs_length_equals_input(node_ids):
     The length of updated_nodes must always equal the length of input nodes.
     """
     nodes = [make_node(nid) for nid in node_ids]
-    result = _merge_outputs(nodes, {}, set())
+    result = _merge_outputs(nodes, {}, set(), set())
 
     assert len(result) == len(nodes)
 

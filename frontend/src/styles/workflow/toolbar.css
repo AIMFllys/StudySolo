@@ -13,17 +13,17 @@
   gap: 2px;
   padding: 4px;
   border-radius: 14px;
-  background: rgba(15, 23, 42, 0.9);
+  background: var(--card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
-.light .canvas-floating-toolbar {
-  background: rgba(28, 25, 23, 0.88);
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+.dark .canvas-floating-toolbar {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
 }
 
 .canvas-floating-toolbar .toolbar-btn {
@@ -35,15 +35,15 @@
   border: none;
   border-radius: 10px;
   background: transparent;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   cursor: pointer;
   transition: all 0.15s ease;
   position: relative;
 }
 
 .canvas-floating-toolbar .toolbar-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f1f5f9;
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .canvas-floating-toolbar .toolbar-btn.active {
@@ -55,7 +55,7 @@
 .canvas-floating-toolbar .toolbar-divider {
   width: 1px;
   height: 20px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--border);
   margin: 0 2px;
 }
 
@@ -74,18 +74,18 @@
   gap: 4px;
   padding: 6px 10px;
   border-radius: 12px;
-  background: rgba(15, 23, 42, 0.92);
+  background: var(--card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
   animation: search-bar-in 0.2s ease-out;
 }
 
-.light .canvas-search-bar {
-  background: rgba(28, 25, 23, 0.9);
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+.dark .canvas-search-bar {
+  background: rgba(15, 23, 42, 0.92);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
 }
 
 @keyframes search-bar-in {
@@ -103,10 +103,10 @@
   width: 200px;
   height: 30px;
   padding: 0 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--muted);
+  border: 1px solid transparent;
   border-radius: 8px;
-  color: #e2e8f0;
+  color: var(--foreground);
   font-size: 13px;
   font-family: 'Noto Serif SC', 'Georgia', serif;
   outline: none;
@@ -114,16 +114,17 @@
 }
 
 .canvas-search-input:focus {
-  border-color: rgba(99, 102, 241, 0.5);
+  border-color: var(--primary);
 }
 
 .canvas-search-input::placeholder {
-  color: rgba(148, 163, 184, 0.5);
+  color: var(--muted-foreground);
+  opacity: 0.6;
 }
 
 .canvas-search-count {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-family: 'Noto Serif SC', 'Georgia', serif;
   white-space: nowrap;
   min-width: 40px;
@@ -140,15 +141,15 @@
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .canvas-search-nav:hover,
 .canvas-search-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .canvas-search-nav:disabled {
@@ -169,17 +170,18 @@
   width: 260px;
   padding: 10px;
   border-radius: 14px;
-  background: rgba(15, 23, 42, 0.92);
+  background: var(--card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   animation: search-bar-in 0.2s ease-out;
 }
 
-.light .canvas-emoji-picker {
-  background: rgba(28, 25, 23, 0.9);
-  border-color: rgba(255, 255, 255, 0.08);
+.dark .canvas-emoji-picker {
+  background: rgba(15, 23, 42, 0.92);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
 .canvas-emoji-header {
@@ -188,12 +190,12 @@
   justify-content: space-between;
   margin-bottom: 8px;
   padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border);
 }
 
 .canvas-emoji-title {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-family: 'Noto Serif SC', 'Georgia', serif;
   letter-spacing: 0.5px;
 }
@@ -207,14 +209,14 @@
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .canvas-emoji-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .canvas-emoji-grid {
@@ -238,6 +240,6 @@
 }
 
 .canvas-emoji-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--muted);
   transform: scale(1.15);
 }

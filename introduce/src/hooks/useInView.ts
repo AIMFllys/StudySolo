@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, RefObject } from 'react';
+import { useState, useEffect, useRef, type RefObject } from 'react';
 
 export function useInView<T extends HTMLElement = HTMLDivElement>(
   threshold = 0.15,
   rootMargin = '0px'
-): [RefObject<T>, boolean] {
+): [RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
   const [inView, setInView] = useState(false);
 
@@ -20,7 +20,7 @@ export function useInView<T extends HTMLElement = HTMLDivElement>(
       { threshold, rootMargin }
     );
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); };
   }, [threshold, rootMargin]);
 
   return [ref, inView];

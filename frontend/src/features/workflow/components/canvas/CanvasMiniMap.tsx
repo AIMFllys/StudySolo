@@ -109,8 +109,8 @@ export default function CanvasMiniMap() {
         position="bottom-left"
         nodeBorderRadius={18}
         nodeStrokeWidth={selectedNodeId ? 2 : 1}
-        nodeColor={(node) => (node.id === selectedNodeId ? '#818cf8' : '#1e293b')}
-        maskColor="rgba(2, 6, 23, 0.45)"
+        nodeColor={(node) => (node.id === selectedNodeId ? '#818cf8' : 'var(--minimap-node-bg, #94a3b8)')}
+        maskColor="var(--minimap-mask-bg, rgba(2, 6, 23, 0.45))"
         onNodeClick={handleMinimapNodeClick}
         style={{
           width: isLarge ? 300 : 200,
@@ -132,7 +132,7 @@ export default function CanvasMiniMap() {
                 setIsLarge(!isLarge);
                 setContextMenu(null);
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-slate-100 dark:hover:bg-white/5"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               {isLarge ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
               {isLarge ? '缩小尺寸' : '放大尺寸'}
@@ -142,7 +142,7 @@ export default function CanvasMiniMap() {
                 setIsMinimized(true);
                 setContextMenu(null);
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-slate-100 dark:hover:bg-white/5"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <Settings2 className="h-4 w-4" />
               最小化隐藏
@@ -150,7 +150,7 @@ export default function CanvasMiniMap() {
             <div className="my-1 h-px bg-slate-100 dark:bg-white/[0.08]" />
             <button
               onClick={() => setContextMenu(null)}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-slate-100 dark:hover:bg-white/5 hover:text-foreground"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-foreground"
             >
               <X className="h-4 w-4" />
               取消
