@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { useAdminSidebarNavigation } from '@/features/admin/hooks/use-admin-sidebar-navigation';
 import { useAdminLogoutAction } from '@/features/admin/hooks/use-admin-logout-action';
 import { useAdminStore } from '@/stores/use-admin-store';
@@ -53,10 +54,8 @@ export function AdminSidebar() {
         }`}
       >
         {/* Logo */}
-        <div className="flex h-11 shrink-0 items-center gap-2.5 overflow-hidden border-b border-border px-3">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary text-[9px] font-black text-primary-foreground">
-            SS
-          </div>
+        <div className="flex h-11 shrink-0 items-center gap-2 overflow-hidden border-b border-border px-[13px]">
+          <Image src="/StudySolo.png" alt="StudySolo" width={20} height={20} className="shrink-0 rounded" />
           <motion.span
             animate={{ opacity: expanded ? 1 : 0 }}
             transition={{ duration: 0.1, delay: expanded ? 0.05 : 0 }}
@@ -67,16 +66,16 @@ export function AdminSidebar() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-1.5">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-[5px]">
           {GROUPS.map((groupKey, gi) => {
             const items = ADMIN_NAV_ITEMS.filter((i) => i.group === groupKey);
             return (
               <div key={groupKey}>
-                {gi > 0 && <div className="mx-2 my-2 h-px bg-border" />}
+                {gi > 0 && <div className="mx-3 my-2 h-px bg-border" />}
                 <motion.div
                   animate={{ opacity: expanded ? 1 : 0, height: expanded ? 22 : 0 }}
                   transition={{ duration: 0.1 }}
-                  className="overflow-hidden px-2.5"
+                  className="overflow-hidden px-3"
                 >
                   <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">
                     {GROUP_LABELS[groupKey]}
@@ -90,7 +89,9 @@ export function AdminSidebar() {
                         key={item.href}
                         href={item.href}
                         onClick={closeSidebarOnMobileNavigate}
-                        className={`group relative flex h-8 items-center gap-2.5 overflow-hidden rounded-md px-2.5 transition-colors duration-75 ${
+                        className={`group relative flex h-8 items-center gap-2.5 overflow-hidden rounded-md transition-colors duration-75 ${
+                          expanded ? 'px-3' : 'justify-center'
+                        } ${
                           active
                             ? 'bg-secondary text-foreground'
                             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -99,7 +100,7 @@ export function AdminSidebar() {
                         {active && (
                           <div className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-primary" />
                         )}
-                        <span className={`material-symbols-outlined shrink-0 text-[18px] ${active ? 'text-primary' : ''}`}>
+                        <span className={`material-symbols-outlined shrink-0 text-[16px] ${active ? 'text-primary' : ''}`}>
                           {item.icon}
                         </span>
                         <motion.span
@@ -119,8 +120,8 @@ export function AdminSidebar() {
         </nav>
 
         {/* Bottom */}
-        <div className="shrink-0 border-t border-border px-1.5 py-2 space-y-px">
-          <div className="flex h-8 items-center gap-2.5 overflow-hidden rounded-md px-2.5">
+        <div className="shrink-0 border-t border-border px-[5px] py-2 space-y-px">
+          <div className={`flex h-8 items-center gap-2.5 overflow-hidden rounded-md ${expanded ? 'px-3' : 'justify-center'}`}>
             <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-secondary text-[9px] font-bold text-muted-foreground">
               {adminLabel.slice(0, 2).toUpperCase()}
             </div>
@@ -135,9 +136,9 @@ export function AdminSidebar() {
           <button
             onClick={() => void logout()}
             disabled={loggingOut}
-            className="flex h-8 w-full items-center gap-2.5 overflow-hidden rounded-md px-2.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-destructive disabled:opacity-50"
+            className={`flex h-8 w-full items-center gap-2.5 overflow-hidden rounded-md text-muted-foreground/60 transition-colors hover:bg-muted hover:text-destructive disabled:opacity-50 ${expanded ? 'px-3' : 'justify-center'}`}
           >
-            <span className="material-symbols-outlined shrink-0 text-[18px]">logout</span>
+            <span className="material-symbols-outlined shrink-0 text-[16px]">logout</span>
             <motion.span
               animate={{ opacity: expanded ? 1 : 0 }}
               transition={{ duration: 0.08, delay: expanded ? 0.04 : 0 }}
