@@ -156,7 +156,7 @@ export function ChatInputBar({
             )}
           </div>
 
-          {/* Right: Model selector + Status + Send */}
+          {/* Right: Model selector + Send */}
           <div className="flex items-center gap-1.5">
             <ModelSelector
               value={chatModel}
@@ -167,9 +167,6 @@ export function ChatInputBar({
               isError={modelsError}
               onRetry={onModelsRetry}
             />
-            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${streaming ? 'text-primary bg-primary/10' : 'text-muted-foreground/40'}`}>
-              {streaming ? '● 流式' : '○ 就绪'}
-            </span>
             <button onClick={onSend} disabled={loading && !streaming}
               className={`flex h-7 w-7 items-center justify-center rounded-lg border-[1.5px] shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-40 ${streaming ? 'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20' : 'border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 hover:-translate-y-0.5'}`}
               title={streaming ? '停止' : '发送'}>

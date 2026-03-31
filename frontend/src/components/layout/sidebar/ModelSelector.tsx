@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Crown, Loader2, RefreshCw, Star, Zap } from 'lucide-react';
+import { ChevronDown, Crown, Loader2, Zap } from 'lucide-react';
 import { canAccessModel, type AIModelOption } from '@/features/workflow/constants/ai-models';
 import { type ChatModelOption } from '@/services/ai-catalog.service';
 import type { TierType } from '@/services/auth.service';
@@ -76,7 +76,6 @@ function ChatModelSelectorUI({
   };
 
   const displayName = value?.displayName ?? '选择模型';
-  const brandColor = value?.brandColor ?? '#4B5563';
 
   return (
     <div className="relative" ref={containerRef}>
@@ -90,45 +89,31 @@ function ChatModelSelectorUI({
           if (!isLoading) setOpen(!open);
         }}
         disabled={isLoading}
-        className={`flex items-center gap-1.5 rounded-lg border-[1.5px] px-2.5 py-1.5 text-[11px] font-medium transition-all ${
+        className={`flex items-center gap-1 px-1 py-0.5 text-[11px] transition-colors rounded ${
           isError
-            ? 'border-red-400/50 node-paper-bg cursor-pointer text-red-500 hover:border-red-500/60 hover:shadow-sm'
+            ? 'text-red-400 hover:text-red-300 cursor-pointer'
             : isLoading
-              ? 'border-border/50 node-paper-bg cursor-wait text-muted-foreground/40 opacity-70'
-              : 'border-border/50 node-paper-bg text-foreground/80 hover:border-primary/30 hover:shadow-sm'
+              ? 'text-muted-foreground/40 cursor-wait'
+              : 'text-muted-foreground/70 hover:text-foreground/90'
         }`}
       >
-        {isError ? (
-          <RefreshCw className="h-2.5 w-2.5 shrink-0 text-red-400" />
-        ) : isLoading ? (
-          <Loader2 className="h-2.5 w-2.5 shrink-0 animate-spin text-muted-foreground/50" />
-        ) : (
-          <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: brandColor }} />
-        )}
         <span className="truncate max-w-[120px]">
-          {isError ? '加载失败' : isLoading ? '加载中...' : displayName}
+          {isError ? '加载失败' : isLoading ? '...' : displayName}
         </span>
-        {!isError && (
-          <ChevronDown className={`h-3 w-3 text-muted-foreground/60 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-        )}
+        <ChevronDown className={`h-3 w-3 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1.5 w-[260px] rounded-xl border-[1.5px] border-border/50 node-paper-bg p-1.5 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/70 font-serif">
-            选择模型
+        <div className="absolute right-0 bottom-full z-50 mb-2 w-[240px] rounded-xl border border-border/60 bg-popover p-1 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+            模型
           </div>
 
-          <div className="max-h-[320px] overflow-y-auto scrollbar-hide">
+          <div className="max-h-[280px] overflow-y-auto scrollbar-hide">
             {isLoading ? (
-              // Skeleton loading slots
-              Array.from({ length: 4 }).map((_, i) => (
+              Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-2 rounded-lg px-2.5 py-2">
-                  <div className="h-2 w-2 rounded-full bg-muted-foreground/15 shrink-0 animate-pulse" />
-                  <div className="flex-1 space-y-1.5">
-                    <div className="h-2.5 w-24 rounded bg-muted-foreground/15 animate-pulse" />
-                    <div className="h-2 w-32 rounded bg-muted-foreground/10 animate-pulse" />
-                  </div>
+                  <div className="h-2.5 w-20 rounded bg-muted-foreground/15 animate-pulse" />
                 </div>
               ))
             ) : (
@@ -143,33 +128,20 @@ function ChatModelSelectorUI({
                     type="button"
                     onClick={() => handleSelect(model)}
                     disabled={isLocked}
-                    className={`group flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-all ${
-                      isLocked ? 'cursor-not-allowed opacity-60' : 'hover:bg-white/5'
-                    } ${isSelected ? 'bg-primary/8 ring-1 ring-primary/20' : ''}`}
+                    className={`group flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-all ${
+                      isLocked ? 'cursor-not-allowed opacity-40' : 'hover:bg-accent'
+                    } ${isSelected ? 'bg-accent' : ''}`}
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={`text-[12px] font-medium truncate ${isSelected ? 'text-foreground' : 'text-foreground/80'}`}>
-                          {model.displayName}
-                        </span>
-                        {model.isPremium && (
-                          <span className="flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-500 shrink-0">
-                            <Crown className="h-2.5 w-2.5" />
-                            {model.requiredTier.toUpperCase()}
-                          </span>
-                        )}
-                        {model.isRecommended && (
-                          <span className="flex items-center gap-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">
-                            <Star className="h-2.5 w-2.5" />
-                            推荐
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground/50 truncate block">
-                        {model.description}
+                    <span className={`text-[12px] truncate flex-1 ${isSelected ? 'text-foreground font-medium' : 'text-foreground/80'}`}>
+                      {model.displayName}
+                    </span>
+                    {model.isPremium && (
+                      <span className="flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-1 py-0.5 text-[8px] font-semibold text-amber-500 shrink-0">
+                        <Crown className="h-2 w-2" />
+                        PRO
                       </span>
-                    </div>
-                    {isSelected ? <Zap className="h-3 w-3 text-primary shrink-0" /> : null}
+                    )}
+                    {isSelected && <Zap className="h-3 w-3 text-primary shrink-0" />}
                   </button>
                 );
               })
