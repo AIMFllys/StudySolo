@@ -3,13 +3,12 @@ import SessionRefresher from '@/app/s/[id]/SessionRefresher';
 
 export default function MemoryLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen w-screen bg-background">
-      {/* Reuse Supabase session refresh outside dashboard layout */}
+    <div className="relative h-screen w-screen overflow-hidden bg-background">
       <SessionRefresher />
 
-      {/* Floating minimalist top bar */}
-      <header className="sticky top-0 z-50 px-4 py-3 border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
+      {/* Floating minimalist top bar over the canvas */}
+      <header className="absolute top-0 left-0 right-0 z-50 px-4 py-3 pointer-events-none">
+        <div className="flex items-center justify-between max-w-7xl mx-auto pointer-events-auto">
           <a
             href="/workspace"
             className="flex items-center gap-2 rounded-md bg-background/80 backdrop-blur-md px-3 py-1.5 border border-border/50 text-sm font-serif font-semibold text-foreground shadow-sm hover:bg-background/90 transition-all group"
@@ -23,7 +22,8 @@ export default function MemoryLayout({ children }: { children: React.ReactNode }
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
+      {/* Canvas spans the entire wrapper */}
+      <main className="absolute inset-0 block h-full w-full">{children}</main>
     </div>
   );
 }

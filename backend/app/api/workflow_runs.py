@@ -99,10 +99,10 @@ async def get_run_detail(
     if not run.data:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "运行记录不存在")
 
-    # Fetch workflow name
+    # Fetch workflow name + canvas data for memory canvas view
     wf = (
         await db.from_("ss_workflows")
-        .select("name")
+        .select("name, nodes_json, edges_json")
         .eq("id", run.data["workflow_id"])
         .maybe_single()
         .execute()
@@ -119,6 +119,8 @@ async def get_run_detail(
     return {
         **run.data,
         "workflow_name": wf.data["name"] if wf.data else "未知工作流",
+        "nodes_json": wf.data.get("nodes_json", []) if wf.data else [],
+        "edges_json": wf.data.get("edges_json", []) if wf.data else [],
         "traces": traces.data or [],
     }
 
@@ -161,10 +163,10 @@ async def get_public_run(
 
 
 async def _build_public_run_response(db: AsyncClient, run_data: dict, run_id: str) -> dict:
-    """Build the full public run response with workflow name and traces."""
+    """Build the full public run response with workflow name, canvas data, and traces."""
     wf = (
         await db.from_("ss_workflows")
-        .select("name")
+        .select("name, nodes_json, edges_json")
         .eq("id", run_data["workflow_id"])
         .maybe_single()
         .execute()
@@ -183,6 +185,8 @@ async def _build_public_run_response(db: AsyncClient, run_data: dict, run_id: st
     return {
         **run_data,
         "workflow_name": wf.data["name"] if wf.data else "未知工作流",
+        "nodes_json": wf.data.get("nodes_json", []) if wf.data else [],
+        "edges_json": wf.data.get("edges_json", []) if wf.data else [],
         "traces": traces.data or [],
     }
 

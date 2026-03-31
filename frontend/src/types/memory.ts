@@ -2,6 +2,8 @@
  * Workflow Memory types — run history and node-level traces.
  */
 
+import type { Node, Edge } from '@xyflow/react';
+
 export interface WorkflowRunMeta {
   id: string;
   workflow_id: string;
@@ -34,5 +36,7 @@ export interface RunTrace {
 
 export interface WorkflowRunDetail extends WorkflowRunMeta {
   workflow_name: string;
+  nodes_json?: Node[];
+  edges_json?: Edge[];
   traces: RunTrace[];
 }

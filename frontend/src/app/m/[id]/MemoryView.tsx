@@ -1,15 +1,35 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
-  Clock, Zap, Hash, Share2, Check, Copy,
+  Clock, Zap, Hash, Share2, Check, Copy, Pencil,
   AlertTriangle, CheckCircle2, Loader2, XCircle,
   ChevronDown, ChevronUp, Timer,
 } from 'lucide-react';
 import type { WorkflowRunDetail, RunTrace } from '@/types/memory';
+import type { NodeType } from '@/types/workflow';
 import { toggleRunShare } from '@/services/memory.service';
 import { NODE_TYPE_META } from '@/features/workflow/constants/workflow-meta';
-import type { NodeType } from '@/types/workflow';
+import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { injectTracesIntoNodes, findOrphanTraces } from './inject-traces';
+
+const ReadOnlyCanvas = dynamic(
+  () => import('@/components/workflow/ReadOnlyCanvas'),
+  { ssr: false, loading: () => <CanvasPlaceholder /> },
+);
+
+function CanvasPlaceholder() {
+  return (
+    <div className="h-full w-full flex items-center justify-center bg-background">
+      <div className="text-center text-muted-foreground">
+        <div className="h-8 w-8 mx-auto mb-2 rounded-full border-2 border-muted-foreground/30 border-t-foreground animate-spin" />
+        <p className="text-xs">加载画布...</p>
+      </div>
+    </div>
+  );
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -34,134 +54,13 @@ function computeTotalDuration(run: WorkflowRunDetail): number | null {
 }
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; label: string; className: string }> = {
-  completed: { icon: CheckCircle2, label: '已完成', className: 'text-emerald-600 dark:text-emerald-400' },
-  failed: { icon: XCircle, label: '执行失败', className: 'text-rose-600 dark:text-rose-400' },
-  running: { icon: Loader2, label: '执行中', className: 'text-sky-600 dark:text-sky-400' },
+  completed: { icon: CheckCircle2, label: '已完成', className: 'text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
+  failed: { icon: XCircle, label: '执行失败', className: 'text-rose-600 dark:text-rose-400 border-rose-500/30' },
+  running: { icon: Loader2, label: '执行中', className: 'text-sky-600 dark:text-sky-400 border-sky-500/30' },
 };
 
 function getNodeMeta(nodeType: string) {
-  const meta = NODE_TYPE_META[nodeType as NodeType];
-  return meta ?? NODE_TYPE_META.chat_response;
-}
-
-// ─── Markdown-lite renderer (no external dep) ───────────────────────────────
-
-function SimpleMarkdown({ text }: { text: string }) {
-  const lines = text.split('\n');
-  return (
-    <div className="prose prose-sm dark:prose-invert max-w-none text-[12px] leading-relaxed font-mono">
-      {lines.map((line, i) => {
-        if (line.startsWith('### ')) return <h4 key={i} className="text-[13px] font-bold mt-3 mb-1 font-serif">{line.slice(4)}</h4>;
-        if (line.startsWith('## ')) return <h3 key={i} className="text-[14px] font-bold mt-4 mb-1 font-serif">{line.slice(3)}</h3>;
-        if (line.startsWith('# ')) return <h2 key={i} className="text-[15px] font-bold mt-4 mb-2 font-serif">{line.slice(2)}</h2>;
-        if (line.startsWith('- ') || line.startsWith('* ')) return <li key={i} className="ml-4 list-disc">{line.slice(2)}</li>;
-        if (line.match(/^\d+\.\s/)) {
-          const content = line.replace(/^\d+\.\s/, '');
-          return <li key={i} className="ml-4 list-decimal">{content}</li>;
-        }
-        if (line.trim() === '') return <div key={i} className="h-2" />;
-        return <p key={i} className="my-0.5">{line}</p>;
-      })}
-    </div>
-  );
-}
-
-// ─── TraceCard ──────────────────────────────────────────────────────────────
-
-function TraceCard({ trace, index }: { trace: RunTrace; index: number }) {
-  const [expanded, setExpanded] = useState(trace.status === 'done' && !!trace.final_output);
-  const meta = getNodeMeta(trace.node_type);
-  const Icon = meta.icon;
-  const isError = trace.status === 'error';
-  const isSkipped = trace.status === 'skipped';
-
-  return (
-    <div
-      className={`group relative rounded-xl border bg-card shadow-sm transition-all hover:shadow-md ${
-        isError
-          ? 'border-rose-300 dark:border-rose-700/60'
-          : isSkipped
-            ? 'border-dashed border-muted-foreground/30'
-            : 'border-border/60'
-      }`}
-    >
-      {/* Header */}
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left"
-      >
-        {/* Order badge */}
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-[11px] font-bold font-mono text-muted-foreground">
-          {index + 1}
-        </span>
-
-        {/* Icon */}
-        <span className={`shrink-0 ${isSkipped ? 'opacity-40' : ''}`}>
-          <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-        </span>
-
-        {/* Name + type */}
-        <div className="flex-1 min-w-0">
-          <span className={`text-[13px] font-semibold font-serif ${isSkipped ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-            {trace.node_name}
-          </span>
-          <span className="ml-2 text-[10px] text-muted-foreground font-mono">
-            {meta.label}
-          </span>
-        </div>
-
-        {/* Meta badges */}
-        <div className="flex items-center gap-2 shrink-0">
-          {trace.model_route && (
-            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground">
-              {trace.model_route}
-            </span>
-          )}
-          {trace.duration_ms !== null && (
-            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground font-mono">
-              <Timer className="h-3 w-3" />
-              {formatDuration(trace.duration_ms)}
-            </span>
-          )}
-          {isError && <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />}
-          {expanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
-        </div>
-      </button>
-
-      {/* Expanded content */}
-      {expanded && (
-        <div className="border-t border-border/40 px-4 py-3 space-y-3">
-          {/* Input snapshot */}
-          {trace.input_snapshot && (
-            <div>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">📥 输入</p>
-              <div className="rounded-lg bg-muted/50 p-3 text-[11px] text-muted-foreground max-h-32 overflow-y-auto scrollbar-hide">
-                {trace.input_snapshot.length > 500 ? trace.input_snapshot.slice(0, 500) + '…' : trace.input_snapshot}
-              </div>
-            </div>
-          )}
-
-          {/* Output */}
-          {trace.final_output && (
-            <div>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">📤 输出</p>
-              <div className="rounded-lg bg-muted/30 border border-border/30 p-3 max-h-[400px] overflow-y-auto scrollbar-hide">
-                <SimpleMarkdown text={trace.final_output} />
-              </div>
-            </div>
-          )}
-
-          {/* Error */}
-          {trace.error_message && (
-            <div className="rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 p-3">
-              <p className="text-[11px] text-rose-700 dark:text-rose-400 font-mono">{trace.error_message}</p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+  return NODE_TYPE_META[nodeType as NodeType] ?? NODE_TYPE_META.chat_response;
 }
 
 // ─── ShareToggle ────────────────────────────────────────────────────────────
@@ -189,18 +88,18 @@ function ShareToggle({ runId, initialShared }: { runId: string; initialShared: b
   }, [runId]);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-2">
       <button
         type="button"
         onClick={handleToggle}
         disabled={loading}
-        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-all border ${
+        className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-serif font-medium transition-all border shadow-sm ${
           isShared
             ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
-            : 'border-border text-muted-foreground hover:bg-muted'
+            : 'bg-background border-border text-muted-foreground hover:bg-muted'
         }`}
       >
-        {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
+        {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
         {isShared ? '已公开' : '分享'}
       </button>
 
@@ -208,9 +107,9 @@ function ShareToggle({ runId, initialShared }: { runId: string; initialShared: b
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-[10px] text-muted-foreground hover:bg-muted transition-colors"
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3.5 py-2 text-xs font-serif font-medium text-muted-foreground hover:bg-muted transition-colors shadow-sm"
         >
-          {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+          {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
           {copied ? '已复制' : '复制链接'}
         </button>
       )}
@@ -218,9 +117,50 @@ function ShareToggle({ runId, initialShared }: { runId: string; initialShared: b
   );
 }
 
-// ─── Main MemoryView ────────────────────────────────────────────────────────
+// ─── Orphan TraceCard (fallback for traces without matching nodes) ──────────
 
-export default function MemoryView({ run }: { run: WorkflowRunDetail }) {
+function OrphanTraceCard({ trace, index }: { trace: RunTrace; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const meta = getNodeMeta(trace.node_type);
+  const Icon = meta.icon;
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-background/95 backdrop-blur-md shadow-sm">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-left"
+      >
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted text-[9px] font-bold font-mono text-muted-foreground">
+          {index + 1}
+        </span>
+        <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" strokeWidth={1.5} />
+        <span className="text-[11px] font-semibold font-serif text-foreground truncate flex-1">
+          {trace.node_name}
+        </span>
+        {trace.duration_ms !== null && (
+          <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground font-mono">
+            <Timer className="h-2.5 w-2.5" />
+            {formatDuration(trace.duration_ms)}
+          </span>
+        )}
+        {trace.status === 'error' && <AlertTriangle className="h-3 w-3 text-rose-500 shrink-0" />}
+        {expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
+      </button>
+      {expanded && trace.final_output && (
+        <div className="border-t border-border/40 px-3 py-2">
+          <p className="text-[10px] text-muted-foreground font-mono whitespace-pre-wrap break-words max-h-40 overflow-y-auto scrollbar-hide">
+            {trace.final_output.slice(0, 1000)}{trace.final_output.length > 1000 ? '…' : ''}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Fallback: card list view (when nodes_json is unavailable) ──────────────
+
+function FallbackCardView({ run }: { run: WorkflowRunDetail }) {
   const totalDuration = computeTotalDuration(run);
   const statusCfg = STATUS_CONFIG[run.status] ?? STATUS_CONFIG.completed;
   const StatusIcon = statusCfg.icon;
@@ -228,83 +168,208 @@ export default function MemoryView({ run }: { run: WorkflowRunDetail }) {
   const errorTraces = run.traces.filter((t) => t.status === 'error');
 
   return (
-    <div className="space-y-6 pb-12 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-      {/* ── Run Summary Card ── */}
-      <div className="rounded-2xl border border-border/60 bg-card shadow-sm p-5 space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1 min-w-0">
-            <h1 className="text-lg font-bold font-serif text-foreground truncate">
-              {run.workflow_name}
-            </h1>
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono flex-wrap">
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {formatDateTime(run.started_at)}
-              </span>
-              {totalDuration !== null && (
-                <span className="flex items-center gap-1">
-                  <Zap className="h-3 w-3" />
-                  总耗时 {formatDuration(totalDuration)}
-                </span>
-              )}
-              <span className="flex items-center gap-1">
-                <Hash className="h-3 w-3" />
-                Token {run.tokens_used?.toLocaleString() ?? '0'}
-              </span>
+    <div className="absolute inset-0 overflow-y-auto">
+      <div className="mx-auto max-w-4xl px-4 py-20 space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+        {/* Run Summary */}
+        <div className="rounded-2xl border border-border/60 bg-card shadow-sm p-5 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1 min-w-0">
+              <h1 className="text-lg font-bold font-serif text-foreground truncate">{run.workflow_name}</h1>
+              <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono flex-wrap">
+                <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDateTime(run.started_at)}</span>
+                {totalDuration !== null && (
+                  <span className="flex items-center gap-1"><Zap className="h-3 w-3" />总耗时 {formatDuration(totalDuration)}</span>
+                )}
+                <span className="flex items-center gap-1"><Hash className="h-3 w-3" />Token {run.tokens_used?.toLocaleString() ?? '0'}</span>
+              </div>
+            </div>
+            <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium ${statusCfg.className}`}>
+              <StatusIcon className={`h-3.5 w-3.5 ${run.status === 'running' ? 'animate-spin' : ''}`} />
+              {statusCfg.label}
             </div>
           </div>
-
-          {/* Status badge */}
-          <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium ${statusCfg.className} border-current/20`}>
-            <StatusIcon className={`h-3.5 w-3.5 ${run.status === 'running' ? 'animate-spin' : ''}`} />
-            {statusCfg.label}
+          <div className="flex items-center gap-4 pt-2 border-t border-dashed border-border/40">
+            <span className="text-[10px] text-muted-foreground">{doneTraces.length} 个节点完成</span>
+            {errorTraces.length > 0 && <span className="text-[10px] text-rose-600 dark:text-rose-400">{errorTraces.length} 个节点出错</span>}
+            <span className="text-[10px] text-muted-foreground">共 {run.traces.length} 个节点</span>
+            <div className="flex-1" />
+            <ShareToggle runId={run.id} initialShared={run.is_shared} />
           </div>
         </div>
 
-        {/* Stats row */}
-        <div className="flex items-center gap-4 pt-2 border-t border-dashed border-border/40">
-          <span className="text-[10px] text-muted-foreground">
-            {doneTraces.length} 个节点完成
-          </span>
-          {errorTraces.length > 0 && (
-            <span className="text-[10px] text-rose-600 dark:text-rose-400">
-              {errorTraces.length} 个节点出错
-            </span>
+        {/* Trace cards */}
+        {run.traces.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-sm text-muted-foreground">该运行记录暂无详细节点数据</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {run.traces.map((trace, i) => (
+              <OrphanTraceCard key={trace.id} trace={trace} index={i} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main MemoryView ────────────────────────────────────────────────────────
+
+interface Props {
+  run: WorkflowRunDetail;
+}
+
+export default function MemoryView({ run }: Props) {
+  const router = useRouter();
+  const totalDuration = computeTotalDuration(run);
+  const statusCfg = STATUS_CONFIG[run.status] ?? STATUS_CONFIG.completed;
+  const StatusIcon = statusCfg.icon;
+  const doneTraces = run.traces.filter((t) => t.status === 'done');
+  const errorTraces = run.traces.filter((t) => t.status === 'error');
+
+  const hasCanvas = !!(run.nodes_json && run.nodes_json.length > 0);
+
+  // Inject trace data into nodes for canvas rendering
+  const injectedNodes = useMemo(() => {
+    if (!hasCanvas) return [];
+    return injectTracesIntoNodes(run.nodes_json!, run.traces);
+  }, [hasCanvas, run.nodes_json, run.traces]);
+
+  const edges = useMemo(() => run.edges_json ?? [], [run.edges_json]);
+
+  // Orphan traces (traces without matching nodes in current canvas)
+  const orphanTraces = useMemo(() => {
+    if (!hasCanvas) return [];
+    return findOrphanTraces(run.nodes_json!, run.traces);
+  }, [hasCanvas, run.nodes_json, run.traces]);
+
+  const [showOrphans, setShowOrphans] = useState(false);
+
+  // Initialize workflow store so AIStepNode → NodeResultSlip renders correctly
+  useEffect(() => {
+    if (!hasCanvas) return;
+    const store = useWorkflowStore.getState();
+    store.setCurrentWorkflow(run.workflow_id, run.workflow_name, injectedNodes, []);
+    // Defer edges by one frame (same pattern as WorkflowCanvasLoader)
+    requestAnimationFrame(() => {
+      useWorkflowStore.getState().setEdges(edges);
+    });
+    // Force show all NodeResultSlips
+    if (!useWorkflowStore.getState().showAllNodeSlips) {
+      useWorkflowStore.getState().toggleGlobalNodeSlips();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fallback: no canvas data → card list view
+  if (!hasCanvas) {
+    return <FallbackCardView run={run} />;
+  }
+
+  return (
+    <div className="relative w-full h-full flex flex-col pointer-events-none">
+      {/* Background Fullscreen Canvas */}
+      <div className="absolute inset-0 z-0 pointer-events-auto">
+        <ReadOnlyCanvas
+          nodes={injectedNodes}
+          edges={edges}
+          className="h-full w-full"
+        />
+      </div>
+
+      {/* Floating UI Container */}
+      <div className="absolute inset-x-0 top-16 z-10 px-6 pt-4 pointer-events-none flex justify-between items-start">
+
+        {/* Left: Run Summary Panel */}
+        <div className="pointer-events-auto max-w-sm bg-background/95 backdrop-blur-md border border-border shadow-md p-5 rounded-2xl">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <h1 className="text-xl font-serif font-bold text-foreground truncate flex-1">
+              {run.workflow_name}
+            </h1>
+            <div className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-medium shrink-0 ${statusCfg.className}`}>
+              <StatusIcon className={`h-3 w-3 ${run.status === 'running' ? 'animate-spin' : ''}`} />
+              {statusCfg.label}
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="space-y-1.5 text-[11px] text-muted-foreground font-mono">
+            <div className="flex items-center gap-2">
+              <Clock className="h-3 w-3 shrink-0" />
+              <span>{formatDateTime(run.started_at)}</span>
+            </div>
+            {totalDuration !== null && (
+              <div className="flex items-center gap-2">
+                <Zap className="h-3 w-3 shrink-0" />
+                <span>总耗时 {formatDuration(totalDuration)}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Hash className="h-3 w-3 shrink-0" />
+              <span>Token {run.tokens_used?.toLocaleString() ?? '0'}</span>
+            </div>
+          </div>
+
+          {/* Node stats */}
+          <div className="mt-3 pt-3 border-t border-dashed border-border flex items-center gap-3 text-[10px] font-serif text-muted-foreground flex-wrap">
+            <span>{doneTraces.length} 完成</span>
+            {errorTraces.length > 0 && (
+              <span className="text-rose-600 dark:text-rose-400">{errorTraces.length} 出错</span>
+            )}
+            <span>共 {run.traces.length} 节点</span>
+          </div>
+
+          {/* User input preview */}
+          {run.input && (
+            <div className="mt-3 pt-3 border-t border-dashed border-border">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">用户输入</p>
+              <p className="text-[12px] text-foreground font-serif leading-relaxed line-clamp-3">{run.input}</p>
+            </div>
           )}
-          <span className="text-[10px] text-muted-foreground">
-            共 {run.traces.length} 个节点
-          </span>
-          <div className="flex-1" />
+        </div>
+
+        {/* Right: Action Buttons */}
+        <div className="pointer-events-auto flex flex-col gap-2.5">
+          {/* Edit button — navigate to workflow editor */}
+          <button
+            onClick={() => router.push(`/c/${run.workflow_id}`)}
+            className="flex items-center gap-2 bg-background border border-border px-3.5 py-2 text-xs font-serif font-medium rounded-lg hover:bg-muted transition-colors shadow-sm"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            进入编辑
+          </button>
+
           <ShareToggle runId={run.id} initialShared={run.is_shared} />
         </div>
       </div>
 
-      {/* ── Input Summary ── */}
-      {run.input && (
-        <div className="rounded-xl border border-border/40 bg-muted/30 px-4 py-3">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">用户输入</p>
-          <p className="text-[13px] text-foreground font-serif leading-relaxed">{run.input}</p>
-        </div>
-      )}
-
-      {/* ── Section title ── */}
-      <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-border/40" />
-        <span className="text-[11px] font-semibold text-muted-foreground font-serif tracking-wider">执行记录</span>
-        <div className="h-px flex-1 bg-border/40" />
-      </div>
-
-      {/* ── Trace cards ── */}
-      {run.traces.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-sm text-muted-foreground">该运行记录暂无详细节点数据</p>
-          <p className="text-[11px] text-muted-foreground/60 mt-1">此运行可能发生在记忆系统启用之前</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {run.traces.map((trace, i) => (
-            <TraceCard key={trace.id} trace={trace} index={i} />
-          ))}
+      {/* Bottom: Orphan traces panel (traces without matching canvas nodes) */}
+      {orphanTraces.length > 0 && (
+        <div className="absolute bottom-6 left-1/2 z-[100] -translate-x-1/2 pointer-events-auto w-[calc(100%-2rem)] max-w-lg animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <div className="relative bg-background/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl px-4 py-3">
+            <button
+              onClick={() => setShowOrphans((v) => !v)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-[11px] font-serif font-semibold text-foreground">
+                  {orphanTraces.length} 个节点已从画布移除
+                </span>
+              </div>
+              {showOrphans
+                ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                : <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+              }
+            </button>
+            {showOrphans && (
+              <div className="mt-3 space-y-2 max-h-60 overflow-y-auto scrollbar-hide">
+                {orphanTraces.map((trace, i) => (
+                  <OrphanTraceCard key={trace.id} trace={trace} index={i} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
