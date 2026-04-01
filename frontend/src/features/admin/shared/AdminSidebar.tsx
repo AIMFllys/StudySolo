@@ -33,12 +33,13 @@ export function AdminSidebar() {
   const adminLabel = admin?.username ?? '管理员';
 
   // Pinned = expanded (persisted); unpinned = icon-only
-  const [pinned, setPinned] = useState(false);
+  // 默认展开，读取缓存若为 'false' 则收起
+  const [pinned, setPinned] = useState(true);
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === 'true') setPinned(true);
+      if (stored === 'false') setPinned(false);
     } catch { /* ignore */ }
   }, []);
 

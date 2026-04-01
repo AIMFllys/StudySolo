@@ -77,13 +77,21 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   }, [status]);
 
   // Listen for global expand/collapse-all events (used by Memory View)
+  const allSlipsExpandedRef = useRef(false);
   useEffect(() => {
     const handleExpandAll = (e: Event) => {
       const expand = (e as CustomEvent<boolean>).detail;
+      allSlipsExpandedRef.current = expand;
       setIsExpanded(expand);
     };
     window.addEventListener('workflow:toggle-all-slips', handleExpandAll);
     return () => window.removeEventListener('workflow:toggle-all-slips', handleExpandAll);
+  }, []);
+
+  const handleToggleAllSlipsExpand = useCallback(() => {
+    const next = !allSlipsExpandedRef.current;
+    allSlipsExpandedRef.current = next;
+    window.dispatchEvent(new CustomEvent('workflow:toggle-all-slips', { detail: next }));
   }, []);
 
   // Native capture-phase right-click: beats ReactFlow's node wrapper handler
@@ -134,11 +142,13 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
               onHideSlip: () => {
                 const nodes = useWorkflowStore.getState().nodes;
                 const node = nodes.find(n => n.id === nodeId);
-                const hideSlip = (node?.data as any)?.hideSlip || false;
+                const hideSlip = (node?.data as Record<string, unknown>)?.hideSlip || false;
                 useWorkflowStore.getState().updateNodeData(nodeId, { hideSlip: !hideSlip });
               },
               onHideGlobalSlips: () => useWorkflowStore.getState().toggleGlobalNodeSlips(),
               isGlobalSlipsHidden: !useWorkflowStore.getState().showAllNodeSlips,
+              allSlipsExpanded: allSlipsExpandedRef.current,
+              onToggleAllSlipsExpand: handleToggleAllSlipsExpand,
             })}
           />,
           document.body
@@ -306,11 +316,13 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
             onHideSlip: () => {
               const nodes = useWorkflowStore.getState().nodes;
               const node = nodes.find(n => n.id === nodeId);
-              const hideSlip = (node?.data as any)?.hideSlip || false;
+              const hideSlip = (node?.data as Record<string, unknown>)?.hideSlip || false;
               useWorkflowStore.getState().updateNodeData(nodeId, { hideSlip: !hideSlip });
             },
             onHideGlobalSlips: () => useWorkflowStore.getState().toggleGlobalNodeSlips(),
             isGlobalSlipsHidden: !useWorkflowStore.getState().showAllNodeSlips,
+            allSlipsExpanded: allSlipsExpandedRef.current,
+            onToggleAllSlipsExpand: handleToggleAllSlipsExpand,
           })}
         />,
         document.body

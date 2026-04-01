@@ -54,6 +54,7 @@ function WorkflowCanvasInner() {
   const [canvasMenu, setCanvasMenu] = useState<{ x: number; y: number } | null>(null);
   const [nodeMenu, setNodeMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const [edgeMenu, setEdgeMenu] = useState<{ x: number; y: number; edgeId: string } | null>(null);
+  const [allSlipsExpanded, setAllSlipsExpanded] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -215,6 +216,12 @@ function WorkflowCanvasInner() {
           items={buildCanvasMenuItems({
             onPaste: () => void pasteAtScreen(canvasMenu.x, canvasMenu.y),
             onToggleBg: handleToggleBg, isFullscreen, onToggleFullscreen: handleToggleFullscreen,
+            allSlipsExpanded,
+            onToggleAllSlips: () => {
+              const next = !allSlipsExpanded;
+              setAllSlipsExpanded(next);
+              window.dispatchEvent(new CustomEvent('workflow:toggle-all-slips', { detail: next }));
+            },
           })}
           onClose={() => setCanvasMenu(null)}
         />
@@ -237,6 +244,12 @@ function WorkflowCanvasInner() {
             onToggleGlobalSlips: () => useWorkflowStore.getState().toggleGlobalNodeSlips(),
             isSlipHidden: (useWorkflowStore.getState().nodes.find(n => n.id === nodeMenu.nodeId)?.data as WorkflowCanvasNodeData | undefined)?.hideSlip === true,
             isGlobalSlipsHidden: !useWorkflowStore.getState().showAllNodeSlips,
+            allSlipsExpanded,
+            onToggleAllSlipsExpand: () => {
+              const next = !allSlipsExpanded;
+              setAllSlipsExpanded(next);
+              window.dispatchEvent(new CustomEvent('workflow:toggle-all-slips', { detail: next }));
+            },
           })}
           onClose={() => setNodeMenu(null)}
         />

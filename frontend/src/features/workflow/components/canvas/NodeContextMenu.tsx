@@ -13,6 +13,7 @@ import {
   EyeOff,
   ChevronDown,
   ChevronUp,
+  ChevronsUpDown,
 } from 'lucide-react';
 
 export interface NodeContextMenuItem {
@@ -115,6 +116,8 @@ export function buildNodeMenuGroups({
   onToggleGlobalSlips,
   isSlipHidden,
   isGlobalSlipsHidden,
+  allSlipsExpanded,
+  onToggleAllSlipsExpand,
 }: {
   onCopy: () => void;
   onConfigure: () => void;
@@ -123,7 +126,30 @@ export function buildNodeMenuGroups({
   onToggleGlobalSlips: () => void;
   isSlipHidden: boolean;
   isGlobalSlipsHidden: boolean;
+  allSlipsExpanded?: boolean;
+  onToggleAllSlipsExpand?: () => void;
 }): NodeContextMenuGroup[] {
+  const slipItems: NodeContextMenuItem[] = [
+    {
+      label: isSlipHidden ? '显示运行详情' : '隐藏运行详情',
+      icon: isSlipHidden ? <Eye size={14} /> : <EyeOff size={14} />,
+      onClick: onToggleSlip,
+    },
+    {
+      label: isGlobalSlipsHidden ? '显示全局运行详情' : '隐藏全局运行详情',
+      icon: isGlobalSlipsHidden ? <Eye size={14} className="text-blue-500" /> : <EyeOff size={14} className="text-blue-500" />,
+      onClick: onToggleGlobalSlips,
+    },
+  ];
+
+  if (onToggleAllSlipsExpand) {
+    slipItems.push({
+      label: allSlipsExpanded ? '收起全部详情' : '展开全部详情',
+      icon: <ChevronsUpDown size={14} />,
+      onClick: onToggleAllSlipsExpand,
+    });
+  }
+
   return [
     {
       items: [
@@ -172,20 +198,7 @@ export function buildNodeMenuGroups({
         },
       ],
     },
-    {
-      items: [
-        {
-          label: isSlipHidden ? '显示运行详情' : '隐藏运行详情',
-          icon: isSlipHidden ? <Eye size={14} /> : <EyeOff size={14} />,
-          onClick: onToggleSlip,
-        },
-        {
-          label: isGlobalSlipsHidden ? '显示全局运行详情' : '隐藏全局运行详情',
-          icon: isGlobalSlipsHidden ? <Eye size={14} className="text-blue-500" /> : <EyeOff size={14} className="text-blue-500" />,
-          onClick: onToggleGlobalSlips,
-        },
-      ],
-    },
+    { items: slipItems },
     {
       items: [
         {
@@ -205,13 +218,38 @@ export function buildSlipMenuGroups({
   onHideGlobalSlips,
   isExpanded,
   isGlobalSlipsHidden,
+  allSlipsExpanded,
+  onToggleAllSlipsExpand,
 }: {
   onExpandToggle: () => void;
   onHideSlip: () => void;
   onHideGlobalSlips: () => void;
   isExpanded: boolean;
   isGlobalSlipsHidden: boolean;
+  allSlipsExpanded?: boolean;
+  onToggleAllSlipsExpand?: () => void;
 }): NodeContextMenuGroup[] {
+  const visibilityItems: NodeContextMenuItem[] = [
+    {
+      label: '隐藏运行详情',
+      icon: <EyeOff size={14} />,
+      onClick: onHideSlip,
+    },
+    {
+      label: isGlobalSlipsHidden ? '显示全局运行详情' : '隐藏全局运行详情',
+      icon: isGlobalSlipsHidden ? <Eye size={14} className="text-blue-500" /> : <EyeOff size={14} className="text-blue-500" />,
+      onClick: onHideGlobalSlips,
+    },
+  ];
+
+  if (onToggleAllSlipsExpand) {
+    visibilityItems.push({
+      label: allSlipsExpanded ? '收起全部详情' : '展开全部详情',
+      icon: <ChevronsUpDown size={14} />,
+      onClick: onToggleAllSlipsExpand,
+    });
+  }
+
   return [
     {
       items: [
@@ -223,19 +261,6 @@ export function buildSlipMenuGroups({
         },
       ],
     },
-    {
-      items: [
-        {
-          label: '隐藏运行详情',
-          icon: <EyeOff size={14} />,
-          onClick: onHideSlip,
-        },
-        {
-          label: isGlobalSlipsHidden ? '显示全局运行详情' : '隐藏全局运行详情',
-          icon: isGlobalSlipsHidden ? <Eye size={14} className="text-blue-500" /> : <EyeOff size={14} className="text-blue-500" />,
-          onClick: onHideGlobalSlips,
-        },
-      ],
-    },
+    { items: visibilityItems },
   ];
 }

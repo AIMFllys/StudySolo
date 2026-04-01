@@ -6,6 +6,7 @@ import {
   Palette,
   Maximize,
   Minimize,
+  ChevronsUpDown,
 } from 'lucide-react';
 
 export interface CanvasContextMenuItem {
@@ -95,13 +96,17 @@ export function buildCanvasMenuItems({
   onToggleBg,
   isFullscreen,
   onToggleFullscreen,
+  allSlipsExpanded,
+  onToggleAllSlips,
 }: {
   onPaste: () => void;
   onToggleBg: () => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
+  allSlipsExpanded?: boolean;
+  onToggleAllSlips?: () => void;
 }): CanvasContextMenuItem[] {
-  return [
+  const items: CanvasContextMenuItem[] = [
     {
       label: '粘贴节点',
       icon: <ClipboardPaste size={14} />,
@@ -120,4 +125,14 @@ export function buildCanvasMenuItems({
       onClick: onToggleFullscreen,
     },
   ];
+
+  if (onToggleAllSlips) {
+    items.push({
+      label: allSlipsExpanded ? '收起全部详情' : '展开全部详情',
+      icon: <ChevronsUpDown size={14} />,
+      onClick: onToggleAllSlips,
+    });
+  }
+
+  return items;
 }
