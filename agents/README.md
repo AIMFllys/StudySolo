@@ -9,13 +9,75 @@
 
 ## 什么是子后端 Agent？
 
-子后端 Agent 是独立部署的 FastAPI 微服务，负责特定 AI 任务（代码审查、学习辅导、测验生成等）。每个 Agent 独立开发、独立部署、独立运行，通过主后端的 **Agent Gateway** 统一接入平台。
+子后端 Agent 是独立部署的 FastAPI 微服务，负责特定 AI 任务。每个 Agent 独立开发、独立部署、独立运行，通过主后端的 **Agent Gateway** 统一接入平台。
 
 ```
 用户请求 → 主前端 → 主后端 (Gateway) → 子后端 Agent → AI Provider
                                          ↑
                                     你在这里开发
 ```
+
+---
+
+## Agent 目录（规划）
+
+| Agent | 用途 | 端口 | 负责人 | 来源 | 状态 |
+|-------|------|------|--------|------|------|
+| `_template` | 模板（复制即用） | 8000 | 主系统 | 新建 | ✅ 规划完成 |
+| `code-review-agent` | 代码审查 | 8001 | 队友 B | 新建 | 🔨 Phase 4B |
+| `deep-research-agent` | 深度研究 | 8002 | 主系统 | 迁移自 `ResearchAgents` | ⚠️ 待迁移 |
+| `news-agent` | 新闻抓取与分析 | 8003 | 主系统 | 迁移自 `NewsAgents` | ⚠️ 待迁移 |
+| `study-tutor-agent` | 学习专家辅导 | 8004 | 待定 | 新建 | 📋 规划中 |
+| `visual-site-agent` | 可视化网站生成 | 8005 | 待定 | 新建 | 📋 规划中 |
+
+### 已有外部 Agent 迁移分析
+
+#### `ResearchAgents`（深度研究）→ `deep-research-agent`
+
+**源路径**：`D:\project\Agents\ResearchAgents`
+
+| 维度 | 兼容性 | 说明 |
+|------|--------|------|
+| 框架 | ✅ FastAPI | 完全匹配 |
+| 目录 | ✅ `app/api/routes/` + `schemas/` + `middleware/` | 几乎 1:1 对应模板 |
+| 三端点 | ⚠️ 缺 `/health` | 需补充 `agent` + `version` 字段 |
+| Schema | ✅ Pydantic V2 OpenAI 兼容 | 直接可用 |
+| SSE | ✅ `data: {json}\n\n` + `[DONE]` | 合规 |
+| Auth | ✅ API Key 中间件 | 匹配 |
+| Config | ✅ pydantic-settings | 匹配 |
+| 功能 | ⚠️ Chat 端点是 mock | 核心研究管线待实现 |
+
+**迁移步骤**（~2 小时）：
+1. `app/` → `src/`（目录重命名）
+2. 补充 `/health` 返回 `{"status":"ok","agent":"deep-research","version":"0.1.0"}`
+3. 添加 `test_contract.py`
+4. 更新 `pyproject.toml` 项目名
+
+#### `NewsAgents`（新闻抓取）→ `news-agent`
+
+**源路径**：`D:\project\Agents\newsAgents\NewsAgents`
+
+| 维度 | 兼容性 | 说明 |
+|------|--------|------|
+| 框架 | ✅ FastAPI | 完全匹配 |
+| 三端点 | ✅ 全有（+ 额外的 `/v1/responses`） | 合规 |
+| SSE | ✅ 完全合规 | 双换行 + `[DONE]` |
+| Auth | ✅ `verify_auth` | 匹配 |
+| 功能 | ✅ **生产可用**（41 个 lib，覆盖 Reddit/X/YouTube/HN/小红书/Brave 等） | 最完整 |
+| 体积 | ⚠️ ~60 文件，含 84KB 的 `last30days.py` | 较大 |
+| 结构 | ⚠️ `server/` 而非 `src/`，lib 无子目录 | 需重构 |
+| Health | ⚠️ 缺少 `agent` + `version` 字段 | 需补充 |
+
+**迁移步骤**（~4-6 小时）：
+1. `server/app.py` 拆分：路由 → `src/router.py`，入口 → `src/main.py`
+2. `server/endpoints/` 提取 health/models/completions
+3. `lib/` → `src/lib/`（保持不动，内容太多不值得大改）
+4. `server/pipeline.py` + `server/progress_sse.py` → `src/core/`
+5. Health 补充 `agent` + `version` 字段
+6. 添加 `test_contract.py`
+
+> [!TIP]
+> NewsAgents 额外支持 OpenAI **Responses API**（`/v1/responses`）——这是加分项，迁移时保留。
 
 ---
 
@@ -67,43 +129,40 @@ StudySolo/
 │   │   ├── requirements.txt                 ← 依赖锁定
 │   │   └── README.md                        ← 模板使用说明
 │   │
-│   ├── code-review-agent/                   ← 第一个实际 Agent（队友 B）
+│   ├── code-review-agent/                   ← 代码审查（队友 B 新建）
+│   │   └── ...（同 _template 结构）
+│   │
+│   ├── deep-research-agent/                 ← 深度研究（迁移自 ResearchAgents）
+│   │   └── ...（同 _template 结构）
+│   │
+│   ├── news-agent/                          ← 新闻抓取（迁移自 NewsAgents）
 │   │   ├── src/
-│   │   │   ├── __init__.py
 │   │   │   ├── main.py
 │   │   │   ├── config.py
 │   │   │   ├── router.py
-│   │   │   ├── endpoints/
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── health.py
-│   │   │   │   ├── models.py
-│   │   │   │   └── completions.py
+│   │   │   ├── endpoints/                   ← 标准三端点
 │   │   │   ├── core/
-│   │   │   │   ├── agent.py                 ← 代码审查专属逻辑
-│   │   │   │   └── prompts.py               ← 代码审查 prompt
+│   │   │   │   ├── pipeline.py              ← 研究管线（迁移自 server/pipeline.py）
+│   │   │   │   ├── progress_sse.py          ← 进度 SSE
+│   │   │   │   └── prompts.py
+│   │   │   ├── lib/                         ← 数据源集合（迁移自 lib/，保持不动）
+│   │   │   │   ├── brave_search.py
+│   │   │   │   ├── reddit.py
+│   │   │   │   ├── hackernews.py
+│   │   │   │   ├── youtube_yt.py
+│   │   │   │   └── ...（41 个源文件）
 │   │   │   ├── schemas/
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── request.py
-│   │   │   │   └── response.py
 │   │   │   └── middleware/
-│   │   │       ├── __init__.py
-│   │   │       └── auth.py
 │   │   ├── tests/
-│   │   │   ├── __init__.py
-│   │   │   ├── conftest.py
-│   │   │   ├── test_health.py
-│   │   │   ├── test_models.py
-│   │   │   ├── test_completions.py
-│   │   │   └── test_contract.py
 │   │   ├── .env.example
 │   │   ├── Dockerfile
-│   │   ├── docker-compose.yml
-│   │   ├── pyproject.toml
-│   │   ├── requirements.txt
-│   │   └── README.md
+│   │   └── pyproject.toml
 │   │
-│   └── [future-agent]/                      ← 更多 Agent（按同样结构）
-│       └── ...
+│   ├── study-tutor-agent/                   ← 学习专家（规划中）
+│   │   └── ...（同 _template 结构）
+│   │
+│   └── visual-site-agent/                   ← 可视化网站生成（规划中）
+│       └── ...（同 _template 结构）
 │
 ├── backend/
 │   └── config/
@@ -167,12 +226,14 @@ my-new-agent:
 |------|------|------|
 | 2037 | 主前端（Next.js） | 已占用 |
 | 2038 | 主后端（FastAPI） | 已占用 |
-| 2039 | 预留 | — |
+| 2039 | Wiki（预留，已废弃独立部署） | — |
 | 8000 | `_template`（开发测试） | 仅模板 |
 | 8001 | `code-review-agent` | 队友 B |
-| 8002 | 预留 | — |
-| 8003 | 预留 | — |
-| 8004-8099 | 未来 Agent | 按需分配 |
+| 8002 | `deep-research-agent` | 迁移自 ResearchAgents |
+| 8003 | `news-agent` | 迁移自 NewsAgents |
+| 8004 | `study-tutor-agent` | 规划中 |
+| 8005 | `visual-site-agent` | 规划中 |
+| 8006-8099 | 未来 Agent | 按需分配 |
 
 > [!WARNING]
 > 本地同时运行多个 Agent 时，确保端口不冲突。每个 Agent 的端口在 `.env` 中配置。
