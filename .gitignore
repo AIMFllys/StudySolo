@@ -38,6 +38,7 @@ Desktop.ini
 .agent/skills/*
 !.agent/skills/workflow-node-builder/
 !.agent/skills/project-context/
+.claude/
 .kiro/
 .cursor/
 .vscode/

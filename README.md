@@ -72,12 +72,17 @@ StudySolo/
 │   ├── app/nodes/            # 18 种工作流节点
 │   ├── app/prompts/          # 模块化 Prompt 文件（Markdown + 模板变量）
 │   └── app/api/              # REST API 路由
+├── agents/                   # 🤖 子后端 Agent 微服务 (Port: 8001-8099)
+│   ├── code-review-agent/    # 代码审查 Agent
+│   ├── deep-research-agent/  # 深度研究 Agent（迁移自 ResearchAgents）
+│   ├── news-agent/           # 新闻抓取 Agent（迁移自 NewsAgents）
+│   ├── study-tutor-agent/    # 学习专家辅导 Agent
+│   └── visual-site-agent/    # 可视化网站生成 Agent
 ├── introduce/                # 🎯 产品介绍页 (Vite React SPA, 静态部署)
 │   └── dist/                 # 构建产物，Nginx alias 托管于 /introduce/
-├── wiki/                     # 📖 官方文档站 (Next.js, 开发中)
 ├── shared/                   # 🔗 跨项目共享模块 (Git Submodule)
 ├── supabase/migrations/      # 🗄️  数据库结构迁移脚本
-├── docs/                     # 📚 架构文档 / 每日更新 / 功能规划 / SOP
+├── docs/                     # 📚 架构文档 / 团队协作 / Wiki 内容源
 ├── .agent/skills/            # 🤖 SOP 化 AI 开发技能
 └── scripts/                  # 🚀 一键启动 / 环境检测脚本
 ```
@@ -88,9 +93,11 @@ StudySolo/
 | :--- | :--- | :--- | :--- | :--- |
 | **frontend/** | Next.js 16 | PM2 守护 Node.js 进程 | `studyflow.1037solo.com/` | [frontend/README.md](./frontend/README.md) |
 | **backend/** | Python FastAPI | 宝塔 Python 管理器 | `studyflow.1037solo.com/api/` | [backend/README.md](./backend/README.md) |
+| **agents/** | Python FastAPI × N | 独立 uvicorn 进程（8001-8099） | Gateway 内部路由 | [agents/README.md](./agents/README.md) |
 | **introduce/** | Vite + React SPA | Nginx 静态文件托管 | `studyflow.1037solo.com/introduce/` | [introduce/README.md](./introduce/README.md) |
-| **wiki/** | Next.js (开发中) | 预留 PM2 进程 | `studyflow.1037solo.com/wiki/` | [wiki/README.md](./wiki/README.md) |
 | **shared/** | TypeScript | Git Submodule | — | [shared/README.md](./shared/README.md) |
+
+> **Wiki 说明**：Wiki 功能嵌入主前端 Route Group（`/wiki`），不再作为独立子项目。文档源在 `docs/wiki-content/`，详见 [wiki-init-plan.md](./docs/team/refactor/final-plan/wiki-init-plan.md)。
 
 ## 🚀 快速开始
 
@@ -193,7 +200,8 @@ studyflow.1037solo.com
   ├── /              → Next.js 前端 (PM2, port 2037)
   ├── /api/          → Python FastAPI 后端 (port 2038)
   ├── /introduce/    → Vite SPA 静态文件 (Nginx alias)
-  └── /wiki/         → Next.js 文档站 (预留, port 2039)
+  ├── /wiki/         → 主前端 Route Group (复用 port 2037)
+  └── 内部           → Agent Gateway → 子后端 Agent (port 8001-8099)
 ```
 
 详细部署流程请参考 [服务器与宝塔部署完整指南](./docs/技术指导/服务器与宝塔部署完整指南.md)。
@@ -204,7 +212,9 @@ studyflow.1037solo.com
 | :--- | :--- |
 | MCP 协议接入 | 🔧 开发中 |
 | 外部 API 对接 | 🔧 开发中 |
-| Wiki 官方文档站 | 🔧 开发中 |
+| 子后端 Agent 系统（深度研究 / 新闻分析） | 🔧 迁移中 |
+| Wiki 官方文档站（Route Group） | 📋 Phase 5 |
+| Agent Gateway 集成 | 📋 Phase 5 |
 | 用户自有 API Key 支持 | 📋 规划中 |
 | 社区节点内容审核机制 | 📋 规划中 |
 | 社区节点安全沙箱 | 📋 规划中 |
