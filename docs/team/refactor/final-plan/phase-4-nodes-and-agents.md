@@ -155,57 +155,80 @@ class QuizGenNode(BaseNode):
 
 ## Part B：子后端 Agent 样板（队友 B）
 
+> 📄 **详细协议规范**：[agent-architecture.md](agent-architecture.md)（四层接口协议完整 Schema）
+> 📄 **开发指南**：[agents/README.md](../../../../agents/README.md)（三步创建 + 端口分配 + FAQ）
+
 ### Task 4B.1：创建模板仓库结构
 
+> [!IMPORTANT]
+> Agent 目录位于项目根级 `agents/`（不是 `services/`），每个 Agent 独立。
+
 ```
-services/
-├── custom-agent-template/
+agents/
+├── README.md                     # 开发总指南
+│
+├── _template/                    # 模板（复制即用）
 │   ├── src/
 │   │   ├── __init__.py
-│   │   ├── main.py              # FastAPI 入口模板
-│   │   ├── agent.py             # Agent 逻辑模板
-│   │   ├── prompts.py           # Prompt 模板
-│   │   ├── schemas.py           # 请求/响应模型
-│   │   └── config.py            # 配置
+│   │   ├── main.py               # FastAPI 入口 + uvicorn.run()
+│   │   ├── config.py             # pydantic-settings 配置
+│   │   ├── router.py             # 路由注册
+│   │   ├── endpoints/
+│   │   │   ├── __init__.py
+│   │   │   ├── health.py         # GET /health
+│   │   │   ├── models.py         # GET /v1/models
+│   │   │   └── completions.py    # POST /v1/chat/completions
+│   │   ├── core/
+│   │   │   ├── __init__.py
+│   │   │   ├── agent.py          # Agent 核心逻辑（开发者填充）
+│   │   │   └── prompts.py        # Prompt 模板
+│   │   ├── schemas/
+│   │   │   ├── __init__.py
+│   │   │   ├── request.py        # ChatCompletionRequest
+│   │   │   └── response.py       # ChatCompletionResponse / Chunk
+│   │   └── middleware/
+│   │       ├── __init__.py
+│   │       └── auth.py           # API Key 验证中间件
 │   ├── tests/
 │   │   ├── __init__.py
-│   │   ├── test_agent.py        # 基本测试
-│   │   └── test_health.py       # 健康检查测试
+│   │   ├── conftest.py           # pytest fixtures（TestClient）
+│   │   ├── test_health.py
+│   │   ├── test_models.py
+│   │   ├── test_completions.py
+│   │   └── test_contract.py      # 四层兼容性契约测试
+│   ├── .env.example
 │   ├── Dockerfile
 │   ├── docker-compose.yml
-│   ├── .env.example
-│   ├── requirements.txt
 │   ├── pyproject.toml
-│   └── README.md                # 使用说明
+│   ├── requirements.txt
+│   └── README.md
+│
+└── code-review-agent/            # 第一个实际 Agent（队友 B）
+    └── ...（同 _template 结构）
 ```
 
 ### Task 4B.2：实现一个最小 Agent 样板
 
 以 `code-review-agent` 为例，实际实现 3 个必要端点：
 
-1. `GET /health` → 健康检查
-2. `GET /v1/models` → 模型列表
+1. `GET /health` → 健康检查（返回 status, agent, version）
+2. `GET /v1/models` → 模型列表（OpenAI 兼容格式）
 3. `POST /v1/chat/completions` → Chat Completions（支持 stream/non-stream）
 
-### Task 4B.3：编写集成测试
+### Task 4B.3：编写四层契约测试
 
 ```python
 # tests/test_contract.py
-"""验证子后端是否符合 Agent Gateway 契约"""
+"""验证子后端是否符合 Agent Gateway 四层契约"""
 
-def test_health_endpoint(client):
-    r = client.get("/health")
-    assert r.status_code == 200
-    assert "status" in r.json()
-    assert "agent" in r.json()
+# Layer 1: Request
+def test_accepts_valid_request(client): ...
+def test_rejects_missing_model(client): ...
+def test_rejects_empty_messages(client): ...
+def test_rejects_invalid_api_key(client): ...
 
-def test_models_endpoint(client):
-    r = client.get("/v1/models")
-    data = r.json()
-    assert data["object"] == "list"
-    assert len(data["data"]) > 0
-
-def test_chat_completions_non_stream(client):
+# Layer 2: Response
+def test_non_stream_response_format(client):
     r = client.post("/v1/chat/completions", json={
         "model": "test-agent",
         "messages": [{"role": "user", "content": "hello"}],
@@ -216,26 +239,46 @@ def test_chat_completions_non_stream(client):
     assert len(data["choices"]) > 0
     assert "usage" in data
 
-def test_chat_completions_stream(client):
+def test_stream_response_sse_format(client):
     r = client.post("/v1/chat/completions", json={
         "model": "test-agent",
         "messages": [{"role": "user", "content": "hello"}],
         "stream": True,
     })
-    # 验证 SSE 格式
     lines = r.text.strip().split("\n")
     assert any(line.startswith("data: ") for line in lines)
     assert lines[-1] == "data: [DONE]"
+
+def test_error_response_format(client): ...
+
+# Layer 3: Runtime
+def test_health_endpoint(client):
+    r = client.get("/health")
+    assert r.status_code == 200
+    data = r.json()
+    assert "status" in data
+    assert "agent" in data
+    assert "version" in data
+
+def test_models_endpoint(client):
+    r = client.get("/v1/models")
+    data = r.json()
+    assert data["object"] == "list"
+    assert len(data["data"]) > 0
+
+# Layer 4: Governance
+def test_request_id_propagation(client): ...
 ```
 
 ### Task 4B.4：编写子后端开发文档
 
-输出 `services/custom-agent-template/README.md`，包含：
-- 快速开始（5 分钟创建一个新 Agent）
-- 必须实现的 3 个端点
-- 四层兼容性 checklist
-- API Key 管理方式
-- 本地测试方式
+已在 `agents/README.md` 中完成，包含：
+- 三步创建新 Agent（复制模板 → 实现逻辑 → Gateway 注册）
+- 四层兼容性速查
+- 端口分配表
+- 本地开发流程
+- CI 配置
+- FAQ
 
 ### AI 编程易出问题的点
 
@@ -243,7 +286,8 @@ def test_chat_completions_stream(client):
 > 1. **OpenAI SDK 版本**：子后端 Agent 内部使用 OpenAI SDK 调用上游 AI，确保 `openai>=1.60` 的 API 兼容
 > 2. **流式 SSE 格式**：必须是 `data: {json}\n\n`，注意双换行。AI 经常忘记 `\n\n`
 > 3. **CORS**：子后端的 CORS 在开发阶段设 `allow_origins=["*"]`，生产环境必须限制
-> 4. **端口冲突**：多个 Agent 在本地跑时要分配不同端口（8001, 8002, ...）
+> 4. **端口冲突**：多个 Agent 在本地跑时要分配不同端口（8001 起递增）
+> 5. **目录位置**：是 `agents/`（项目根级），不是 `backend/app/services/`，不要搞混
 
 ---
 
@@ -258,10 +302,13 @@ def test_chat_completions_stream(client):
 
 ### Part B（子后端样板）
 
-- [ ] `custom-agent-template/` 模板可直接复制使用
-- [ ] 至少 1 个实际 Agent（如 code-review-agent）可运行
-- [ ] 集成测试全部通过（契约层）
-- [ ] 子后端开发文档已编写
+- [ ] `agents/_template/` 模板可直接复制使用
+- [ ] `agents/code-review-agent/` 至少 1 个实际 Agent 可运行
+- [ ] 四层契约测试（`test_contract.py`）全部通过
+- [ ] `agents/README.md` 开发指南已编写
+- [ ] `agent-architecture.md` 接口协议规范已冻结
 
 > [!IMPORTANT]
 > Part A 和 Part B 完全独立，可同时进行。Part B 由队友 B 负责，只需遵守 Phase 1 冻结的 Agent Gateway 契约。
+> 详细四层协议定义见 [agent-architecture.md](agent-architecture.md)。
+
