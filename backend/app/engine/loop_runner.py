@@ -61,7 +61,7 @@ async def execute_loop_group(
     failed_nodes: set[str] | None = None,
 ) -> AsyncIterator[str]:
     """Execute a loop_group container: iterate its child subgraph N times."""
-    group_id = group_id = group_node["id"]
+    group_id = group_node["id"]
     group_data = group_node.get("data", {})
 
     # Tier-based iteration limit
