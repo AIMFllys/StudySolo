@@ -88,7 +88,10 @@ GET  /api/agents/{name}/health       → 查询 Agent 健康状态
 
 ## Task 5.2：Wiki 子项目初始化（队友 A）
 
-### 方案选择
+> 📄 **详细计划已独立**：[wiki-init-plan.md](wiki-init-plan.md)（Tasks W1-W6 完整实施方案）
+> 
+> ⚠️ **方案变更**：原 `wiki/` 独立子项目方案（端口 2039）已废弃，改为 Next.js Route Group 嵌入主前端。
+> 详见 [`wiki/README.md`](../../../../wiki/README.md)
 
 **采用方案 A：Next.js Route Group**
 
