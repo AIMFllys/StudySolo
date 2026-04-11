@@ -7,6 +7,7 @@ import type { AIStepNodeData } from '@/types';
 import { getNodeTypeMeta, getNodeTheme } from '@/features/workflow/constants/workflow-meta';
 import { getCommunityIcon } from '@/features/community-nodes/constants/catalog';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
+import { eventBus } from '@/lib/events/event-bus';
 import BranchManagerPanel from './BranchManagerPanel';
 import { NodeModelSelector } from './NodeModelSelector';
 import { NodeInputBadges } from './NodeInputBadges';
@@ -111,19 +112,17 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
                 onClick={(event) => {
                   event.stopPropagation();
                   const rect = event.currentTarget.getBoundingClientRect();
-                  window.dispatchEvent(new CustomEvent('workflow:open-node-config', {
-                    detail: {
-                      nodeId: id,
-                      anchorRect: {
-                        top: rect.top,
-                        left: rect.left,
-                        right: rect.right,
-                        bottom: rect.bottom,
-                        width: rect.width,
-                        height: rect.height,
-                      },
+                  eventBus.emit('workflow:open-node-config', {
+                    nodeId: id,
+                    anchorRect: {
+                      top: rect.top,
+                      left: rect.left,
+                      right: rect.right,
+                      bottom: rect.bottom,
+                      width: rect.width,
+                      height: rect.height,
                     },
-                  }));
+                  });
                 }}
               >
                 <Settings2 className="h-3.5 w-3.5" />

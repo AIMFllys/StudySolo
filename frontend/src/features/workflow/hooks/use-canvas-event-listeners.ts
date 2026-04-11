@@ -5,6 +5,7 @@ import type { NodeConfigAnchorRect } from '@/features/workflow/components/node-c
 import { createDefaultNodeData, createCommunityNodeData } from '@/features/workflow/components/canvas/canvas-node-factory';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import type { CommunityNodeInsertPayload } from '@/types';
+import { eventBus } from '@/lib/events/event-bus';
 
 interface UseCanvasEventListenersOptions {
   reactFlowInstance: ReactFlowInstance;
@@ -36,28 +37,21 @@ export function useCanvasEventListeners({
 
   // canvas:tool-change
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { tool: CanvasTool };
-      setCanvasTool(detail.tool);
-    };
-    window.addEventListener('canvas:tool-change', handler);
-    return () => window.removeEventListener('canvas:tool-change', handler);
+    return eventBus.on('canvas:tool-change', (detail) => {
+      setCanvasTool(detail.tool as CanvasTool);
+    });
   }, [setCanvasTool]);
 
   // canvas:show-modal
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { title: string; message: string };
+    return eventBus.on('canvas:show-modal', (detail) => {
       setModal(detail);
-    };
-    window.addEventListener('canvas:show-modal', handler);
-    return () => window.removeEventListener('canvas:show-modal', handler);
+    });
   }, [setModal]);
 
   // canvas:focus-node (from search)
   useEffect(() => {
-    const handler = (e: Event) => {
-      const { nodeId } = (e as CustomEvent).detail as { nodeId: string };
+    return eventBus.on('canvas:focus-node', ({ nodeId }) => {
       const node = nodes.find((n) => n.id === nodeId);
       if (node && reactFlowInstance) {
         reactFlowInstance.setCenter(
@@ -66,15 +60,12 @@ export function useCanvasEventListeners({
           { zoom: 1.2, duration: 400 },
         );
       }
-    };
-    window.addEventListener('canvas:focus-node', handler);
-    return () => window.removeEventListener('canvas:focus-node', handler);
+    });
   }, [nodes, reactFlowInstance]);
 
   // canvas:add-annotation
   useEffect(() => {
-    const handler = (e: Event) => {
-      const { emoji } = (e as CustomEvent).detail as { emoji: string };
+    return eventBus.on('canvas:add-annotation', ({ emoji }) => {
       annotationCountRef.current += 1;
       const canvasCenter = reactFlowInstance.screenToFlowPosition({
         x: window.innerWidth / 2,
@@ -90,30 +81,22 @@ export function useCanvasEventListeners({
       };
       const currentNodes = useWorkflowStore.getState().nodes;
       setNodes([...currentNodes, newNode]);
-    };
-    window.addEventListener('canvas:add-annotation', handler);
-    return () => window.removeEventListener('canvas:add-annotation', handler);
+    });
   }, [reactFlowInstance, setNodes]);
 
   // canvas:delete-annotation
   useEffect(() => {
-    const handler = (e: Event) => {
-      const { nodeId } = (e as CustomEvent).detail as { nodeId: string };
+    return eventBus.on('canvas:delete-annotation', ({ nodeId }) => {
       const currentNodes = useWorkflowStore.getState().nodes;
       setNodes(currentNodes.filter((n) => n.id !== nodeId));
-    };
-    window.addEventListener('canvas:delete-annotation', handler);
-    return () => window.removeEventListener('canvas:delete-annotation', handler);
+    });
   }, [setNodes]);
 
   // canvas:placement-mode
   useEffect(() => {
-    const handler = (e: Event) => {
-      const { mode } = (e as CustomEvent).detail as { mode: string };
+    return eventBus.on('canvas:placement-mode', ({ mode }) => {
       setPlacementMode(mode === 'connect' ? null : mode);
-    };
-    window.addEventListener('canvas:placement-mode', handler);
-    return () => window.removeEventListener('canvas:placement-mode', handler);
+    });
   }, [setPlacementMode]);
 
   // node-store:add-node
@@ -163,28 +146,20 @@ export function useCanvasEventListeners({
 
   // workflow:open-node-config
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as {
-        nodeId?: string;
-        anchorRect?: NodeConfigAnchorRect | null;
-      };
+    return eventBus.on('workflow:open-node-config', (detail) => {
       if (detail?.nodeId) {
         setConfigNodeId(detail.nodeId);
-        setConfigAnchorRect(detail.anchorRect ?? null);
+        setConfigAnchorRect((detail.anchorRect as NodeConfigAnchorRect | null | undefined) ?? null);
       }
-    };
-    window.addEventListener('workflow:open-node-config', handler);
-    return () => window.removeEventListener('workflow:open-node-config', handler);
+    });
   }, [setConfigNodeId, setConfigAnchorRect]);
 
   // workflow:close-node-config
   useEffect(() => {
-    const handler = () => {
+    return eventBus.on('workflow:close-node-config', () => {
       setConfigNodeId(null);
       setConfigAnchorRect(null);
-    };
-    window.addEventListener('workflow:close-node-config', handler);
-    return () => window.removeEventListener('workflow:close-node-config', handler);
+    });
   }, [setConfigNodeId, setConfigAnchorRect]);
 
   // fullscreen change

@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { X, ChevronUp, ChevronDown } from 'lucide-react';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import type { AIStepNodeData } from '@/types';
+import { eventBus } from '@/lib/events/event-bus';
 
 interface SearchBarProps {
   onClose: () => void;
@@ -44,9 +45,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
       setSelectedNodeId(node.id);
 
       // Dispatch event to center the canvas on this node
-      window.dispatchEvent(
-        new CustomEvent('canvas:focus-node', { detail: { nodeId: node.id } })
-      );
+      eventBus.emit('canvas:focus-node', { nodeId: node.id });
     }
   }, [currentIndex, totalMatches, matchingNodes, setSelectedNodeId]);
 

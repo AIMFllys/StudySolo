@@ -3,6 +3,7 @@
 import { memo, useCallback } from 'react';
 import { type NodeProps, NodeResizer } from '@xyflow/react';
 import { X } from 'lucide-react';
+import { eventBus } from '@/lib/events/event-bus';
 
 interface AnnotationNodeData {
   emoji: string;
@@ -17,9 +18,7 @@ function AnnotationNode({ id, data, selected }: NodeProps) {
   const { emoji } = data as unknown as AnnotationNodeData;
 
   const handleDelete = useCallback(() => {
-    window.dispatchEvent(
-      new CustomEvent('canvas:delete-annotation', { detail: { nodeId: id } })
-    );
+    eventBus.emit('canvas:delete-annotation', { nodeId: id });
   }, [id]);
 
   return (

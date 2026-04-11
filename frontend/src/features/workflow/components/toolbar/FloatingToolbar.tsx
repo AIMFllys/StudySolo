@@ -17,6 +17,7 @@ import SearchBar from '@/features/workflow/components/toolbar/SearchBar';
 import EmojiPicker from '@/features/workflow/components/toolbar/EmojiPicker';
 import CanvasPlacementPanel from '@/features/workflow/components/toolbar/CanvasPlacementPanel';
 import type { PlacementMode } from '@/features/workflow/components/toolbar/CanvasPlacementPanel';
+import { eventBus } from '@/lib/events/event-bus';
 
 export type CanvasTool = 'select' | 'edit' | 'pan' | 'search';
 
@@ -65,27 +66,19 @@ export default function FloatingToolbar({ className = '' }: FloatingToolbarProps
     if (tool === 'search') {
       setShowSearch((prev) => !prev);
       setActiveTool('search');
-      window.dispatchEvent(
-        new CustomEvent('canvas:tool-change', { detail: { tool: 'pan' } })
-      );
+      eventBus.emit('canvas:tool-change', { tool: 'pan' });
       return;
     }
 
     setActiveTool(tool);
-    window.dispatchEvent(
-      new CustomEvent('canvas:tool-change', { detail: { tool } })
-    );
+    eventBus.emit('canvas:tool-change', { tool });
   }, []);
 
   const handleUpload = useCallback(() => {
-    window.dispatchEvent(
-      new CustomEvent('canvas:show-modal', {
-        detail: {
+    eventBus.emit('canvas:show-modal', {
           title: '上传文件到画布',
           message: '暂不支持上传文件到画布功能，敬请期待未来版本更新。',
-        },
-      })
-    );
+    });
   }, []);
 
   const handleEmojiToggle = useCallback(() => {
@@ -94,18 +87,13 @@ export default function FloatingToolbar({ className = '' }: FloatingToolbarProps
   }, []);
 
   const handleEmojiSelect = useCallback((emoji: string) => {
-    window.dispatchEvent(
-      new CustomEvent('canvas:add-annotation', { detail: { emoji } })
-    );
+    eventBus.emit('canvas:add-annotation', { emoji });
     setShowEmoji(false);
   }, []);
 
   const handlePlacementSelect = useCallback((mode: PlacementMode) => {
     setPlacementMode(mode);
-    // Dispatch placement mode event for canvas to handle
-    window.dispatchEvent(
-      new CustomEvent('canvas:placement-mode', { detail: { mode } })
-    );
+    eventBus.emit('canvas:placement-mode', { mode });
   }, []);
 
   const handleSearchClose = useCallback(() => {

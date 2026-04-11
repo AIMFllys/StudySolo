@@ -6,6 +6,7 @@ import { getRenderer } from './index';
 import { createPortal } from 'react-dom';
 import NodeContextMenu, { buildSlipMenuGroups } from '../canvas/NodeContextMenu';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
+import { eventBus, normalizeToggleAllSlipsDetail } from '@/lib/events/event-bus';
 
 interface NodeResultSlipProps {
   nodeId: string;
@@ -78,20 +79,35 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
 
   // Listen for global expand/collapse-all events (used by Memory View)
   const allSlipsExpandedRef = useRef(false);
-  useEffect(() => {
-    const handleExpandAll = (e: Event) => {
-      const expand = (e as CustomEvent<boolean>).detail;
-      allSlipsExpandedRef.current = expand;
-      setIsExpanded(expand);
-    };
-    window.addEventListener('workflow:toggle-all-slips', handleExpandAll);
-    return () => window.removeEventListener('workflow:toggle-all-slips', handleExpandAll);
+  const applyExpandedState = useCallback((expanded: boolean) => {
+    allSlipsExpandedRef.current = expanded;
+    setIsExpanded(expanded);
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = eventBus.on('workflow:toggle-all-slips', ({ expanded }) => {
+      applyExpandedState(expanded);
+    });
+
+    const handleLegacyExpandAll = (e: Event) => {
+      const expanded = normalizeToggleAllSlipsDetail(
+        (e as CustomEvent<boolean | { expanded?: boolean }>).detail,
+      );
+      if (expanded !== null) {
+        applyExpandedState(expanded);
+      }
+    };
+    window.addEventListener('workflow:toggle-all-slips', handleLegacyExpandAll);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('workflow:toggle-all-slips', handleLegacyExpandAll);
+    };
+  }, [applyExpandedState]);
 
   const handleToggleAllSlipsExpand = useCallback(() => {
     const next = !allSlipsExpandedRef.current;
     allSlipsExpandedRef.current = next;
-    window.dispatchEvent(new CustomEvent('workflow:toggle-all-slips', { detail: next }));
+    eventBus.emit('workflow:toggle-all-slips', { expanded: next });
   }, []);
 
   // Native capture-phase right-click: beats ReactFlow's node wrapper handler

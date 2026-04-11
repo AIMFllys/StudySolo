@@ -10,6 +10,7 @@ import {
 } from '@/features/workflow/utils/execution-state';
 import { extractSseEvents } from '@/features/workflow/utils/parse-sse';
 import { applyWorkflowExecutionEvent } from '@/features/workflow/utils/workflow-execution-events';
+import { eventBus } from '@/lib/events/event-bus';
 
 export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'error';
 
@@ -74,7 +75,7 @@ export function useWorkflowExecution() {
       clearExecutionSession();
       startExecutionSession(id, workflowName);
       lastActivityAtRef.current = performance.now();
-      window.dispatchEvent(new Event('workflow:close-node-config'));
+      eventBus.emit('workflow:close-node-config', undefined);
 
       const controller = new AbortController();
       abortControllerRef.current = controller;

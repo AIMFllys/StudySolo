@@ -34,6 +34,7 @@ import { useCanvasKeyboard } from '@/features/workflow/hooks/use-canvas-keyboard
 import { useCanvasEventListeners } from '@/features/workflow/hooks/use-canvas-event-listeners';
 import { useCanvasDnd } from '@/features/workflow/hooks/use-canvas-dnd';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
+import { eventBus } from '@/lib/events/event-bus';
 
 type WorkflowCanvasNodeData = Record<string, unknown> & { hideSlip?: boolean };
 
@@ -220,7 +221,7 @@ function WorkflowCanvasInner() {
             onToggleAllSlips: () => {
               const next = !allSlipsExpanded;
               setAllSlipsExpanded(next);
-              window.dispatchEvent(new CustomEvent('workflow:toggle-all-slips', { detail: next }));
+              eventBus.emit('workflow:toggle-all-slips', { expanded: next });
             },
           })}
           onClose={() => setCanvasMenu(null)}
@@ -248,7 +249,7 @@ function WorkflowCanvasInner() {
             onToggleAllSlipsExpand: () => {
               const next = !allSlipsExpanded;
               setAllSlipsExpanded(next);
-              window.dispatchEvent(new CustomEvent('workflow:toggle-all-slips', { detail: next }));
+              eventBus.emit('workflow:toggle-all-slips', { expanded: next });
             },
           })}
           onClose={() => setNodeMenu(null)}
