@@ -192,3 +192,144 @@
    - `version`
 2. 再决定 EventBus 第二批跨域事件是否单独成环
 3. 最后再考虑 `MemoryView.tsx` 是否要从兼容例外里收口
+
+## 9. 2026-04-11 晚间补充：backend manifest 真契约已落地
+
+这一轮不再只是“为 manifest-first 做前端静态准备”，而是把 backend manifest 契约真正补齐。
+
+### 完成内容
+1. `backend/app/nodes/_base.py`
+   - `BaseNode` 新增：
+     - `display_name`
+     - `renderer`
+     - `version`
+   - `BaseNode.get_manifest()` 已统一返回这三个字段
+2. 现有节点类已补齐显式 `display_name`
+3. 现有专用 renderer 节点已补齐显式 `renderer`
+   - `outline_gen -> OutlineRenderer`
+   - `flashcard -> FlashcardRenderer`
+   - `compare -> CompareRenderer`
+   - `mind_map -> MindMapRenderer`
+   - `quiz_gen -> QuizRenderer`
+   - `community_node -> CommunityNodeRenderer`
+4. `version` 当前统一固定为 `1.0.0`
+5. 新增 backend route test
+   - `backend/tests/test_node_manifest_contract_property.py`
+
+### 验证
+- `pytest backend/tests/test_node_manifest_contract_property.py`
+- 结果：通过
+
+### 提交
+- `eaeabab feat(backend): extend node manifest metadata contract`
+
+## 10. 2026-04-11 晚间补充：frontend manifest renderer 接线已完成
+
+这一闭环把前端 manifest 数据面对齐到了 backend 新契约，并把 renderer 选择真正接到了 manifest 数据。
+
+### 完成内容
+1. `frontend/src/types/workflow.ts`
+   - `NodeManifestItem` 新增：
+     - `display_name`
+     - `renderer`
+     - `version`
+2. `frontend/src/services/node-manifest.service.ts`
+   - 保持 cache / inflight 结构
+   - 新增 `peekNodeManifestCache()`
+3. `frontend/src/features/workflow/hooks/use-node-manifest.ts`
+   - 新增：
+     - `findNodeManifestItem(...)`
+     - `useNodeManifestItem(...)`
+4. 输出渲染入口已切换为：
+   - manifest 命中 `renderer` 时优先使用 manifest renderer
+   - manifest 缺失或值非法时继续回退静态 registry
+5. 新增测试
+   - `frontend/src/__tests__/node-manifest.service.property.test.ts`
+
+### 范围说明
+- 只接 renderer，不接 label/icon/description 的 UI 去硬编码
+- 不改 `workflow-meta.ts`
+- 不改节点商店
+- 不改节点配置抽屉标题文案来源
+
+### 验证
+- `pnpm.cmd test -- src/__tests__/node-manifest.service.property.test.ts src/__tests__/node-renderer-registry.property.test.ts`
+- 实际执行中 Vitest 全量一并运行，结果：
+  - `39` 个测试文件通过
+  - `155` 个测试通过
+- `pnpm.cmd build`
+  - 结果：通过
+
+### 提交
+- `0d87d1a refactor(frontend): align node manifest types and renderer resolution`
+
+## 11. 2026-04-11 晚间补充：跨域 EventBus 第二批已完成
+
+在 workflow-local 第一批之后，这一轮继续把两个跨域业务事件迁到 typed event bus。
+
+### 完成内容
+1. `frontend/src/lib/events/event-bus.ts`
+   - 新增：
+     - `node-store:add-node`
+     - `studysolo:tier-refresh`
+2. `node-store:add-node`
+   - 发射端：
+     - `frontend/src/components/layout/sidebar/NodeStoreItem.tsx`
+   - 监听端：
+     - `frontend/src/features/workflow/hooks/use-canvas-event-listeners.ts`
+3. `studysolo:tier-refresh`
+   - 发射端：
+     - `frontend/src/app/upgrade/_components/RedeemCode.tsx`
+   - 监听端：
+     - `frontend/src/components/layout/sidebar/UserPanel.tsx`
+     - `frontend/src/components/layout/sidebar/WalletPanel.tsx`
+4. `frontend/src/__tests__/workflow-event-bus.property.test.ts`
+   - 新增了第二批事件覆盖
+
+### 兼容说明
+- 没有改 `frontend/src/app/m/[id]/MemoryView.tsx`
+- `NodeResultSlip.tsx` 仍保留旧 `workflow:toggle-all-slips` 的 legacy 兼容监听
+- 所以 `/m/[id]` 仍不受这一轮迁移影响
+
+### 验证
+- `pnpm.cmd test -- src/__tests__/workflow-event-bus.property.test.ts`
+- 实际执行中 Vitest 全量一并运行，结果仍为：
+  - `39` 个测试文件通过
+  - `155` 个测试通过
+- `pnpm.cmd build`
+  - 结果：通过
+
+### 提交
+- `ca47b64 refactor(frontend): migrate cross-domain events to typed bus`
+
+## 12. 当前最新状态（更新版）
+
+截至这轮晚间补充后，今天的本地真实状态应更新为：
+
+1. **Task 3.5 不再只是“前端预适配”**
+   - backend manifest 真契约已返回：
+     - `display_name`
+     - `renderer`
+     - `version`
+   - frontend 输出渲染已真正接到 manifest `renderer`
+
+2. **Task 3.4 第二批跨域事件也已完成**
+   - `node-store:add-node`
+   - `studysolo:tier-refresh`
+
+3. **Phase 3 当前剩余边界明显收缩**
+   - `MemoryView.tsx` 仍是显式保留例外
+   - compat shim 继续保留
+   - `workflow-meta.ts` 还没有进入真正的 manifest-first 去硬编码阶段
+
+4. **本地提交链继续增加**
+   - `eaeabab feat(backend): extend node manifest metadata contract`
+   - `0d87d1a refactor(frontend): align node manifest types and renderer resolution`
+   - `ca47b64 refactor(frontend): migrate cross-domain events to typed bus`
+
+因此，今天这条主线已经从“stores / services / workflow-local EventBus / renderer 预适配”进一步推进到：
+
+- backend manifest 契约真实落地
+- frontend renderer manifest-first 最小运行时闭环完成
+- 跨域 EventBus 第二批完成
+- 测试与构建继续维持绿色
