@@ -4,6 +4,10 @@ import { authedFetch, parseApiError } from '@/services/api-client';
 let _manifestCache: NodeManifestItem[] | null = null;
 let _manifestInflight: Promise<NodeManifestItem[]> | null = null;
 
+export function peekNodeManifestCache(): NodeManifestItem[] | null {
+  return _manifestCache;
+}
+
 export async function getNodeManifest(force = false): Promise<NodeManifestItem[]> {
   if (!force && _manifestCache) {
     return _manifestCache;

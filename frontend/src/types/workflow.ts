@@ -89,6 +89,7 @@ export interface NodeConfigFieldSchema {
 export interface NodeManifestItem {
   type: NodeType;
   category: string;
+  display_name: string;
   description: string;
   is_llm_node: boolean;
   output_format: string;
@@ -99,6 +100,8 @@ export interface NodeManifestItem {
   supports_upload: boolean;
   supports_preview: boolean;
   deprecated_surface?: string | null;
+  renderer: string | null;
+  version: string;
 }
 
 /** AI 步骤节点数据（存储在 WorkflowNode.data 中） */

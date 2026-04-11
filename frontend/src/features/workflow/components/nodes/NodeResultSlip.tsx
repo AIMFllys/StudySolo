@@ -2,11 +2,12 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, CheckCircle2, AlertCircle, Loader2, Clock3 } from 'lucide-react';
 import { NodeStatus } from '@/types';
-import { getRenderer } from './index';
+import { resolveRenderer } from './index';
 import { createPortal } from 'react-dom';
 import NodeContextMenu, { buildSlipMenuGroups } from '../canvas/NodeContextMenu';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { eventBus, normalizeToggleAllSlipsDetail } from '@/lib/events/event-bus';
+import { useNodeManifestItem } from '@/features/workflow/hooks/use-node-manifest';
 
 interface NodeResultSlipProps {
   nodeId: string;
@@ -57,6 +58,7 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   const [slipMenuPos, setSlipMenuPos] = useState<{ x: number; y: number } | null>(null);
   const slipRef = useRef<HTMLDivElement>(null);
   const wasRunningRef = useRef(false);
+  const { manifestItem } = useNodeManifestItem(nodeType);
   const parsedInput = useMemo(() => parseInputSnapshot(inputSnapshot), [inputSnapshot]);
   const nodes = useWorkflowStore((state) => state.nodes);
   const nodeNameMap = useMemo(
@@ -173,7 +175,10 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
     );
   }
 
-  const Renderer = getRenderer(nodeType);
+  const Renderer = resolveRenderer({
+    nodeType,
+    rendererName: manifestItem?.renderer,
+  });
   const timeStr = executionTimeMs ? `${(executionTimeMs / 1000).toFixed(1)}s` : '';
 
   let StatusIcon = Loader2;

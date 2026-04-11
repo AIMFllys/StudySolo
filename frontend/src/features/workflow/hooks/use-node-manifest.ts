@@ -1,12 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { NodeManifestItem } from '@/types';
-import { getNodeManifest } from '@/services/node-manifest.service';
+import { getNodeManifest, peekNodeManifestCache } from '@/services/node-manifest.service';
+
+export function findNodeManifestItem(
+  manifest: NodeManifestItem[],
+  nodeType: string,
+): NodeManifestItem | null {
+  return manifest.find((item) => item.type === nodeType) ?? null;
+}
 
 export function useNodeManifest() {
-  const [manifest, setManifest] = useState<NodeManifestItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedManifest = peekNodeManifestCache();
+  const [manifest, setManifest] = useState<NodeManifestItem[]>(() => cachedManifest ?? []);
+  const [isLoading, setIsLoading] = useState(() => cachedManifest === null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,4 +45,11 @@ export function useNodeManifest() {
   }, []);
 
   return { manifest, isLoading, error };
+}
+
+export function useNodeManifestItem(nodeType: string) {
+  const { manifest, isLoading, error } = useNodeManifest();
+  const manifestItem = useMemo(() => findNodeManifestItem(manifest, nodeType), [manifest, nodeType]);
+
+  return { manifestItem, isLoading, error };
 }

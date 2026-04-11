@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { NodeExecutionTrace } from '@/types';
-import { getRenderer } from '@/features/workflow/components/nodes';
+import { resolveRenderer } from '@/features/workflow/components/nodes';
+import { useNodeManifestItem } from '@/features/workflow/hooks/use-node-manifest';
 
 interface TraceStepOutputProps {
   trace: NodeExecutionTrace;
@@ -14,7 +15,11 @@ interface TraceStepOutputProps {
 const OUTPUT_COLLAPSED_MAX_H = 400;
 
 export function TraceStepOutput({ trace, compact }: TraceStepOutputProps) {
-  const Renderer = getRenderer(trace.nodeType);
+  const { manifestItem } = useNodeManifestItem(trace.nodeType);
+  const Renderer = resolveRenderer({
+    nodeType: trace.nodeType,
+    rendererName: manifestItem?.renderer,
+  });
   const output = trace.status === 'running'
     ? trace.streamingOutput
     : (trace.finalOutput ?? trace.streamingOutput);
