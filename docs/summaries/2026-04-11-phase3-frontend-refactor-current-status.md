@@ -570,3 +570,71 @@
 - 右侧面板与画布节点本体的剩余文案来源
 
 因此，下一步最合理的方向已经不再是节点商店，而是评估右侧面板等剩余 UI 文案是否继续按同样策略渐进切到 manifest。
+
+### 8.10 `refactor(frontend): prefer manifest copy in execution panels`
+
+在节点配置抽屉和节点商店之后，这一轮继续推进执行态 UI，但仍然只处理名称与描述回退，不改执行 trace 主标题语义。
+
+#### 完成内容
+1. 新增执行面板纯函数 helper
+   - `frontend/src/features/workflow/utils/execution-node-copy.ts`
+   - 提供：
+     - `resolveExecutionNodeCopy(...)`
+     - `buildExecutionNodeNameMap(...)`
+2. `frontend/src/components/layout/sidebar/RightPanelContent.tsx`
+   - 焦点标题与描述已切到 manifest-first 回退
+   - `trace.nodeName` 继续保留最高优先级
+3. `frontend/src/features/workflow/components/execution/ExecutionTraceDrawer.tsx`
+   - 执行列表输入标签所依赖的 `nodeNameMap` 已改为复用同一套名称回退
+4. 新增测试
+   - `frontend/src/__tests__/execution-node-copy.property.test.ts`
+
+#### 验证
+- `pnpm --dir frontend test -- src/__tests__/execution-node-copy.property.test.ts src/__tests__/workflow-right-panel.property.test.ts src/__tests__/node-manifest.service.property.test.ts`
+- `pnpm --dir frontend build`
+- 结果：通过
+
+#### 提交
+- `cf90a66 refactor(frontend): prefer manifest copy in execution panels`
+
+### 8.11 `refactor(frontend): prefer manifest descriptions in canvas nodes`
+
+在执行面板组之后，这一轮继续推进画布节点本体，但保持为“只改描述、不改标题语义”的最小闭环。
+
+#### 完成内容
+1. 新增画布节点描述纯函数 helper
+   - `frontend/src/features/workflow/components/nodes/resolve-canvas-node-description.ts`
+2. `frontend/src/features/workflow/components/nodes/AIStepNode.tsx`
+   - 普通节点描述已切到：
+     - `manifest.description -> workflow-meta.description`
+   - 社区节点描述已切到：
+     - `input_hint -> manifest.description -> '社区共享的封装 AI 节点'`
+   - 节点标题继续直接使用实例 `label`
+3. 新增测试
+   - `frontend/src/__tests__/canvas-node-copy.property.test.ts`
+
+#### 验证
+- `pnpm --dir frontend test -- src/__tests__/canvas-node-copy.property.test.ts src/__tests__/node-manifest.service.property.test.ts`
+- `pnpm --dir frontend build`
+- 结果：通过
+
+#### 提交
+- `135ee6b refactor(frontend): prefer manifest descriptions in canvas nodes`
+
+### 8.12 当前状态补充判断（再次更新）
+
+截至当前最新本地状态，Phase 3 关于 manifest-first UI 文案的推进已经形成五个连续闭环：
+
+1. 输出渲染入口已接入 manifest `renderer`
+2. 节点配置抽屉已切到 manifest-first 文案
+3. 节点商店默认视图已切到 manifest-first 文案与搜索
+4. 执行面板组已切到 manifest-first 文案与名称回退
+5. 画布节点卡片描述已切到 manifest-first
+
+当前仍显式保留的边界主要收缩为：
+
+- `frontend/src/app/m/[id]/MemoryView.tsx`
+- compat shim
+- `workflow-meta.ts` 的 icon / theme / inputs / outputs / 结构性元数据职责
+- `canvas-node-factory.ts` 的实例默认标题语义
+- `NodeResultSlip.tsx` 的上游输入标签名称回退
