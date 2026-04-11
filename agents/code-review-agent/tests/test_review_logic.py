@@ -489,7 +489,7 @@ def test_upstream_openai_compatible_backend_normalizes_live_findings(monkeypatch
                         "rule_id": "hardcoded_secret",
                         "severity": "high",
                         "file_path": "frontend/app.tsx",
-                        "line_number": 4,
+                        "line_number": 2,
                         "evidence": "token = 'sk-test-1234567890'",
                         "fix": "Move the credential into environment variables.",
                     }
@@ -521,7 +521,7 @@ export const helper = true;
 
     assert "1. Title: Hardcoded secret" in review
     assert "Rule ID: hardcoded_secret" in review
-    assert "File: frontend/app.tsx:4" in review
+    assert "File: frontend/app.tsx:2" in review
     assert (
         "external model reasoning is limited to the review target and supplied repo context"
         in review
@@ -530,6 +530,280 @@ export const helper = true;
     assert state["instances"][0]["base_url"] == "https://example.test/v1"
     assert state["instances"][0]["calls"][0]["model"] == "review-upstream-v1"
     assert state["instances"][0]["calls"][0]["stream"] is False
+
+
+def test_upstream_openai_compatible_backend_drops_repo_context_findings_and_falls_back(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Hardcoded secret",
+                        "rule_id": "hardcoded_secret",
+                        "severity": "high",
+                        "file_path": "b/frontend/helper.ts",
+                        "line_number": 1,
+                        "evidence": "token = 'sk-test-1234567890'",
+                        "fix": "Move the credential into environment variables.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+console.log('debug');
+```
+</review_target>
+<repo_context path="frontend/helper.ts">
+```ts
+export const token = "sk-test-1234567890";
+```
+</repo_context>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "1. Title: Debug artifact" in review
+    assert "Rule ID: debug_artifact" in review
+    assert "Hardcoded secret" not in review
+    assert "frontend/helper.ts" not in review
+    assert "external model reasoning is limited" not in review
+
+
+def test_upstream_openai_compatible_backend_maps_foreign_single_target_path_to_review_target(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Debug artifact",
+                        "rule_id": "debug_artifact",
+                        "severity": "low",
+                        "file_path": " 'backend/service.py' ",
+                        "line_number": 2,
+                        "evidence": "console.log('debug')",
+                        "fix": "Remove it.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "1. Title: Debug artifact" in review
+    assert "Rule ID: debug_artifact" in review
+    assert "File: frontend/app.tsx:2" in review
+    assert "backend/service.py" not in review
+
+
+def test_upstream_openai_compatible_backend_drops_foreign_multi_file_diff_findings(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Hardcoded secret",
+                        "rule_id": "hardcoded_secret",
+                        "severity": "high",
+                        "file_path": " \"b/backend/service.py\" ",
+                        "line_number": 21,
+                        "evidence": "token = 'sk-test-1234567890'",
+                        "fix": "Move the credential into environment variables.",
+                    },
+                    {
+                        "title": "Unsafe HTML sink",
+                        "rule_id": "unsafe_html_sink",
+                        "severity": "high",
+                        "file_path": "docs/ignore.md",
+                        "line_number": 1,
+                        "evidence": "dangerouslySetInnerHTML = html",
+                        "fix": "Avoid raw HTML sinks.",
+                    },
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """```diff
+diff --git a/frontend/app.tsx b/frontend/app.tsx
+--- a/frontend/app.tsx
++++ b/frontend/app.tsx
+@@ -8,2 +8,3 @@
+ const ready = true;
++const total = items.length;
+ export default ready;
+diff --git a/backend/service.py b/backend/service.py
+--- a/backend/service.py
++++ b/backend/service.py
+@@ -20,2 +20,3 @@
+ def handler():
++    return "ok"
+     return "ok"
+```""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Findings found: 1" in review
+    assert "1. Title: Hardcoded secret" in review
+    assert "File: backend/service.py:21" in review
+    assert "docs/ignore.md" not in review
+    assert "Unsafe HTML sink" not in review
+
+
+def test_upstream_openai_compatible_backend_clears_out_of_range_line_numbers(monkeypatch):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Hardcoded secret",
+                        "rule_id": "hardcoded_secret",
+                        "severity": "high",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 99,
+                        "evidence": "token = 'sk-test-1234567890'",
+                        "fix": "Move the credential into environment variables.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "1. Title: Hardcoded secret" in review
+    assert "File: frontend/app.tsx" in review
+    assert "File: frontend/app.tsx:99" not in review
+
+
+def test_upstream_openai_compatible_backend_deduplicates_normalized_findings(monkeypatch):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Debug artifact",
+                        "rule_id": "debug_artifact",
+                        "severity": "low",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 1,
+                        "evidence": "console.log('debug')",
+                        "fix": "Remove it.",
+                    },
+                    {
+                        "title": "Debug artifact",
+                        "rule_id": "debug_artifact",
+                        "severity": "low",
+                        "file_path": "a/frontend/app.tsx",
+                        "line_number": 1,
+                        "evidence": "console.log('debug')",
+                        "fix": "Remove it.",
+                    },
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const ready = true;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Findings found: 1" in review
+    assert review.count("Rule ID: debug_artifact") == 1
+
+
+def test_upstream_openai_compatible_backend_accepts_empty_findings_without_fallback(
+    monkeypatch,
+):
+    install_fake_upstream(monkeypatch, content='{"findings":[]}')
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+console.log('debug');
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Findings found: 0" in review
+    assert "Title: Debug artifact" not in review
+    assert (
+        "external model reasoning is limited to the review target and supplied repo context"
+        in review
+    )
 
 
 def test_upstream_openai_compatible_missing_config_falls_back_without_client(monkeypatch):
@@ -639,7 +913,7 @@ def test_stream_review_chunks_with_upstream_openai_compatible_uses_provider_stre
                     "rule_id": "hardcoded_secret",
                     "severity": "high",
                     "file_path": "frontend/app.tsx",
-                    "line_number": 4,
+                    "line_number": 2,
                     "evidence": "token = 'sk-test-1234567890'",
                     "fix": "Move the credential into environment variables.",
                 }

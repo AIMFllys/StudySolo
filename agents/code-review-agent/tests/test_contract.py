@@ -28,6 +28,14 @@ def completion_payload(settings, stream: bool = False):
     }
 
 
+def structured_completion_payload(settings, *, content: str, stream: bool = False):
+    return {
+        "model": settings.model_id,
+        "messages": [{"role": "user", "content": content}],
+        "stream": stream,
+    }
+
+
 def install_fake_upstream(
     monkeypatch,
     *,
@@ -271,7 +279,7 @@ def test_non_stream_response_format_with_upstream_live_backend(monkeypatch):
                         "rule_id": "hardcoded_secret",
                         "severity": "high",
                         "file_path": "frontend/app.tsx",
-                        "line_number": 9,
+                        "line_number": 1,
                         "evidence": "token = 'sk-test-1234567890'",
                         "fix": "Move the credential into environment variables.",
                     }
@@ -290,7 +298,14 @@ def test_non_stream_response_format_with_upstream_live_backend(monkeypatch):
     with TestClient(create_app()) as client:
         response = client.post(
             "/v1/chat/completions",
-            json=completion_payload(settings),
+            json=structured_completion_payload(
+                settings,
+                content="""<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+```
+</review_target>""",
+            ),
             headers=auth_headers(settings),
         )
 
@@ -303,7 +318,7 @@ def test_non_stream_response_format_with_upstream_live_backend(monkeypatch):
     assert data["model"] == settings.model_id
     assert "1. Title: Hardcoded secret" in content
     assert "Rule ID: hardcoded_secret" in content
-    assert "File: frontend/app.tsx:9" in content
+    assert "File: frontend/app.tsx:1" in content
     assert (
         "external model reasoning is limited to the review target and supplied repo context"
         in content
@@ -316,13 +331,73 @@ def test_non_stream_response_format_with_upstream_live_backend(monkeypatch):
 def test_stream_response_sse_format_with_upstream_live_backend(monkeypatch):
     payload = json.dumps(
         {
+                "findings": [
+                    {
+                        "title": "Hardcoded secret",
+                        "rule_id": "hardcoded_secret",
+                        "severity": "high",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 1,
+                        "evidence": "token = 'sk-test-1234567890'",
+                        "fix": "Move the credential into environment variables.",
+                    }
+                ]
+            }
+    )
+    state = install_fake_upstream(
+        monkeypatch,
+        content=payload,
+        stream_chunks=[payload[:32], payload[32:74], payload[74:]],
+    )
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=structured_completion_payload(
+                settings,
+                content="""<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+```
+</review_target>""",
+                stream=True,
+            ),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    lines = [line for line in response.text.splitlines() if line]
+    assert lines[0].startswith("data: ")
+    assert lines[-1] == "data: [DONE]"
+    stream_content = collect_stream_content(response)
+    assert "Title: Hardcoded secret" in stream_content
+    assert "Rule ID: hardcoded_secret" in stream_content
+    assert len(state["instances"]) == 1
+    assert state["instances"][0]["calls"][0]["stream"] is True
+
+
+def test_stream_response_sse_format_with_upstream_live_backend_context_findings_fall_back(
+    monkeypatch,
+):
+    payload = json.dumps(
+        {
             "findings": [
                 {
                     "title": "Hardcoded secret",
                     "rule_id": "hardcoded_secret",
                     "severity": "high",
-                    "file_path": "frontend/app.tsx",
-                    "line_number": 9,
+                    "file_path": "frontend/helper.ts",
+                    "line_number": 1,
                     "evidence": "token = 'sk-test-1234567890'",
                     "fix": "Move the credential into environment variables.",
                 }
@@ -345,7 +420,20 @@ def test_stream_response_sse_format_with_upstream_live_backend(monkeypatch):
     with TestClient(create_app()) as client:
         response = client.post(
             "/v1/chat/completions",
-            json=completion_payload(settings, stream=True),
+            json=structured_completion_payload(
+                settings,
+                content="""<review_target path="frontend/app.tsx">
+```ts
+console.log('debug');
+```
+</review_target>
+<repo_context path="frontend/helper.ts">
+```ts
+export const token = "sk-test-1234567890";
+```
+</repo_context>""",
+                stream=True,
+            ),
             headers=auth_headers(settings),
         )
 
@@ -357,7 +445,8 @@ def test_stream_response_sse_format_with_upstream_live_backend(monkeypatch):
     assert lines[0].startswith("data: ")
     assert lines[-1] == "data: [DONE]"
     stream_content = collect_stream_content(response)
-    assert "Title: Hardcoded secret" in stream_content
-    assert "Rule ID: hardcoded_secret" in stream_content
+    assert "Title: Debug artifact" in stream_content
+    assert "Title: Hardcoded secret" not in stream_content
+    assert "external model reasoning is limited" not in stream_content
     assert len(state["instances"]) == 1
     assert state["instances"][0]["calls"][0]["stream"] is True

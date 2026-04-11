@@ -34,6 +34,7 @@ ReviewBackend = Literal["heuristic", "upstream_reserved", "upstream_openai_compa
 
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 MAX_FINDINGS = 5
+PLACEHOLDER_FILE_PATHS = {"", "none", "null", "<none>", "<unknown>"}
 CODE_BLOCK_PATTERN = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
 STRUCTURED_BLOCK_PATTERN = re.compile(
     r"<(?P<tag>review_target|repo_context)\s+path\s*=\s*(?P<quote>[\"'])(?P<path>[^\"']+)(?P=quote)\s*>(?P<content>.*?)</(?P=tag)>",
@@ -233,6 +234,21 @@ def normalize_diff_path(path: str) -> str | None:
         return None
     if normalized.startswith(("a/", "b/")):
         return normalized[2:]
+    return normalized
+
+
+def normalize_live_finding_path(path: str | None) -> str | None:
+    if path is None:
+        return None
+
+    normalized = path.strip().strip('"').strip("'")
+    if normalized.startswith(("a/", "b/")):
+        normalized = normalized[2:].strip()
+
+    if not normalized or normalized.lower() in PLACEHOLDER_FILE_PATHS:
+        return None
+    if normalized == "/dev/null":
+        return None
     return normalized
 
 
@@ -502,6 +518,109 @@ def sort_and_limit_findings(findings: list[ReviewFinding]) -> list[ReviewFinding
     return findings[:MAX_FINDINGS]
 
 
+def collect_reviewable_line_numbers(review_input: ReviewInput) -> dict[str, set[int]]:
+    reviewable_line_numbers: dict[str, set[int]] = {}
+    for line in review_input.lines:
+        if line.file_path is None or line.line_number is None:
+            continue
+        reviewable_line_numbers.setdefault(line.file_path, set()).add(line.line_number)
+    return reviewable_line_numbers
+
+
+def normalize_live_finding_line_number(
+    review_input: ReviewInput,
+    *,
+    file_path: str | None,
+    line_number: int | None,
+    reviewable_line_numbers: dict[str, set[int]],
+) -> int | None:
+    if file_path is None or line_number is None:
+        return None if file_path is None else line_number
+
+    if review_input.kind == "unified_diff":
+        allowed_line_numbers = reviewable_line_numbers.get(file_path, set())
+        return line_number if line_number in allowed_line_numbers else None
+
+    return line_number if 1 <= line_number <= len(review_input.lines) else None
+
+
+def normalize_live_upstream_findings(
+    prepared_review: PreparedReview,
+    findings: list[upstream_review.UpstreamFindingPayload],
+) -> list[ReviewFinding] | None:
+    if not findings:
+        return []
+
+    review_input = prepared_review.review_input
+    review_target_path = normalize_live_finding_path(review_input.review_target_path)
+    context_paths = {
+        path
+        for path in (
+            normalize_live_finding_path(context_path)
+            for context_path in prepared_review.payload.context_file_paths
+        )
+        if path is not None
+    }
+    allowed_diff_paths = {
+        path
+        for path in (
+            normalize_live_finding_path(file_path)
+            for file_path in review_input.files_reviewed
+        )
+        if path is not None
+    }
+    reviewable_line_numbers = collect_reviewable_line_numbers(review_input)
+
+    normalized_findings: list[ReviewFinding] = []
+    seen_display_keys: set[tuple[str, str | None, int | None, str, str]] = set()
+
+    for position, finding in enumerate(findings, start=1):
+        file_path = normalize_live_finding_path(finding.file_path)
+        if file_path in context_paths:
+            continue
+
+        if review_input.kind == "unified_diff":
+            if file_path is not None and file_path not in allowed_diff_paths:
+                continue
+        elif file_path is not None and file_path != review_target_path:
+            file_path = review_target_path
+
+        evidence = shorten_evidence(finding.evidence)
+        advice = finding.fix
+        line_number = normalize_live_finding_line_number(
+            review_input,
+            file_path=file_path,
+            line_number=finding.line_number,
+            reviewable_line_numbers=reviewable_line_numbers,
+        )
+
+        display_key = (
+            finding.rule_id,
+            file_path,
+            line_number,
+            evidence,
+            advice,
+        )
+        if display_key in seen_display_keys:
+            continue
+        seen_display_keys.add(display_key)
+
+        normalized_findings.append(
+            ReviewFinding(
+                rule_id=finding.rule_id,
+                title=finding.title,
+                severity=finding.severity,
+                evidence=evidence,
+                advice=advice,
+                position=position,
+                file_path=file_path,
+                line_number=line_number,
+            )
+        )
+
+    return normalized_findings or None
+
+
 def format_file_location(file_path: str, line_number: int | None) -> str:
     return f"{file_path}:{line_number}" if line_number is not None else file_path
 
@@ -711,16 +830,4 @@ class CodeReviewAgent:
         except Exception:
             return None
 
-        return [
-            ReviewFinding(
-                rule_id=finding.rule_id,
-                title=finding.title,
-                severity=finding.severity,
-                evidence=shorten_evidence(finding.evidence),
-                advice=finding.fix,
-                position=index,
-                file_path=finding.file_path,
-                line_number=finding.line_number,
-            )
-            for index, finding in enumerate(payload.findings, start=1)
-        ]
+        return normalize_live_upstream_findings(prepared_review, payload.findings)
