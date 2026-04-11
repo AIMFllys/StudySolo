@@ -68,6 +68,38 @@ export function debugLog(message: string) {
 - 若不存在 `<review_target>`，会回退到 legacy 行为：整条 `user` 消息都作为 review target
 - `repo_context` 不单独产生 findings，只用于补充上下文计数与后续 repo-aware 演进入口
 
+## 输出格式
+
+当前 assistant 内容保持为纯文本三段式：
+
+1. `Summary`
+   - 固定字段顺序：
+     - `- Input type: ...`
+     - `- Files reviewed: N`
+     - `- Reviewed lines: N`
+     - `- Context files supplied: N`
+     - `- Findings found: N`
+   - 如果结构化输入里提供了 `review_target path`，会额外输出：
+     - `- Review target path: ...`
+2. `Findings`
+   - 有命中时，每条 finding 固定输出：
+     - `1. Title: ...`
+     - `   Rule ID: ...`
+     - `   Severity: ...`
+     - `   File: ...`
+     - `   Evidence: ...`
+     - `   Fix: ...`
+   - 无命中时，固定输出：
+     - `- None`
+     - `  Note: No deterministic findings...`
+3. `Limitations`
+   - 继续说明启发式边界、repo context 的作用范围，以及 clean result 不等于安全
+
+补充说明：
+- `repo_context` 仍然只影响 `Summary` 中的上下文计数，不会单独产出 findings。
+- findings 排序已固定为：`severity -> file_path -> line_number -> position -> rule_id`。
+- 没有文件路径时，`File:` 行固定输出 `<none>`，避免模板分支漂移。
+
 ## 说明
 
 - 当前 `src/core/agent.py` 不调用外部模型
