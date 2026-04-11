@@ -333,3 +333,83 @@
 - frontend renderer manifest-first 最小运行时闭环完成
 - 跨域 EventBus 第二批完成
 - 测试与构建继续维持绿色
+
+## 13. 2026-04-11 夜间补充：节点配置抽屉已切到 manifest-first 文案
+
+在 backend manifest 契约、renderer 接线和跨域 EventBus 第二批完成后，这一轮继续只处理一个很小的前端 UI 闭环：节点配置抽屉文案来源。
+
+### 完成内容
+1. 新增纯函数 helper
+   - `frontend/src/features/workflow/components/node-config/resolve-node-config-copy.ts`
+2. 文案解析规则固定为：
+   - 标题：`node.data.label -> manifest.display_name -> workflow-meta.label`
+   - 描述：`manifest.description -> workflow-meta.description`
+3. `frontend/src/features/workflow/components/node-config/NodeConfigDrawer.tsx`
+   - 抽屉 header 已切到 manifest-first 文案
+4. `frontend/src/features/workflow/components/node-config/NodeConfigFormContent.tsx`
+   - 顶部能力摘要卡片已复用同一套文案解析逻辑
+5. 新增测试
+   - `frontend/src/__tests__/node-config-copy.property.test.ts`
+
+### 范围说明
+- 不改 icon / theme
+- 不改节点商店
+- 不改右侧面板
+- 不改 `MemoryView.tsx`
+
+### 验证
+- `pnpm --dir frontend test -- src/__tests__/node-config-copy.property.test.ts src/__tests__/node-manifest.service.property.test.ts`
+- `pnpm --dir frontend build`
+- 结果：通过
+
+### 提交
+- `36e6d20 refactor(frontend): prefer manifest copy in node config drawer`
+
+## 14. 2026-04-11 夜间补充：节点商店已切到 manifest-first 文案与搜索
+
+在节点配置抽屉闭环之后，这一轮继续推进节点商店默认视图，但仍然只处理 display_name / description，不扩到 icon/theme 或其它 UI。
+
+### 完成内容
+1. 新增节点商店纯函数 helper
+   - `frontend/src/components/layout/sidebar/resolve-node-store-copy.ts`
+   - 提供：
+     - `resolveNodeStoreCopy(...)`
+     - `matchesNodeStoreQuery(...)`
+2. `frontend/src/components/layout/sidebar/NodeStoreDefaultView.tsx`
+   - 顶层统一持有 `useNodeManifest()`
+   - 搜索过滤、分类计数、列表渲染已改为复用 manifest-first helper
+3. `frontend/src/components/layout/sidebar/NodeStoreItem.tsx`
+   - 列表项标题、副标题和 tooltip 顶部短文案已切到 manifest-first
+4. 新增测试
+   - `frontend/src/__tests__/node-store-copy.property.test.ts`
+
+### 保留边界
+- `workflow-meta.ts` 继续保留 icon / theme / 扩展说明职责
+- 不改右侧面板
+- 不改画布节点标题
+- 不改 `MemoryView.tsx`
+
+### 验证
+- `pnpm --dir frontend test -- src/__tests__/node-store-copy.property.test.ts src/__tests__/node-manifest.service.property.test.ts src/__tests__/workflow-event-bus.property.test.ts`
+- `pnpm --dir frontend build`
+- 结果：通过
+
+### 提交
+- `560969c refactor(frontend): prefer manifest copy in node store`
+
+## 15. 当前最新状态（再次更新）
+
+截至这两次 UI 文案闭环完成后，Phase 3 当前最准确的判断应进一步更新为：
+
+1. backend manifest 契约已真实落地
+2. renderer-first 的最小运行时接线已完成
+3. 节点配置抽屉已切到 manifest-first 文案
+4. 节点商店默认视图已切到 manifest-first 文案与搜索
+5. 跨域 EventBus 第二批已完成
+6. `MemoryView.tsx`、compat shim 与 `workflow-meta.ts` 的结构性职责仍然保留
+
+换句话说，当前剩余的前端 Phase 3 边界已经进一步收缩到：
+
+- 右侧面板等剩余 UI 文案是否继续渐进接 manifest
+- 画布节点本体是否要进入更敏感的实例标题/描述来源收口
+- `MemoryView.tsx` 是否未来单独成环处理

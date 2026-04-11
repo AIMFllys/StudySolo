@@ -493,3 +493,80 @@
 - renderer-first 的最小运行时接线已完成
 - 跨域事件第二批已落地
 - 构建与核心测试链保持绿色
+
+### 8.7 `refactor(frontend): prefer manifest copy in node config drawer`
+
+在 renderer 与跨域事件收口后，Phase 3 继续沿“manifest-first UI 文案渐进替换”推进了第一步，先只处理节点配置抽屉，不扩到其它 UI。
+
+#### 完成内容
+1. 新增纯函数 helper
+   - `frontend/src/features/workflow/components/node-config/resolve-node-config-copy.ts`
+   - 统一节点配置抽屉文案解析规则：
+     - 标题：`node.data.label -> manifest.display_name -> workflow-meta.label`
+     - 描述：`manifest.description -> workflow-meta.description`
+   - 空字符串与纯空白字符串视为缺失
+2. `frontend/src/features/workflow/components/node-config/NodeConfigDrawer.tsx`
+   - 抽屉 header 已改为 manifest-first 文案
+   - 仍保留 `node.data.label` 的最高优先级，不覆盖实例标题语义
+3. `frontend/src/features/workflow/components/node-config/NodeConfigFormContent.tsx`
+   - 顶部能力摘要卡片已复用同一套文案解析逻辑
+   - 其余 schema / output capabilities / deprecated surface / patch 写回逻辑保持不变
+4. 新增纯逻辑测试
+   - `frontend/src/__tests__/node-config-copy.property.test.ts`
+
+#### 验证
+- `pnpm --dir frontend test -- src/__tests__/node-config-copy.property.test.ts src/__tests__/node-manifest.service.property.test.ts`
+- `pnpm --dir frontend build`
+- 结果：通过
+
+#### 提交
+- `36e6d20 refactor(frontend): prefer manifest copy in node config drawer`
+
+### 8.8 `refactor(frontend): prefer manifest copy in node store`
+
+在节点配置抽屉收口后，继续推进第二个 UI 文案闭环，只处理节点商店默认视图的列表展示、tooltip 和搜索命中。
+
+#### 完成内容
+1. 新增节点商店纯函数 helper
+   - `frontend/src/components/layout/sidebar/resolve-node-store-copy.ts`
+   - 提供：
+     - `resolveNodeStoreCopy(...)`
+     - `matchesNodeStoreQuery(...)`
+   - 统一规则：
+     - 标题：`manifest.display_name -> workflow-meta.label`
+     - 描述：`manifest.description -> workflow-meta.description`
+     - 搜索：命中标题、描述或原始 `nodeType`
+2. `frontend/src/components/layout/sidebar/NodeStoreDefaultView.tsx`
+   - 顶层统一持有 `useNodeManifest()`
+   - 搜索过滤、分类计数、列表渲染都已改为复用 manifest-first helper
+   - 未新增 loading/error UI，manifest 缺失时仍即时回退到 `workflow-meta`
+3. `frontend/src/components/layout/sidebar/NodeStoreItem.tsx`
+   - 列表项标题、副标题和 hover tooltip 顶部短文案已切到 manifest-first
+   - icon / theme / 扩展说明仍保留 `workflow-meta` 静态职责
+4. 新增纯逻辑测试
+   - `frontend/src/__tests__/node-store-copy.property.test.ts`
+
+#### 验证
+- `pnpm --dir frontend test -- src/__tests__/node-store-copy.property.test.ts src/__tests__/node-manifest.service.property.test.ts src/__tests__/workflow-event-bus.property.test.ts`
+- `pnpm --dir frontend build`
+- 结果：通过
+
+#### 提交
+- `560969c refactor(frontend): prefer manifest copy in node store`
+
+### 8.9 当前状态补充判断（最新）
+
+截至这两个闭环完成后，Phase 3 关于 manifest-first UI 文案的推进已经形成三段清晰路径：
+
+1. 输出渲染入口已接入 manifest `renderer`
+2. 节点配置抽屉已切到 manifest-first 文案
+3. 节点商店默认视图已切到 manifest-first 文案与搜索
+
+当前仍明确保留、不应混做的边界包括：
+
+- `frontend/src/app/m/[id]/MemoryView.tsx`
+- compat shim
+- `workflow-meta.ts` 的 icon / theme / 端口 / 结构性元数据职责
+- 右侧面板与画布节点本体的剩余文案来源
+
+因此，下一步最合理的方向已经不再是节点商店，而是评估右侧面板等剩余 UI 文案是否继续按同样策略渐进切到 manifest。
