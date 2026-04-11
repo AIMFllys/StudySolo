@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Settings2, X } from 'lucide-react';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
-import { getNodeTypeMeta } from '@/features/workflow/constants/workflow-meta';
+import { useNodeManifestItem } from '@/features/workflow/hooks/use-node-manifest';
 import {
   type NodeConfigAnchorRect,
   resolveNodeConfigPopoverPosition,
 } from './popover-position';
 import { NodeConfigFormContent } from './NodeConfigFormContent';
+import { resolveNodeConfigCopy } from './resolve-node-config-copy';
 
 interface NodeConfigDrawerProps {
   nodeId: string | null;
@@ -22,6 +23,8 @@ export default function NodeConfigDrawer({ nodeId, anchorRect, onClose }: NodeCo
 
   const node = useMemo(() => nodes.find((item) => item.id === nodeId) ?? null, [nodeId, nodes]);
   const nodeType = String((node?.data as { type?: string } | undefined)?.type ?? node?.type ?? '');
+  const nodeLabel = (node?.data as { label?: string } | undefined)?.label;
+  const { manifestItem } = useNodeManifestItem(nodeType);
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null);
 
   useEffect(() => {
@@ -73,7 +76,11 @@ export default function NodeConfigDrawer({ nodeId, anchorRect, onClose }: NodeCo
     return null;
   }
 
-  const meta = getNodeTypeMeta(nodeType);
+  const copy = resolveNodeConfigCopy({
+    nodeLabel,
+    nodeType,
+    manifestItem,
+  });
 
   return (
     <div
@@ -91,10 +98,8 @@ export default function NodeConfigDrawer({ nodeId, anchorRect, onClose }: NodeCo
               <Settings2 className="h-4 w-4" />
               节点配置
             </div>
-            <h2 className="mt-1 truncate text-lg font-semibold text-foreground">
-              {(node.data as { label?: string }).label ?? meta.label}
-            </h2>
-            <p className="text-sm text-muted-foreground">{meta.description}</p>
+            <h2 className="mt-1 truncate text-lg font-semibold text-foreground">{copy.title}</h2>
+            <p className="text-sm text-muted-foreground">{copy.description}</p>
           </div>
           <button
             type="button"

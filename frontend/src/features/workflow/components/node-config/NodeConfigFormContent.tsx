@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { NodeConfigFieldSchema, NodeConfigFieldSchemaOption } from '@/types';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
-import { getNodeTypeMeta } from '@/features/workflow/constants/workflow-meta';
 import { useNodeManifest } from '@/features/workflow/hooks/use-node-manifest';
 import { authedFetch } from '@/services/api-client';
 import { buildLoopGroupConfigPatch, buildMergedConfigPatch } from './config-patch';
 import { NodeConfigField } from './NodeConfigField';
 import { KnowledgeNodeLibrary } from './KnowledgeNodeLibrary';
+import { resolveNodeConfigCopy } from './resolve-node-config-copy';
 
 interface NodeConfigFormContentProps {
   nodeId: string;
@@ -45,6 +45,7 @@ export function NodeConfigFormContent({ nodeId, showExecutionNotice = false }: N
 
   const node = useMemo(() => nodes.find((item) => item.id === nodeId) ?? null, [nodeId, nodes]);
   const nodeType = String((node?.data as { type?: string } | undefined)?.type ?? node?.type ?? '');
+  const nodeLabel = (node?.data as { label?: string } | undefined)?.label;
   const manifestItem = useMemo(
     () => manifest.find((item) => item.type === nodeType) ?? null,
     [manifest, nodeType],
@@ -125,7 +126,11 @@ export function NodeConfigFormContent({ nodeId, showExecutionNotice = false }: N
     );
   }
 
-  const meta = getNodeTypeMeta(nodeType);
+  const copy = resolveNodeConfigCopy({
+    nodeLabel,
+    nodeType,
+    manifestItem,
+  });
   const isExecutionRunning = executionSession?.overallStatus === 'running';
 
   return (
@@ -140,10 +145,8 @@ export function NodeConfigFormContent({ nodeId, showExecutionNotice = false }: N
         <>
           <section className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">
-                {(node.data as { label?: string }).label ?? meta.label}
-              </h3>
-              <p className="mt-1 text-xs text-muted-foreground">{meta.description}</p>
+              <h3 className="text-sm font-semibold text-foreground">{copy.title}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{copy.description}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
