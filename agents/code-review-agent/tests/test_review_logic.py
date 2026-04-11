@@ -7,6 +7,8 @@ import pytest
 from src.core.agent import (
     CodeReviewAgent,
     StructuredReviewPayload,
+    UNVALIDATED_UPSTREAM_FIX_ADVICE,
+    normalize_unknown_live_fix_advice,
     preprocess_forwarded_context,
 )
 import src.core.upstream_review as upstream_review_module
@@ -1085,6 +1087,165 @@ return total;
     assert "Severity: medium" in review
     assert "File: frontend/app.tsx:2" in review
     assert "Fix: Use a safer helper." in review
+
+
+def test_upstream_openai_compatible_backend_rewrites_unknown_rule_fix_with_foreign_identifier(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Custom upstream rule",
+                        "rule_id": "custom_rule",
+                        "severity": "medium",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Rename totalHelper before calling cacheManager.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Rule ID: custom_rule" in review
+    assert f"Fix: {UNVALIDATED_UPSTREAM_FIX_ADVICE}" in review
+    assert "Rename totalHelper before calling cacheManager." not in review
+
+
+def test_upstream_openai_compatible_backend_rewrites_unknown_rule_fix_with_foreign_path(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Custom upstream rule",
+                        "rule_id": "custom_rule",
+                        "severity": "medium",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Move the logic into backend/service.py.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Rule ID: custom_rule" in review
+    assert f"Fix: {UNVALIDATED_UPSTREAM_FIX_ADVICE}" in review
+    assert "Move the logic into backend/service.py." not in review
+
+
+def test_upstream_openai_compatible_backend_deduplicates_unknown_rule_fix_after_placeholder_rewrite(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Custom upstream rule",
+                        "rule_id": "custom_rule",
+                        "severity": "medium",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Rename totalHelper before calling cacheManager.",
+                    },
+                    {
+                        "title": "Custom upstream rule",
+                        "rule_id": "custom_rule",
+                        "severity": "medium",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Move the logic into backend/service.py.",
+                    },
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Findings found: 1" in review
+    assert review.count("Rule ID: custom_rule") == 1
+    assert review.count(UNVALIDATED_UPSTREAM_FIX_ADVICE) == 1
+
+
+def test_normalize_unknown_live_fix_advice_rewrites_empty_fix():
+    review_input = CodeReviewAgent(agent_name="code-review").prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>"""
+    ).review_input
+
+    advice = normalize_unknown_live_fix_advice(
+        review_input,
+        review_target_path="frontend/app.tsx",
+        file_path="frontend/app.tsx",
+        evidence="return total;",
+        fix="   ",
+    )
+
+    assert advice == UNVALIDATED_UPSTREAM_FIX_ADVICE
 
 
 def test_upstream_openai_compatible_backend_accepts_empty_findings_without_fallback(

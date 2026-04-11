@@ -69,6 +69,20 @@ MAX_SWALLOW_POSITION_GAP = 4
 MAX_FORWARDED_CONTEXT_FILES = 4
 MAX_FORWARDED_CONTEXT_LINES_PER_FILE = 80
 MAX_FORWARDED_CONTEXT_LINES_TOTAL = 200
+UNVALIDATED_UPSTREAM_FIX_ADVICE = (
+    "Review manually; the upstream fix suggestion was not validated against the review target."
+)
+PATH_LIKE_TOKEN_PATTERN = re.compile(
+    r"""(?ix)
+    \b(
+        [a-z]:[\\/][^\s"'`]+
+        |
+        [A-Za-z0-9_.-]+(?:[\\/][A-Za-z0-9_.-]+)+
+        |
+        [A-Za-z0-9_.-]+\.(?:py|ts|tsx|js|jsx|json|yaml|yml|md|java|go|rb|rs|cs|cpp|c|h)
+    )\b
+    """
+)
 
 
 @dataclass(slots=True)
@@ -545,6 +559,76 @@ def normalize_anchor_text(text: str) -> str:
     return " ".join(text.strip().split())
 
 
+def normalize_path_reference(text: str) -> str:
+    return text.strip().strip("\"'`").rstrip(".,:;!?)]}").replace("\\", "/")
+
+
+def allowed_fix_path_references(*paths: str | None) -> set[str]:
+    references: set[str] = set()
+    for path in paths:
+        if not path:
+            continue
+        normalized = normalize_path_reference(path)
+        if not normalized:
+            continue
+        references.add(normalized)
+        basename = normalized.rsplit("/", 1)[-1]
+        if basename:
+            references.add(basename)
+    return references
+
+
+def extract_substantive_fix_identifiers(
+    fix: str,
+    reference_identifiers: set[str],
+) -> set[str]:
+    substantive: set[str] = set()
+    for token in upstream_review.IDENTIFIER_PATTERN.findall(fix):
+        normalized = token.lower()
+        if normalized in upstream_review.LOW_INFO_IDENTIFIERS:
+            continue
+        if (
+            normalized in reference_identifiers
+            or "_" in token
+            or any(character.isdigit() for character in token)
+            or any(character.isupper() for character in token[1:])
+        ):
+            substantive.add(normalized)
+    return substantive
+
+
+def normalize_unknown_live_fix_advice(
+    review_input: ReviewInput,
+    *,
+    review_target_path: str | None,
+    file_path: str | None,
+    evidence: str,
+    fix: str,
+) -> str:
+    normalized_fix = normalize_anchor_text(fix)
+    if not normalized_fix:
+        return UNVALIDATED_UPSTREAM_FIX_ADVICE
+
+    allowed_paths = allowed_fix_path_references(file_path, review_target_path)
+    referenced_paths = {
+        normalize_path_reference(match.group(1))
+        for match in PATH_LIKE_TOKEN_PATTERN.finditer(fix)
+    }
+    if referenced_paths and not referenced_paths.issubset(allowed_paths):
+        return UNVALIDATED_UPSTREAM_FIX_ADVICE
+
+    reference_identifiers = set(upstream_review.extract_identifiers(review_input.raw_text))
+    reference_identifiers.update(upstream_review.extract_identifiers(evidence))
+    reference_identifiers.update(upstream_review.extract_identifiers(file_path or ""))
+    reference_identifiers.update(upstream_review.extract_identifiers(review_target_path or ""))
+
+    substantive_identifiers = extract_substantive_fix_identifiers(fix, reference_identifiers)
+    if not substantive_identifiers or substantive_identifiers.intersection(reference_identifiers):
+        return normalized_fix
+
+    return UNVALIDATED_UPSTREAM_FIX_ADVICE
+
+
 def line_indent(text: str) -> int:
     return len(text) - len(text.lstrip(" \t"))
 
@@ -768,7 +852,17 @@ def normalize_live_upstream_findings(
         known_rule = KNOWN_RULE_SPECS.get(finding.rule_id)
         title = known_rule.title if known_rule else finding.title
         severity = known_rule.severity if known_rule else finding.severity
-        advice = known_rule.advice if known_rule else finding.fix
+        advice = (
+            known_rule.advice
+            if known_rule
+            else normalize_unknown_live_fix_advice(
+                review_input,
+                review_target_path=review_target_path,
+                file_path=file_path,
+                evidence=evidence,
+                fix=finding.fix,
+            )
+        )
 
         display_key = (
             finding.rule_id,
