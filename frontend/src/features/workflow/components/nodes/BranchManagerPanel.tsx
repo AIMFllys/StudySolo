@@ -2,7 +2,7 @@
 
 import { memo, useCallback } from 'react';
 import { Trash2, Plus } from 'lucide-react';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 
 interface BranchInfo {
   edgeId: string;

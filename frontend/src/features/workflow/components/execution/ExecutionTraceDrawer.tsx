@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { ExecutionProgressHeader } from '@/features/workflow/components/execution/ExecutionProgressHeader';
 import { ExecutionTraceList } from '@/features/workflow/components/execution/ExecutionTraceList';
 

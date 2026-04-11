@@ -15,7 +15,7 @@ import { memo, useCallback, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { GitFork, Settings2 } from 'lucide-react';
 import type { AIStepNodeData } from '@/types';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import BranchManagerPanel from './BranchManagerPanel';
 import { NodeResultSlip } from './NodeResultSlip';
 

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { X, ChevronUp, ChevronDown } from 'lucide-react';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import type { AIStepNodeData } from '@/types';
 
 interface SearchBarProps {

@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { MiniMap, useReactFlow } from '@xyflow/react';
 import { Maximize2, Minimize2, Settings2, X, Map as MapIcon } from 'lucide-react';
-import { useSettingsStore } from '@/stores/use-settings-store';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useSettingsStore } from '@/stores/ui/use-settings-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 
 export default function CanvasMiniMap() {
   const showMinimap = useSettingsStore((s) => s.showMinimap);

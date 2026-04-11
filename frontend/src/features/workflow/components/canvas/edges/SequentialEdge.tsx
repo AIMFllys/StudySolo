@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/react';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { updateEdgeBranch, updateEdgeNote, updateEdgeWaitSeconds } from '@/features/workflow/utils/edge-actions';
 import { buildEdgeDisplayState, normalizeWaitSeconds } from '@/features/workflow/utils/edge-display';
 

@@ -5,7 +5,7 @@ import { NodeStatus } from '@/types';
 import { getRenderer } from './index';
 import { createPortal } from 'react-dom';
 import NodeContextMenu, { buildSlipMenuGroups } from '../canvas/NodeContextMenu';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 
 interface NodeResultSlipProps {
   nodeId: string;

@@ -15,7 +15,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Play, Settings2 } from 'lucide-react';
 import type { AIStepNodeData } from '@/types';
 import { getNodeTheme } from '@/features/workflow/constants/workflow-meta';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { NodeResultSlip } from './NodeResultSlip';
 
 type TriggerData = AIStepNodeData & { hideSlip?: boolean };

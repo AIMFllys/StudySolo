@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { groupModelsByVendor, canAccessModel, type AIModelOption } from '../../constants/ai-models';
 import { useWorkflowCatalog } from '../../hooks/use-workflow-catalog';
 import { getUser, type UserInfo } from '@/services/auth.service';

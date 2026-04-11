@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { NodeConfigFieldSchema, NodeConfigFieldSchemaOption } from '@/types';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { getNodeTypeMeta } from '@/features/workflow/constants/workflow-meta';
 import { useNodeManifest } from '@/features/workflow/hooks/use-node-manifest';
 import { authedFetch } from '@/services/api-client';

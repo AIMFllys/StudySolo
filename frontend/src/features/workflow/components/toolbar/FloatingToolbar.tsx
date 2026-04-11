@@ -12,7 +12,7 @@ import {
   Square,
 } from 'lucide-react';
 import { useWorkflowExecution } from '@/features/workflow/hooks/use-workflow-execution';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import SearchBar from '@/features/workflow/components/toolbar/SearchBar';
 import EmojiPicker from '@/features/workflow/components/toolbar/EmojiPicker';
 import CanvasPlacementPanel from '@/features/workflow/components/toolbar/CanvasPlacementPanel';

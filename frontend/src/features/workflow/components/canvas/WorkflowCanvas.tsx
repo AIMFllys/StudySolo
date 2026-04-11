@@ -33,7 +33,7 @@ import { useCanvasClipboard } from '@/features/workflow/hooks/use-canvas-clipboa
 import { useCanvasKeyboard } from '@/features/workflow/hooks/use-canvas-keyboard';
 import { useCanvasEventListeners } from '@/features/workflow/hooks/use-canvas-event-listeners';
 import { useCanvasDnd } from '@/features/workflow/hooks/use-canvas-dnd';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 
 type WorkflowCanvasNodeData = Record<string, unknown> & { hideSlip?: boolean };
 

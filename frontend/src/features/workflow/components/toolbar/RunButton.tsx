@@ -1,7 +1,7 @@
 'use client';
 
 import { useWorkflowExecution } from '@/features/workflow/hooks/use-workflow-execution';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 
 export default function RunButton() {
   const { status, start, stop } = useWorkflowExecution();

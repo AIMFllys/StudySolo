@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { Pencil, ArrowLeftRight, Trash2, Clock3 } from 'lucide-react';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { deleteEdge, reverseEdge, updateEdgeNote, updateEdgeWaitSeconds } from '@/features/workflow/utils/edge-actions';
 import { normalizeWaitSeconds } from '@/features/workflow/utils/edge-display';
 

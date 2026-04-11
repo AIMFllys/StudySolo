@@ -6,7 +6,7 @@ import { Settings2 } from 'lucide-react';
 import type { AIStepNodeData } from '@/types';
 import { getNodeTypeMeta, getNodeTheme } from '@/features/workflow/constants/workflow-meta';
 import { getCommunityIcon } from '@/features/community-nodes/constants/catalog';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import BranchManagerPanel from './BranchManagerPanel';
 import { NodeModelSelector } from './NodeModelSelector';
 import { NodeInputBadges } from './NodeInputBadges';

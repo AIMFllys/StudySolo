@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import type { AIStepNodeData } from '@/types';
-import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import NodeMarkdownOutput from '../nodes/NodeMarkdownOutput';
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
