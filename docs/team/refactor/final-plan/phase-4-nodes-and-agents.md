@@ -32,28 +32,33 @@
 - `workflow-meta.ts` 仍继续承担大量结构性元数据职责，尚未进入 deprecate 阶段
 - 节点 `version` 当前只是字段已存在，尚未形成独立版本治理 / changelog 机制
 
-### Part B：首个闭环已完成
+### Part B：前两个闭环已完成
 
 - `agents/_template/` 已从“不存在”推进为最小可运行模板
-- `agents/code-review-agent/` 已从“只有 README”推进为最小可运行实例
-- 两者都已具备：
+- `agents/code-review-agent/` 已从“只有 README”推进为可运行实例，并已从 deterministic stub 升级为规则型本地真实审查 Agent
+- 当前 `agents/_template/` 与 `agents/code-review-agent/` 都已具备：
   - `GET /health`
   - `GET /v1/models`
   - `POST /v1/chat/completions`
   - non-stream / SSE stream
   - API Key 校验
   - `test_contract.py`
+- 当前 `code-review-agent` 额外已具备：
+  - 最新一条 `user` 消息的输入解析（`unified_diff / code_snippet / plain_text`）
+  - 5 类固定规则审查：`hardcoded_secret / debug_artifact / dangerous_eval_or_exec / broad_exception_swallow / unsafe_html_sink`
+  - 稳定的 `Summary + Findings + Limitations` 输出格式
+  - 定向规则逻辑测试闭环
 
 ### Part B：仍未完成
 
-- `code-review-agent` 当前仍是 deterministic stub，不是完整代码审查能力
+- `code-review-agent` 当前仍不是 repo-aware 审查，也未接外部 LLM
 - `backend/config/agents.yaml`、Agent Gateway、`/api/agents/*` 尚未开始
 - 其他 agent 目录仍未迁移成真实可运行骨架
 - Docker / compose / pyproject 等外圈基础设施本轮未纳入
 
 > [!NOTE]
 > 当前默认下一步不再是“补 `_template` 与 `code-review-agent` 最小骨架”，而是：
-> 1. 继续推进 **Phase 4B 能力填充**
+> 1. 继续推进 **Phase 4B 深化**（如多文件 diff 感知 / 更丰富规则 / 仓库上下文前置能力）
 > 2. 或单独推进 **Phase 4A NodeStore / workflow-meta manifest-first 收口**
 
 ---
@@ -269,7 +274,7 @@ agents/
 ### Task 4B.2：实现一个最小 Agent 样板
 
 > [!NOTE]
-> **当前真实状态**：已完成最小三端点样板。`code-review-agent` 已可运行，但当前仍是 deterministic stub，未接真实代码审查能力或外部 LLM。
+> **当前真实状态**：最小三端点样板已完成，且 `code-review-agent` 已进一步从 deterministic stub 推进为规则型本地真实审查 Agent。当前能力仍限定为本地启发式规则，不含 repo-aware 上下文或外部 LLM。
 
 以 `code-review-agent` 为例，实际实现 3 个必要端点：
 
@@ -277,10 +282,17 @@ agents/
 2. `GET /v1/models` → 模型列表（OpenAI 兼容格式）
 3. `POST /v1/chat/completions` → Chat Completions（支持 stream/non-stream）
 
+当前 `src/core/agent.py` 已额外具备：
+
+1. 输入类型识别：`unified_diff / code_snippet / plain_text`
+2. 5 类固定规则审查：硬编码密钥、调试遗留、危险动态执行、宽泛吞错、危险 HTML sink
+3. 结构化文本输出：`Summary + Findings + Limitations`
+4. 只分析最新一条 `user` 消息；历史消息仅参与 prompt token 统计
+
 ### Task 4B.3：编写四层契约测试
 
 > [!NOTE]
-> **当前真实状态**：已完成最小契约测试闭环。`agents/_template/tests/test_contract.py` 与 `agents/code-review-agent/tests/test_contract.py` 均已通过。
+> **当前真实状态**：已完成“协议 + 规则逻辑”双层测试闭环。`agents/_template/tests/test_contract.py` 与 `agents/code-review-agent/tests/test_contract.py` 已通过；`agents/code-review-agent/tests/test_review_logic.py` 已覆盖 5 类规则命中、clean case、最新 user 消息边界、以及 unified diff 仅检查新增行。
 
 ```python
 # tests/test_contract.py
@@ -370,13 +382,14 @@ def test_request_id_propagation(client): ...
 - [x] `agents/_template/` 模板已可直接复制使用
 - [x] `agents/code-review-agent/` 已有 1 个最小可运行 Agent
 - [x] 四层契约测试（`test_contract.py`）已通过最小闭环验证
+- [x] `code-review-agent` 已完成首个规则型能力闭环（5 条固定审查规则）
 - [x] `agents/README.md` 开发指南已编写
 - [x] `agent-architecture.md` 接口协议规范已冻结
 
 > [!IMPORTANT]
 > **Phase 4 当前最准确的判断**：
 > - Part A：底座已搭起，但真正的 manifest-first 收口还没完成
-> - Part B：最小样板已完成，后续进入能力填充阶段
+> - Part B：最小样板已完成，且 `code-review-agent` 已进入规则型真实能力阶段；后续进入 4B 深化阶段
 > - Phase 5 的 Agent Gateway / Wiki / 治理层仍未开始，不应混入当前波次
 
 > [!IMPORTANT]
