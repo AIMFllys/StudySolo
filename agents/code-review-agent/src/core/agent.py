@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from math import ceil
 from typing import Literal
 
+import src.core.upstream_review as upstream_review
+
 
 def estimate_tokens(text: str) -> int:
     return max(1, ceil(len(text.strip()) / 4)) if text.strip() else 0
@@ -27,6 +29,7 @@ class CompletionResult:
 
 Severity = Literal["high", "medium", "low"]
 InputKind = Literal["unified_diff", "code_snippet", "plain_text"]
+ReviewBackend = Literal["heuristic", "upstream_reserved"]
 
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 MAX_FINDINGS = 5
@@ -87,6 +90,7 @@ class StructuredReviewPayload:
     review_target_text: str
     review_target_path: str | None = None
     context_file_paths: tuple[str, ...] = ()
+    context_blocks: tuple[tuple[str, str], ...] = ()
     uses_structured_input: bool = False
 
 
@@ -109,6 +113,12 @@ class RuleSpec:
     severity: Severity
     patterns: tuple[re.Pattern[str], ...]
     advice: str
+
+
+@dataclass(frozen=True, slots=True)
+class PreparedReview:
+    payload: StructuredReviewPayload
+    review_input: ReviewInput
 
 
 RULES: tuple[RuleSpec, ...] = (
@@ -250,19 +260,23 @@ def extract_structured_review_payload(text: str) -> StructuredReviewPayload:
         return StructuredReviewPayload(review_target_text=stripped)
 
     context_paths: list[str] = []
+    context_blocks: list[tuple[str, str]] = []
     for match in STRUCTURED_BLOCK_PATTERN.finditer(text):
         if match.group("tag").lower() != "repo_context":
             continue
         context_content = match.group("content").strip()
         context_path = match.group("path").strip()
-        if not context_path or not extract_review_text(context_content):
+        normalized_context = extract_review_text(context_content)
+        if not context_path or not normalized_context:
             continue
         context_paths.append(context_path)
+        context_blocks.append((context_path, normalized_context))
 
     return StructuredReviewPayload(
         review_target_text=review_target_content,
         review_target_path=review_target_path,
         context_file_paths=ordered_unique(context_paths),
+        context_blocks=tuple(context_blocks),
         uses_structured_input=True,
     )
 
@@ -541,13 +555,22 @@ def format_review(review_input: ReviewInput, findings: list[ReviewFinding]) -> s
 
 
 class CodeReviewAgent:
-    def __init__(self, agent_name: str) -> None:
+    def __init__(
+        self,
+        agent_name: str,
+        *,
+        review_backend: ReviewBackend = "heuristic",
+        upstream_settings: upstream_review.UpstreamReviewSettings | None = None,
+    ) -> None:
         self.agent_name = agent_name
+        self.review_backend = review_backend
+        self.upstream_settings = upstream_settings or upstream_review.UpstreamReviewSettings()
 
     async def complete(self, messages: list[dict[str, str]]) -> CompletionResult:
         prompt_text = "\n".join(message.get("content", "") for message in messages)
         latest_user_message = self._latest_user_message(messages)
-        content = self.review_text(latest_user_message)
+        prepared_review = self.prepare_review_text(latest_user_message)
+        content = self._render_review(prepared_review)
         return CompletionResult(
             content=content,
             prompt_tokens=estimate_tokens(prompt_text),
@@ -557,18 +580,40 @@ class CodeReviewAgent:
     def stream_chunks(self, content: str) -> list[str]:
         return iter_text_chunks(content)
 
-    def review_text(self, text: str) -> str:
+    def prepare_review_text(self, text: str) -> PreparedReview:
         payload = extract_structured_review_payload(text)
         review_input = build_review_input(
             payload.review_target_text,
             default_file_path=payload.review_target_path,
             context_file_paths=payload.context_file_paths,
         )
-        findings = collect_findings(review_input)
-        return format_review(review_input, findings)
+        return PreparedReview(payload=payload, review_input=review_input)
+
+    def review_text(self, text: str) -> str:
+        prepared_review = self.prepare_review_text(text)
+        return self._render_review(prepared_review)
 
     def _latest_user_message(self, messages: list[dict[str, str]]) -> str:
         for message in reversed(messages):
             if message.get("role") == "user":
                 return str(message.get("content", "")).strip()
         return ""
+
+    def _render_review(self, prepared_review: PreparedReview) -> str:
+        if self.review_backend == "upstream_reserved":
+            self._build_reserved_upstream_request(prepared_review)
+        findings = collect_findings(prepared_review.review_input)
+        return format_review(prepared_review.review_input, findings)
+
+    def _build_reserved_upstream_request(
+        self,
+        prepared_review: PreparedReview,
+    ) -> upstream_review.UpstreamReviewRequest:
+        return upstream_review.build_upstream_review_request(
+            settings=self.upstream_settings,
+            input_kind=prepared_review.review_input.kind,
+            review_target_text=prepared_review.review_input.raw_text,
+            review_target_path=prepared_review.payload.review_target_path,
+            context_blocks=prepared_review.payload.context_blocks,
+            uses_structured_input=prepared_review.payload.uses_structured_input,
+        )

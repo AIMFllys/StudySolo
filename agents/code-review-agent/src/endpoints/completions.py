@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from src.config import get_settings
 from src.core.agent import CodeReviewAgent
+from src.core.upstream_review import UpstreamReviewSettings
 from src.middleware.auth import verify_api_key
 from src.schemas.request import ChatCompletionRequest, ChatMessage
 from src.schemas.response import (
@@ -58,7 +59,16 @@ async def create_chat_completion(
 ):
     _validate_request(body)
     settings = get_settings()
-    agent = CodeReviewAgent(agent_name=settings.agent_name)
+    agent = CodeReviewAgent(
+        agent_name=settings.agent_name,
+        review_backend=settings.review_backend,
+        upstream_settings=UpstreamReviewSettings(
+            model=settings.upstream_model,
+            base_url=settings.upstream_base_url,
+            api_key=settings.upstream_api_key,
+            timeout_seconds=settings.upstream_timeout_seconds,
+        ),
+    )
     messages = [message.model_dump() for message in body.messages]
     result = await agent.complete(messages)
 

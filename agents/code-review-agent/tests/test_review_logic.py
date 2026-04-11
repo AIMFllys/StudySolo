@@ -3,10 +3,20 @@ import asyncio
 import pytest
 
 from src.core.agent import CodeReviewAgent
+from src.core.upstream_review import UpstreamReviewSettings, build_upstream_review_request
 
 
-def render_review(text: str) -> str:
-    agent = CodeReviewAgent(agent_name="code-review")
+def render_review(
+    text: str,
+    *,
+    review_backend: str = "heuristic",
+    upstream_settings: UpstreamReviewSettings | None = None,
+) -> str:
+    agent = CodeReviewAgent(
+        agent_name="code-review",
+        review_backend=review_backend,
+        upstream_settings=upstream_settings,
+    )
     return agent.review_text(text)
 
 
@@ -348,6 +358,109 @@ diff --git a/backend/service.py b/backend/service.py
     assert "- Files reviewed: 2" in review
     assert "Findings found: 0" in review
     assert "Findings\n- None\n  Note: No deterministic findings." in review
+
+
+def test_explicit_heuristic_backend_matches_default_output():
+    text = "```ts\nconsole.log('debug');\n```"
+
+    default_review = render_review(text)
+    heuristic_review = render_review(text, review_backend="heuristic")
+
+    assert heuristic_review == default_review
+
+
+def test_upstream_reserved_backend_reuses_heuristic_output():
+    text = """<review_target path="frontend/app.tsx">
+```ts
+console.log('debug');
+```
+</review_target>
+<repo_context path="frontend/helper.ts">
+```ts
+export const helper = true;
+```
+</repo_context>"""
+
+    heuristic_review = render_review(text)
+    reserved_review = render_review(
+        text,
+        review_backend="upstream_reserved",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert reserved_review == heuristic_review
+
+
+def test_prepare_review_text_legacy_message_uses_entire_text_as_target():
+    agent = CodeReviewAgent(agent_name="code-review")
+    prepared = agent.prepare_review_text("Please review:\n```ts\nconsole.log('debug');\n```")
+
+    assert prepared.payload.review_target_path is None
+    assert prepared.payload.context_blocks == ()
+    assert prepared.review_input.raw_text == "console.log('debug');"
+
+
+def test_prepare_review_text_malformed_structure_falls_back_to_legacy_target():
+    agent = CodeReviewAgent(agent_name="code-review")
+    prepared = agent.prepare_review_text(
+        """Please review:
+<review_target path="frontend/app.tsx">
+```ts
+console.log('debug');
+```"""
+    )
+
+    assert prepared.payload.review_target_path is None
+    assert prepared.payload.uses_structured_input is False
+    assert "console.log('debug');" in prepared.review_input.raw_text
+
+
+def test_upstream_review_request_includes_review_target_and_repo_context():
+    agent = CodeReviewAgent(agent_name="code-review")
+    prepared = agent.prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```ts
+console.log('debug');
+```
+</review_target>
+<repo_context path="frontend/logger.ts">
+```ts
+export function debugLog(message: string) {
+  return console.log(message);
+}
+```
+</repo_context>"""
+    )
+
+    request = build_upstream_review_request(
+        settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=18.0,
+        ),
+        input_kind=prepared.review_input.kind,
+        review_target_text=prepared.review_input.raw_text,
+        review_target_path=prepared.payload.review_target_path,
+        context_blocks=prepared.payload.context_blocks,
+        uses_structured_input=prepared.payload.uses_structured_input,
+    )
+
+    assert request.model == "review-upstream-v1"
+    assert request.base_url == "https://example.test/v1"
+    assert request.api_key == "upstream-key"
+    assert request.timeout_seconds == 18.0
+    assert request.messages[0]["role"] == "system"
+    assert request.messages[1]["role"] == "user"
+    assert "Review target path: frontend/app.tsx" in request.messages[1]["content"]
+    assert "Repo context files supplied: 1" in request.messages[1]["content"]
+    assert "Context file 1 path: frontend/logger.ts" in request.messages[1]["content"]
+    assert "console.log('debug');" in request.messages[1]["content"]
 
 
 def test_findings_sort_by_severity_then_file_path_then_line_number():

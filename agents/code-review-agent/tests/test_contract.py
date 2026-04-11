@@ -1,3 +1,9 @@
+from fastapi.testclient import TestClient
+
+from src.config import get_settings
+from src.main import create_app
+
+
 def auth_headers(settings):
     return {
         "Authorization": f"Bearer {settings.api_key}",
@@ -112,4 +118,55 @@ def test_stream_response_sse_format(client, settings):
     lines = [line for line in response.text.splitlines() if line]
     assert lines[0].startswith("data: ")
     assert any("chat.completion.chunk" in line for line in lines[:-1])
+    assert lines[-1] == "data: [DONE]"
+
+
+def test_non_stream_response_format_with_upstream_reserved_backend(monkeypatch):
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_reserved")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=completion_payload(settings),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["object"] == "chat.completion"
+    assert data["model"] == settings.model_id
+    content = data["choices"][0]["message"]["content"]
+    assert "Summary" in content
+    assert "1. Title: Debug artifact" in content
+    assert "Rule ID: debug_artifact" in content
+
+
+def test_stream_response_sse_format_with_upstream_reserved_backend(monkeypatch):
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_reserved")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=completion_payload(settings, stream=True),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    lines = [line for line in response.text.splitlines() if line]
+    assert lines[0].startswith("data: ")
     assert lines[-1] == "data: [DONE]"
