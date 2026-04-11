@@ -2,19 +2,29 @@
 
 import { useMemo } from 'react';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
+import { useNodeManifest } from '@/features/workflow/hooks/use-node-manifest';
 import { ExecutionProgressHeader } from '@/features/workflow/components/execution/ExecutionProgressHeader';
 import { ExecutionTraceList } from '@/features/workflow/components/execution/ExecutionTraceList';
+import { buildExecutionNodeNameMap } from '@/features/workflow/utils/execution-node-copy';
+import type { NodeManifestItem } from '@/types';
+
+function buildManifestLookup(manifest: NodeManifestItem[]) {
+  return manifest.reduce<Record<string, NodeManifestItem>>((lookup, item) => {
+    lookup[item.type] = item;
+    return lookup;
+  }, {});
+}
 
 export default function ExecutionTraceDrawer() {
   const executionSession = useWorkflowStore((state) => state.executionSession);
   const clearExecutionSession = useWorkflowStore((state) => state.clearExecutionSession);
   const nodes = useWorkflowStore((state) => state.nodes);
+  const { manifest } = useNodeManifest();
+  const manifestByType = useMemo(() => buildManifestLookup(manifest), [manifest]);
 
   const nodeNameMap = useMemo(
-    () => Object.fromEntries(
-      nodes.map((node) => [node.id, String((node.data as { label?: string })?.label ?? node.id)]),
-    ),
-    [nodes],
+    () => buildExecutionNodeNameMap(nodes, manifestByType),
+    [manifestByType, nodes],
   );
 
   if (!executionSession) {

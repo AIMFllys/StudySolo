@@ -4,16 +4,19 @@ import { useMemo } from 'react';
 import type { Node } from '@xyflow/react';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { CollapsibleSection } from '../CollapsibleSection';
-import type { AIStepNodeData } from '@/types';
+import { useNodeManifest } from '@/features/workflow/hooks/use-node-manifest';
+import type { AIStepNodeData, NodeManifestItem } from '@/types';
 import {
   getNodePreview,
-  getNodeTitle,
-  getNodeTypeMeta,
   getStatusMeta,
   STATUS_META,
 } from '@/features/workflow/constants/workflow-meta';
 import { ExecutionTraceList } from '@/features/workflow/components/execution/ExecutionTraceList';
 import { NodeConfigFormContent } from '@/features/workflow/components/node-config/NodeConfigFormContent';
+import {
+  buildExecutionNodeNameMap,
+  resolveExecutionNodeCopy,
+} from '@/features/workflow/utils/execution-node-copy';
 import {
   countExecutionSessionStatuses,
   getExecutionSessionStepCount,
@@ -22,6 +25,13 @@ import {
 
 function getNodeData(node: Node | null | undefined) {
   return (node?.data as unknown as AIStepNodeData | undefined) ?? undefined;
+}
+
+function buildManifestLookup(manifest: NodeManifestItem[]) {
+  return manifest.reduce<Record<string, NodeManifestItem>>((lookup, item) => {
+    lookup[item.type] = item;
+    return lookup;
+  }, {});
 }
 
 function StatusItem({ count, status }: { count: number; status: keyof typeof STATUS_META }) {
@@ -53,12 +63,12 @@ export default function RightPanelContent() {
     nodes,
     selectedNodeId,
   } = useWorkflowStore();
+  const { manifest } = useNodeManifest();
+  const manifestByType = useMemo(() => buildManifestLookup(manifest), [manifest]);
 
   const nodeNameMap = useMemo(
-    () => Object.fromEntries(
-      nodes.map((node) => [node.id, String((node.data as { label?: string })?.label ?? node.id)]),
-    ),
-    [nodes],
+    () => buildExecutionNodeNameMap(nodes, manifestByType),
+    [manifestByType, nodes],
   );
 
   const statusCounts = executionSession
@@ -74,19 +84,27 @@ export default function RightPanelContent() {
   const focusNode = focusTrace
     ? (nodes.find((node) => node.id === focusTrace.nodeId) ?? selectedNode)
     : null;
-  const focusMeta = focusTrace
-    ? getNodeTypeMeta(focusTrace.nodeType)
+  const focusNodeType = focusTrace
+    ? focusTrace.nodeType
     : focusNode
-      ? getNodeTypeMeta((getNodeData(focusNode)?.type ?? focusNode.type) as string)
-      : null;
+      ? String(getNodeData(focusNode)?.type ?? focusNode.type ?? '')
+      : '';
+  const focusManifestItem = focusNodeType ? (manifestByType[focusNodeType] ?? null) : null;
   const focusStatus = focusTrace
     ? getStatusMeta(focusTrace.status)
     : focusNode
       ? getStatusMeta(getNodeData(focusNode)?.status)
       : null;
   const focusEdges = focusNode ? getEdgeSummary(focusNode, edges) : null;
-  const focusTitle = focusTrace?.nodeName ?? (focusNode ? getNodeTitle(focusNode) : '');
-  const focusDescription = focusMeta?.description ?? '';
+  const focusCopy = useMemo(
+    () => resolveExecutionNodeCopy({
+      nodeType: focusNodeType,
+      traceNodeName: focusTrace?.nodeName,
+      nodeLabel: focusNode ? getNodeData(focusNode)?.label : null,
+      manifestItem: focusManifestItem,
+    }),
+    [focusManifestItem, focusNode, focusNodeType, focusTrace?.nodeName],
+  );
   const focusPreview = focusTrace
     ? getNodePreview(
         focusTrace.status === 'running'
@@ -154,11 +172,11 @@ export default function RightPanelContent() {
                 ) : null}
               </div>
 
-              {focusNode && focusMeta && focusStatus && focusEdges ? (
+              {focusNode && focusStatus && focusEdges ? (
                 <>
                   <div>
-                    <h5 className="text-sm font-semibold text-foreground">{focusTitle}</h5>
-                    <p className="mt-1 text-xs text-muted-foreground">{focusDescription}</p>
+                    <h5 className="text-sm font-semibold text-foreground">{focusCopy.title}</h5>
+                    <p className="mt-1 text-xs text-muted-foreground">{focusCopy.description}</p>
                     {focusStatusToneClassName ? (
                       <p className={focusStatusToneClassName}>随执行状态自动切换</p>
                     ) : null}
