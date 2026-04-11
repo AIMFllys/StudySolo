@@ -16,21 +16,19 @@
 
 ## 当前真实状态（2026-04-11）
 
-### Part A：已部分落地
+### Part A：工程主线已完成
 
 - 节点自动发现机制已真实存在，当前落在 `backend/app/nodes/__init__.py`，不是文档初稿中的 `_registry.py`
 - `backend/app/nodes/_base.py` 已具备：
   - `display_name`
   - `renderer`
   - `version`
-- `/api/nodes/manifest` 已真实返回 `display_name / renderer / version`
+- `changelog`
+- `/api/nodes/manifest` 已真实返回 `display_name / renderer / version / changelog`
 - 前端输出 renderer 已接入 manifest `renderer`
-
-### Part A：仍未完成
-
-- `NodeStoreDefaultView.tsx` 仍保留静态 `NODE_CATEGORIES`，尚未切到按 manifest `category` 动态分组
-- `workflow-meta.ts` 仍继续承担大量结构性元数据职责，尚未进入 deprecate 阶段
-- 节点 `version` 当前只是字段已存在，尚未形成独立版本治理 / changelog 机制
+- `NodeStoreDefaultView.tsx` 已按 manifest 驱动动态分组渲染，并保留静态 fallback
+- 19 个官方节点已显式声明 `version / changelog`，形成第一版治理基线；`community_node` 继续排除在官方治理基线外
+- `workflow-meta.ts` 仍继续承担部分结构性元数据职责，但当前属于后续 deprecate 长尾，不再作为本阶段主线 blocker
 
 ### Part B：前两个闭环已完成
 
@@ -45,7 +43,8 @@
   - `test_contract.py`
 - 当前 `code-review-agent` 额外已具备：
   - 最新一条 `user` 消息的输入解析（`unified_diff / code_snippet / plain_text`）
-  - 5 类固定规则审查：`hardcoded_secret / debug_artifact / dangerous_eval_or_exec / broad_exception_swallow / unsafe_html_sink`
+  - 7 类固定规则审查：`hardcoded_secret / dangerous_eval_or_exec / unsafe_html_sink / shell_command_execution / tls_verification_disabled / debug_artifact / broad_exception_swallow`
+  - 多文件 unified diff 感知：文件路径、目标新增行号、以及同规则同文件去重
   - 稳定的 `Summary + Findings + Limitations` 输出格式
   - 定向规则逻辑测试闭环
 
@@ -58,8 +57,8 @@
 
 > [!NOTE]
 > 当前默认下一步不再是“补 `_template` 与 `code-review-agent` 最小骨架”，而是：
-> 1. 继续推进 **Phase 4B 深化**（如多文件 diff 感知 / 更丰富规则 / 仓库上下文前置能力）
-> 2. 或单独推进 **Phase 4A NodeStore / workflow-meta manifest-first 收口**
+> 1. 继续推进 **Phase 4B 深化**（如 repo-aware 前置输入能力 / findings 结构稳定化 / 外部 LLM 前置设计）
+> 2. `workflow-meta.ts` 的 deprecate 收口继续保留在 **Phase 4A 长尾** 中，但不再作为当前 blocker
 
 ---
 
@@ -168,7 +167,7 @@ class BaseNode(ABC):
 ### Task 4A.3：消除前端冗余节点定义
 
 > [!NOTE]
-> **当前真实状态**：已完成前半段。前端 renderer 选择与多处 UI 文案已切到 manifest-first，但 `NodeStoreDefaultView.tsx` 的动态分组、`NodeType` 的进一步动态化，以及 `workflow-meta.ts` 的结构职责收缩尚未完成。
+> **当前真实状态**：主线已完成。前端 renderer 选择、多处 UI 文案与 `NodeStoreDefaultView.tsx` 动态分组均已切到 manifest-first，并保留静态 fallback；`workflow-meta.ts` 的结构职责收缩仍待后续 deprecate 收口。
 
 按 Phase 3 Task 3.5 的准备工作，让前端逐步转向 manifest-first：
 
@@ -177,12 +176,10 @@ class BaseNode(ABC):
 3. `NodeStoreDefaultView.tsx` 中的分组从 manifest 的 `category` 字段动态生成
 4. `renderers/index.ts` 的 RENDERER_REGISTRY 改用动态 registry（带静态兜底）
 
-### 迁移顺序
+### 剩余迁移顺序
 
 ```
-Step 1: 后端 manifest 添加字段（Task 4A.2）
-Step 2: 前端创建 manifest 缓存层
-Step 3: NodeStoreDefaultView 改用 manifest 数据
+Step 1-3: 已完成（manifest 扩展 + manifest 缓存层 + NodeStoreDefaultView 动态接线）
 Step 4: workflow-meta.ts 标记为 deprecated
 Step 5: 6 个月后删除 workflow-meta.ts
 ```
@@ -195,7 +192,7 @@ Step 5: 6 个月后删除 workflow-meta.ts
 ### Task 4A.4：节点版本管理基础设施
 
 > [!NOTE]
-> **当前真实状态**：仅字段已落地。`version` 当前统一存在，但仍固定为 `1.0.0`，尚未形成节点级版本演进和 changelog 治理。
+> **当前真实状态**：第一版治理基线已完成。19 个官方节点已显式声明 `version / changelog`，manifest 契约已返回 `changelog`；`community_node` 继续排除在官方治理基线外。当前仍未进入版本升级策略、比较工具和前端展示阶段。
 
 为每个节点增加版本字段：
 
@@ -285,14 +282,15 @@ agents/
 当前 `src/core/agent.py` 已额外具备：
 
 1. 输入类型识别：`unified_diff / code_snippet / plain_text`
-2. 5 类固定规则审查：硬编码密钥、调试遗留、危险动态执行、宽泛吞错、危险 HTML sink
+2. 7 类固定规则审查：硬编码密钥、危险动态执行、危险 HTML sink、Shell 命令执行、关闭 TLS 校验、调试遗留、宽泛吞错
 3. 结构化文本输出：`Summary + Findings + Limitations`
-4. 只分析最新一条 `user` 消息；历史消息仅参与 prompt token 统计
+4. 多文件 unified diff 感知：仅分析新增行，并输出目标文件路径与行号
+5. 只分析最新一条 `user` 消息；历史消息仅参与 prompt token 统计
 
 ### Task 4B.3：编写四层契约测试
 
 > [!NOTE]
-> **当前真实状态**：已完成“协议 + 规则逻辑”双层测试闭环。`agents/_template/tests/test_contract.py` 与 `agents/code-review-agent/tests/test_contract.py` 已通过；`agents/code-review-agent/tests/test_review_logic.py` 已覆盖 5 类规则命中、clean case、最新 user 消息边界、以及 unified diff 仅检查新增行。
+> **当前真实状态**：已完成“协议 + 规则逻辑”双层测试闭环。`agents/_template/tests/test_contract.py` 与 `agents/code-review-agent/tests/test_contract.py` 已通过；`agents/code-review-agent/tests/test_review_logic.py` 已覆盖 7 类规则命中、clean case、最新 user 消息边界、多文件 diff 路径/行号、以及 unified diff 仅检查新增行。
 
 ```python
 # tests/test_contract.py
@@ -374,21 +372,21 @@ def test_request_id_propagation(client): ...
 
 - [x] 节点自动发现机制已实现（当前落在 `nodes/__init__.py`）
 - [x] Manifest API 返回 `renderer` 和 `version` 字段
-- [ ] 前端 NodeStoreDefaultView 可从 manifest 动态分组渲染（带静态兜底）
-- [ ] 所有官方节点形成独立版本治理（当前仅统一字段存在）
+- [x] 前端 NodeStoreDefaultView 可从 manifest 动态分组渲染（带静态兜底）
+- [x] 所有官方节点形成独立版本治理（当前为第一版 `version/changelog` 基线，不含升级策略/前端展示）
 
 ### Part B（子后端样板）
 
 - [x] `agents/_template/` 模板已可直接复制使用
 - [x] `agents/code-review-agent/` 已有 1 个最小可运行 Agent
 - [x] 四层契约测试（`test_contract.py`）已通过最小闭环验证
-- [x] `code-review-agent` 已完成首个规则型能力闭环（5 条固定审查规则）
+- [x] `code-review-agent` 已完成首个规则型能力闭环（7 条固定审查规则 + 多文件 diff 感知）
 - [x] `agents/README.md` 开发指南已编写
 - [x] `agent-architecture.md` 接口协议规范已冻结
 
 > [!IMPORTANT]
 > **Phase 4 当前最准确的判断**：
-> - Part A：底座已搭起，但真正的 manifest-first 收口还没完成
+> - Part A：工程主线已完成；仅剩 `workflow-meta.ts` 的长期 deprecate 长尾
 > - Part B：最小样板已完成，且 `code-review-agent` 已进入规则型真实能力阶段；后续进入 4B 深化阶段
 > - Phase 5 的 Agent Gateway / Wiki / 治理层仍未开始，不应混入当前波次
 
