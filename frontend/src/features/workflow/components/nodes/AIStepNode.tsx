@@ -6,12 +6,14 @@ import { Settings2 } from 'lucide-react';
 import type { AIStepNodeData } from '@/types';
 import { getNodeTypeMeta, getNodeTheme } from '@/features/workflow/constants/workflow-meta';
 import { getCommunityIcon } from '@/features/community-nodes/constants/catalog';
+import { useNodeManifestItem } from '@/features/workflow/hooks/use-node-manifest';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { eventBus } from '@/lib/events/event-bus';
 import BranchManagerPanel from './BranchManagerPanel';
 import { NodeModelSelector } from './NodeModelSelector';
 import { NodeInputBadges } from './NodeInputBadges';
 import { NodeResultSlip } from './NodeResultSlip';
+import { resolveCanvasNodeDescription } from './resolve-canvas-node-description';
 
 type WorkflowNodeVisualData = AIStepNodeData & { hideSlip?: boolean };
 
@@ -23,12 +25,16 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
   const isCommunityNode = nodeType === 'community_node';
   const typeMeta = getNodeTypeMeta(nodeType);
   const nodeTheme = getNodeTheme(nodeType);
+  const { manifestItem } = useNodeManifestItem(nodeType);
   const HeaderIcon = isCommunityNode
     ? getCommunityIcon(nodeData.community_icon)
     : typeMeta.icon;
-  const description = isCommunityNode
-    ? (nodeData.input_hint?.trim() || '社区共享的封装 AI 节点')
-    : typeMeta.description;
+  const description = resolveCanvasNodeDescription({
+    nodeType,
+    isCommunityNode,
+    inputHint: nodeData.input_hint,
+    manifestItem,
+  });
   const statusBadge = status === 'running' ? '(ACTIVE)' : status === 'waiting' ? '(WAIT)' : '';
   
   // Independent Selection Trackers
