@@ -43,21 +43,25 @@
   - `test_contract.py`
 - 当前 `code-review-agent` 额外已具备：
   - 最新一条 `user` 消息的输入解析（`unified_diff / code_snippet / plain_text`）
+  - 结构化 repo-aware 前置输入：`review_target / repo_context` 封装、context 文件计数、review target path 感知
   - 7 类固定规则审查：`hardcoded_secret / dangerous_eval_or_exec / unsafe_html_sink / shell_command_execution / tls_verification_disabled / debug_artifact / broad_exception_swallow`
   - 多文件 unified diff 感知：文件路径、目标新增行号、以及同规则同文件去重
   - 稳定的 `Summary + Findings + Limitations` 输出格式
+  - `heuristic / upstream_reserved / upstream_openai_compatible` 三种 review backend seam
+  - 真实 OpenAI-compatible non-stream upstream 调用，以及配置缺失、超时、HTTP 异常、空内容、非法 JSON、非法 findings 的严格回退
   - 定向规则逻辑测试闭环
 
 ### Part B：仍未完成
 
-- `code-review-agent` 当前仍不是 repo-aware 审查，也未接外部 LLM
+- `code-review-agent` 当前仍不读取本地仓库文件，也没有完整跨文件 / 全仓库推理
+- provider streaming 尚未接通；当前 live upstream 仅覆盖 non-stream 调用，并继续复用现有 SSE 外层协议
 - `backend/config/agents.yaml`、Agent Gateway、`/api/agents/*` 尚未开始
 - 其他 agent 目录仍未迁移成真实可运行骨架
 - Docker / compose / pyproject 等外圈基础设施本轮未纳入
 
 > [!NOTE]
 > 当前默认下一步不再是“补 `_template` 与 `code-review-agent` 最小骨架”，而是：
-> 1. 继续推进 **Phase 4B 深化**（如 repo-aware 前置输入能力 / findings 结构稳定化 / 外部 LLM 前置设计）
+> 1. 继续推进 **Phase 4B 深化**（如 provider streaming / repo-aware 深化 / 上游输出治理）
 > 2. `workflow-meta.ts` 的 deprecate 收口继续保留在 **Phase 4A 长尾** 中，但不再作为当前 blocker
 
 ---
@@ -271,7 +275,7 @@ agents/
 ### Task 4B.2：实现一个最小 Agent 样板
 
 > [!NOTE]
-> **当前真实状态**：最小三端点样板已完成，且 `code-review-agent` 已进一步从 deterministic stub 推进为规则型本地真实审查 Agent。当前能力仍限定为本地启发式规则，不含 repo-aware 上下文或外部 LLM。
+> **当前真实状态**：最小三端点样板已完成，且 `code-review-agent` 已进一步从 deterministic stub 推进为规则型真实审查 Agent。当前已具备结构化 repo-aware 前置输入、稳定纯文本 findings 模板、以及真实 OpenAI-compatible non-stream upstream + 严格回退；但仍不读取本地仓库文件，也未进入完整跨文件 / 全仓库推理。
 
 以 `code-review-agent` 为例，实际实现 3 个必要端点：
 
@@ -282,15 +286,18 @@ agents/
 当前 `src/core/agent.py` 已额外具备：
 
 1. 输入类型识别：`unified_diff / code_snippet / plain_text`
-2. 7 类固定规则审查：硬编码密钥、危险动态执行、危险 HTML sink、Shell 命令执行、关闭 TLS 校验、调试遗留、宽泛吞错
-3. 结构化文本输出：`Summary + Findings + Limitations`
-4. 多文件 unified diff 感知：仅分析新增行，并输出目标文件路径与行号
-5. 只分析最新一条 `user` 消息；历史消息仅参与 prompt token 统计
+2. 结构化 repo-aware 前置输入：`review_target / repo_context`、context 计数、review target path 感知
+3. 7 类固定规则审查：硬编码密钥、危险动态执行、危险 HTML sink、Shell 命令执行、关闭 TLS 校验、调试遗留、宽泛吞错
+4. 稳定文本输出：`Summary + Findings + Limitations`
+5. 多文件 unified diff 感知：仅分析新增行，并输出目标文件路径与行号
+6. `heuristic / upstream_reserved / upstream_openai_compatible` 三种内部 review backend
+7. 真实 OpenAI-compatible non-stream upstream 调用与严格回退
+8. 只分析最新一条 `user` 消息；历史消息仅参与 prompt token 统计
 
 ### Task 4B.3：编写四层契约测试
 
 > [!NOTE]
-> **当前真实状态**：已完成“协议 + 规则逻辑”双层测试闭环。`agents/_template/tests/test_contract.py` 与 `agents/code-review-agent/tests/test_contract.py` 已通过；`agents/code-review-agent/tests/test_review_logic.py` 已覆盖 7 类规则命中、clean case、最新 user 消息边界、多文件 diff 路径/行号、以及 unified diff 仅检查新增行。
+> **当前真实状态**：已完成“协议 + 规则逻辑”双层测试闭环。`agents/_template/tests/test_contract.py` 与 `agents/code-review-agent/tests/test_contract.py` 已通过；`agents/code-review-agent/tests/test_review_logic.py` 已覆盖 7 类规则命中、clean case、最新 user 消息边界、多文件 diff 路径/行号、unified diff 仅检查新增行、结构化 repo-aware 输入边界、稳定文本输出模板、以及 live upstream 成功 / strict fallback 路径。
 
 ```python
 # tests/test_contract.py
