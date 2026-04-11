@@ -40,6 +40,24 @@ describe('workflow event bus', () => {
     expect(eventBus.listenerCount('workflow:toggle-all-slips')).toBe(2);
   });
 
+  it('supports the node-store add-node event without window CustomEvent glue', () => {
+    const handler = vi.fn();
+
+    eventBus.on('node-store:add-node', handler);
+    eventBus.emit('node-store:add-node', { nodeType: 'summary' });
+
+    expect(handler).toHaveBeenCalledWith({ nodeType: 'summary' });
+  });
+
+  it('supports tier refresh broadcasts for sidebar listeners', () => {
+    const handler = vi.fn();
+
+    eventBus.on('studysolo:tier-refresh', handler);
+    eventBus.emit('studysolo:tier-refresh', undefined);
+
+    expect(handler).toHaveBeenCalledWith(undefined);
+  });
+
   it('supports open and close node-config events without changing payload shape', () => {
     const openHandler = vi.fn();
     const closeHandler = vi.fn();

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Mail, UserCheck, Shield, ExternalLink, ChevronRight } from 'lucide-react';
+import { eventBus } from '@/lib/events/event-bus';
 import { getUser, getTierLabel, type UserInfo } from '@/services/auth.service';
 
 export default function UserPanel() {
@@ -13,8 +14,9 @@ export default function UserPanel() {
 
   useEffect(() => {
     fetchUser();
-    window.addEventListener('studysolo:tier-refresh', fetchUser);
-    return () => window.removeEventListener('studysolo:tier-refresh', fetchUser);
+    return eventBus.on('studysolo:tier-refresh', () => {
+      fetchUser();
+    });
   }, []);
 
   const initials = user?.name

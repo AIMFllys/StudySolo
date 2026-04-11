@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Ticket, ArrowRight, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { eventBus } from '@/lib/events/event-bus';
 import { redeemCode } from '@/services/auth.service';
 
 /**
@@ -10,7 +11,7 @@ import { redeemCode } from '@/services/auth.service';
  * without a full page reload.
  */
 function broadcastTierRefresh() {
-  window.dispatchEvent(new CustomEvent('studysolo:tier-refresh'));
+  eventBus.emit('studysolo:tier-refresh', undefined);
 }
 
 export default function RedeemCode() {

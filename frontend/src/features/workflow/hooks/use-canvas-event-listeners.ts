@@ -101,8 +101,8 @@ export function useCanvasEventListeners({
 
   // node-store:add-node
   useEffect(() => {
-    const handler = (e: Event) => {
-      const { nodeType, communityNode } = (e as CustomEvent).detail as {
+    return eventBus.on('node-store:add-node', (detail) => {
+      const { nodeType, communityNode } = detail as {
         nodeType: string;
         communityNode?: CommunityNodeInsertPayload;
       };
@@ -139,9 +139,7 @@ export function useCanvasEventListeners({
 
       store.setNodes([...store.nodes, newNode]);
       setSelectedNodeId(nodeId);
-    };
-    window.addEventListener('node-store:add-node', handler);
-    return () => window.removeEventListener('node-store:add-node', handler);
+    });
   }, [reactFlowInstance, setSelectedNodeId]);
 
   // workflow:open-node-config

@@ -7,6 +7,8 @@ export interface EventMap {
   'canvas:add-annotation': { emoji: string };
   'canvas:delete-annotation': { nodeId: string };
   'canvas:placement-mode': { mode: string };
+  'node-store:add-node': { nodeType: string };
+  'studysolo:tier-refresh': undefined;
   'workflow:open-node-config': {
     nodeId: string;
     anchorRect?: NodeConfigAnchorRect | null;

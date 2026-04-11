@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useCallback, useRef, useState } from 'react';
 import { GripVertical } from 'lucide-react';
 import { NODE_TYPE_META, getNodeTheme } from '@/features/workflow/constants/workflow-meta';
+import { eventBus } from '@/lib/events/event-bus';
 import type { NodeType } from '@/types';
 
 const NODE_EXTENDED_INFO: Partial<Record<NodeType, string>> = {
@@ -64,7 +65,7 @@ export function NodeStoreItem({ nodeType }: { nodeType: NodeType }) {
   }, [nodeType]);
 
   const handleClick = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('node-store:add-node', { detail: { nodeType } }));
+    eventBus.emit('node-store:add-node', { nodeType });
   }, [nodeType]);
 
   const anchorRect = itemRef.current?.getBoundingClientRect();

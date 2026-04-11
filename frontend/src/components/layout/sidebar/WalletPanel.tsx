@@ -3,6 +3,7 @@
 import { Copy, Eye, EyeOff, ExternalLink, ChevronRight, CheckCircle2, Plus, Unplug, BrainCircuit, User, Plug } from 'lucide-react';
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { eventBus } from '@/lib/events/event-bus';
 import { getUser, getTierLabel, type UserInfo, type TierType } from '@/services/auth.service';
 
 /** -------- 模拟数据 -------- */
@@ -123,8 +124,9 @@ export default function WalletPanel() {
 
   useEffect(() => {
     fetchUser();
-    window.addEventListener('studysolo:tier-refresh', fetchUser);
-    return () => window.removeEventListener('studysolo:tier-refresh', fetchUser);
+    return eventBus.on('studysolo:tier-refresh', () => {
+      fetchUser();
+    });
   }, []);
 
   return (
