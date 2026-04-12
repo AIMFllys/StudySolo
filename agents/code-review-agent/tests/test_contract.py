@@ -771,6 +771,49 @@ renderBadge totalCount
     assert "frontend/long-d.ts" not in upstream_prompt
 
 
+def test_non_stream_live_backend_filters_generic_shared_identifier_prompt_hints(
+    monkeypatch,
+):
+    state = install_fake_upstream(
+        monkeypatch,
+        content=json.dumps({"findings": []}),
+    )
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=structured_completion_payload(
+                settings,
+                content="""<review_target path="frontend/app.tsx">
+```ts
+handleError(status, message)
+```
+</review_target>
+<repo_context path="docs/error-guide.md">
+```md
+status message
+```
+</repo_context>""",
+            ),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    upstream_prompt = state["instances"][0]["calls"][0]["messages"][1]["content"]
+    assert "Context file 1 path: docs/error-guide.md" in upstream_prompt
+    assert "Context file 1 usage priority: low" in upstream_prompt
+    assert "Context file 1 shared identifiers: <none>" in upstream_prompt
+
+
 def test_non_stream_live_backend_recomputes_prompt_metadata_after_budget_consumption(
     monkeypatch,
 ):

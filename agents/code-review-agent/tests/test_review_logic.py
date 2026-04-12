@@ -17,7 +17,11 @@ from src.core.agent import (
     preprocess_forwarded_context,
 )
 import src.core.upstream_review as upstream_review_module
-from src.core.upstream_review import UpstreamReviewSettings, build_upstream_review_request
+from src.core.upstream_review import (
+    UpstreamReviewSettings,
+    build_upstream_review_request,
+    shared_identifiers,
+)
 
 
 def render_review(
@@ -2102,7 +2106,6 @@ print("task")
         "low",
     )
     assert prepared.forwarded_context[0].shared_identifiers == (
-        "number",
         "renderbadge",
         "totalcount",
     )
@@ -2337,6 +2340,61 @@ def test_preprocess_forwarded_context_prioritizes_shared_identifiers_without_rev
     assert forwarded[1].shared_identifiers == ()
 
 
+def test_shared_identifiers_filters_generic_tokens():
+    assert shared_identifiers(
+        "handleError(status, message)",
+        "const status = error.status\nreturn message",
+    ) == ()
+    assert shared_identifiers(
+        "items.map(value => value.id)",
+        "const items = []; const value = 1",
+    ) == ()
+
+
+def test_shared_identifiers_preserve_substantive_compound_tokens():
+    assert shared_identifiers(
+        "renderBadge(totalCount) request response",
+        "const renderBadge = (totalCount) => totalCount; request response",
+    ) == ("renderbadge", "totalcount")
+    assert shared_identifiers(
+        "request_body error_count statusCode",
+        "const request_body = payload; const error_count = 1; return statusCode",
+    ) == ("error_count", "request_body", "statuscode")
+
+
+def test_prepare_review_text_generic_overlap_does_not_raise_usage_priority():
+    agent = CodeReviewAgent(agent_name="code-review")
+    prepared = agent.prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```ts
+handleError(status, message)
+```
+</review_target>
+<repo_context path="frontend/error-handler.ts">
+```ts
+export function handleError(errorCode: string) {
+  return errorCode;
+}
+```
+</repo_context>
+<repo_context path="docs/error-guide.md">
+```md
+status message
+```
+</repo_context>
+"""
+    )
+
+    assert tuple(block.path for block in prepared.forwarded_context) == (
+        "frontend/error-handler.ts",
+        "docs/error-guide.md",
+    )
+    assert prepared.forwarded_context[0].shared_identifiers == ("handleerror",)
+    assert prepared.forwarded_context[0].usage_priority == "high"
+    assert prepared.forwarded_context[1].shared_identifiers == ()
+    assert prepared.forwarded_context[1].usage_priority == "low"
+
+
 def test_upstream_review_request_includes_review_target_and_repo_context():
     agent = CodeReviewAgent(agent_name="code-review")
     prepared = agent.prepare_review_text(
@@ -2457,7 +2515,7 @@ def test_upstream_review_request_reuses_forwarded_context_metadata():
                 path="docs/readme.md",
                 content="deployment steps and release notes",
                 relationship="other",
-                shared_identifiers=("cache", "path"),
+                shared_identifiers=("adapter", "cache"),
                 usage_priority="high",
                 truncated=False,
             ),
@@ -2466,7 +2524,7 @@ def test_upstream_review_request_reuses_forwarded_context_metadata():
     )
 
     assert "Context file 1 usage priority: high" in request.messages[1]["content"]
-    assert "Context file 1 shared identifiers: cache, path" in request.messages[1]["content"]
+    assert "Context file 1 shared identifiers: adapter, cache" in request.messages[1]["content"]
 
 
 def test_upstream_review_request_uses_diff_scope_hint_and_medium_priority_with_single_overlap():

@@ -93,6 +93,29 @@ LOW_INFO_IDENTIFIERS = {
     "while",
     "with",
 }
+LOW_SIGNAL_SHARED_IDENTIFIER_TOKENS = {
+    "body",
+    "data",
+    "error",
+    "errors",
+    "item",
+    "items",
+    "message",
+    "messages",
+    "number",
+    "path",
+    "payload",
+    "request",
+    "requests",
+    "response",
+    "responses",
+    "result",
+    "results",
+    "status",
+    "string",
+    "value",
+    "values",
+}
 
 
 class UpstreamReviewError(Exception):
@@ -187,8 +210,17 @@ def extract_identifiers(text: str) -> set[str]:
     return identifiers
 
 
+def _filter_shared_identifier_candidates(identifiers: set[str]) -> set[str]:
+    return {
+        identifier
+        for identifier in identifiers
+        if identifier not in LOW_SIGNAL_SHARED_IDENTIFIER_TOKENS
+    }
+
+
 def shared_identifiers(review_target_text: str, context_text: str) -> tuple[str, ...]:
     shared = extract_identifiers(review_target_text).intersection(extract_identifiers(context_text))
+    shared = _filter_shared_identifier_candidates(shared)
     return tuple(sorted(shared)[:MAX_SHARED_IDENTIFIERS])
 
 
