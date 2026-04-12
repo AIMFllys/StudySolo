@@ -11,6 +11,7 @@ from src.core.agent import (
     UNVALIDATED_UPSTREAM_RULE_ID,
     UNVALIDATED_UPSTREAM_SEVERITY,
     UNVALIDATED_UPSTREAM_TITLE,
+    canonical_review_path,
     canonical_known_rule_id,
     normalize_unknown_live_rule_id,
     normalize_unknown_live_title,
@@ -606,6 +607,55 @@ export const token = "sk-test-1234567890";
     assert "external model reasoning is limited" not in review
 
 
+def test_upstream_openai_compatible_backend_drops_backslash_repo_context_findings_and_falls_back(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Hardcoded secret",
+                        "rule_id": "hardcoded_secret",
+                        "severity": "high",
+                        "file_path": "frontend\\helper.ts",
+                        "line_number": 1,
+                        "evidence": "token = 'sk-test-1234567890'",
+                        "fix": "Move the credential into environment variables.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+console.log('debug');
+```
+</review_target>
+<repo_context path="frontend/helper.ts">
+```ts
+export const token = "sk-test-1234567890";
+```
+</repo_context>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "1. Title: Debug artifact" in review
+    assert "Rule ID: debug_artifact" in review
+    assert "Hardcoded secret" not in review
+    assert "frontend/helper.ts" not in review
+    assert "external model reasoning is limited" not in review
+
+
 def test_upstream_openai_compatible_backend_canonicalizes_broad_exception_metadata(
     monkeypatch,
 ):
@@ -904,6 +954,60 @@ diff --git a/backend/service.py b/backend/service.py
     assert "File: backend/service.py:21" in review
     assert "docs/ignore.md" not in review
     assert "Unsafe HTML sink" not in review
+
+
+def test_upstream_openai_compatible_backend_keeps_backslash_multi_file_diff_path(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Hardcoded secret",
+                        "rule_id": "hardcoded_secret",
+                        "severity": "high",
+                        "file_path": "backend\\service.py",
+                        "line_number": 21,
+                        "evidence": "return \"ok\"",
+                        "fix": "Move the credential into environment variables.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """```diff
+diff --git a/frontend/app.tsx b/frontend/app.tsx
+--- a/frontend/app.tsx
++++ b/frontend/app.tsx
+@@ -8,2 +8,3 @@
+ const ready = true;
++const total = items.length;
+ export default ready;
+diff --git a/backend/service.py b/backend/service.py
+--- a/backend/service.py
++++ b/backend/service.py
+@@ -20,2 +20,3 @@
+ def handler():
++    return "ok"
+     return "ok"
+```""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Findings found: 1" in review
+    assert "1. Title: Hardcoded secret" in review
+    assert "File: backend/service.py:21" in review
+    assert "backend\\service.py" not in review
 
 
 def test_upstream_openai_compatible_backend_drops_unanchored_multi_file_diff_evidence(
@@ -1990,8 +2094,88 @@ return cacheAdapter;
     assert title == UNVALIDATED_UPSTREAM_TITLE
 
 
+def test_normalize_unknown_live_title_preserves_backslash_equivalent_path_reference():
+    review_input = CodeReviewAgent(agent_name="code-review").prepare_review_text(
+        """<review_target path="backend/service.py">
+```py
+value = total
+return total
+```
+</review_target>"""
+    ).review_input
+
+    title = normalize_unknown_live_title(
+        review_input,
+        review_target_path="backend/service.py",
+        file_path="backend/service.py",
+        evidence="return total",
+        title="Issue in backend\\service.py",
+    )
+
+    assert title == "Issue in backend\\service.py"
+
+
+def test_normalize_unknown_live_title_rewrites_basename_only_path_reference():
+    review_input = CodeReviewAgent(agent_name="code-review").prepare_review_text(
+        """<review_target path="backend/service.py">
+```py
+value = total
+return total
+```
+</review_target>"""
+    ).review_input
+
+    title = normalize_unknown_live_title(
+        review_input,
+        review_target_path="backend/service.py",
+        file_path="backend/service.py",
+        evidence="return total",
+        title="Issue in service.py",
+    )
+
+    assert title == UNVALIDATED_UPSTREAM_TITLE
+
+
+def test_normalize_unknown_live_title_rewrites_absolute_or_case_mismatched_path_reference():
+    review_input = CodeReviewAgent(agent_name="code-review").prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>"""
+    ).review_input
+
+    absolute_title = normalize_unknown_live_title(
+        review_input,
+        review_target_path="frontend/app.tsx",
+        file_path="frontend/app.tsx",
+        evidence="return total;",
+        title="Issue in C:\\repo\\frontend\\app.tsx",
+    )
+    case_mismatch_title = normalize_unknown_live_title(
+        review_input,
+        review_target_path="frontend/app.tsx",
+        file_path="frontend/app.tsx",
+        evidence="return total;",
+        title="Issue in Frontend/App.tsx",
+    )
+
+    assert absolute_title == UNVALIDATED_UPSTREAM_TITLE
+    assert case_mismatch_title == UNVALIDATED_UPSTREAM_TITLE
+
+
 def test_normalize_unknown_live_rule_id_rewrites_empty_rule_id():
     assert normalize_unknown_live_rule_id("   ") == UNVALIDATED_UPSTREAM_RULE_ID
+
+
+def test_canonical_review_path_normalizes_slash_equivalent_paths():
+    assert canonical_review_path("frontend\\app.tsx") == "frontend/app.tsx"
+    assert canonical_review_path("b\\frontend\\helper.ts") == "frontend/helper.ts"
+    assert canonical_review_path("a/backend/service.py") == "backend/service.py"
+    assert canonical_review_path("backend\\service.py") == "backend/service.py"
+    assert canonical_review_path("C:\\repo\\frontend\\app.tsx") == "C:/repo/frontend/app.tsx"
+    assert canonical_review_path("<unknown>") is None
 
 
 def test_canonical_known_rule_id_matches_style_equivalent_ids():
@@ -2085,6 +2269,48 @@ return cacheAdapter;
         file_path="frontend/app.tsx",
         evidence="return cacheAdapter;",
         fix="Rename adapter_cache before returning.",
+    )
+
+    assert advice == UNVALIDATED_UPSTREAM_FIX_ADVICE
+
+
+def test_normalize_unknown_live_fix_advice_preserves_backslash_equivalent_path_reference():
+    review_input = CodeReviewAgent(agent_name="code-review").prepare_review_text(
+        """<review_target path="backend/service.py">
+```py
+value = total
+return total
+```
+</review_target>"""
+    ).review_input
+
+    advice = normalize_unknown_live_fix_advice(
+        review_input,
+        review_target_path="backend/service.py",
+        file_path="backend/service.py",
+        evidence="return total",
+        fix="Move the logic into backend\\service.py.",
+    )
+
+    assert advice == "Move the logic into backend\\service.py."
+
+
+def test_normalize_unknown_live_fix_advice_rewrites_basename_only_path_reference():
+    review_input = CodeReviewAgent(agent_name="code-review").prepare_review_text(
+        """<review_target path="backend/service.py">
+```py
+value = total
+return total
+```
+</review_target>"""
+    ).review_input
+
+    advice = normalize_unknown_live_fix_advice(
+        review_input,
+        review_target_path="backend/service.py",
+        file_path="backend/service.py",
+        evidence="return total",
+        fix="Move the logic into service.py.",
     )
 
     assert advice == UNVALIDATED_UPSTREAM_FIX_ADVICE
@@ -2433,13 +2659,71 @@ export const ignored = true;
 </repo_context>"""
     )
 
-    assert len(prepared.payload.context_blocks) == 4
+    assert len(prepared.payload.context_blocks) == 3
     assert tuple(block.path for block in prepared.forwarded_context) == ("frontend/helper.ts",)
     assert prepared.forwarded_context[0].content == 'export const helper = "first";'
     assert prepared.forwarded_context[0].relationship == "same_dir"
     assert prepared.forwarded_context[0].shared_identifiers == ()
     assert prepared.forwarded_context[0].usage_priority == "medium"
     assert prepared.forwarded_context[0].truncated is False
+
+
+def test_prepare_review_text_canonicalizes_backslash_repo_context_paths():
+    agent = CodeReviewAgent(agent_name="code-review")
+    prepared = agent.prepare_review_text(
+        """<review_target path="frontend\\app.tsx">
+```ts
+console.log('debug');
+```
+</review_target>
+<repo_context path="frontend\\app.tsx">
+```ts
+export const duplicateTarget = true;
+```
+</repo_context>
+<repo_context path="frontend\\logger.ts">
+```ts
+export function debugLog(message: string) {
+  return console.log(message);
+}
+```
+</repo_context>"""
+    )
+
+    assert prepared.payload.review_target_path == "frontend/app.tsx"
+    assert prepared.payload.context_file_paths == ("frontend/app.tsx", "frontend/logger.ts")
+    assert tuple(block.path for block in prepared.forwarded_context) == ("frontend/logger.ts",)
+    assert prepared.forwarded_context[0].relationship == "same_dir"
+    assert prepared.forwarded_context[0].usage_priority == "high"
+    assert prepared.forwarded_context[0].shared_identifiers == ("console", "log")
+
+
+def test_prepare_review_text_deduplicates_slash_equivalent_repo_context_paths():
+    agent = CodeReviewAgent(agent_name="code-review")
+    prepared = agent.prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>
+<repo_context path="b\\frontend\\helper.ts">
+```ts
+export const helper = "first";
+```
+</repo_context>
+<repo_context path="frontend/helper.ts">
+```ts
+export const helper = "second";
+```
+</repo_context>"""
+    )
+
+    assert prepared.payload.context_file_paths == ("frontend/helper.ts",)
+    assert len(prepared.payload.context_blocks) == 2
+    assert tuple(block.path for block in prepared.forwarded_context) == ("frontend/helper.ts",)
+    assert prepared.forwarded_context[0].content == 'export const helper = "first";'
+    assert prepared.forwarded_context[0].relationship == "same_dir"
 
 
 def test_prepare_review_text_prioritizes_more_relevant_repo_contexts_under_file_limit():

@@ -1071,6 +1071,60 @@ const token = 'sk-test-1234567890';
     assert state["instances"][0]["calls"][0]["stream"] is False
 
 
+def test_non_stream_live_backend_canonicalizes_backslash_paths_in_prompt(
+    monkeypatch,
+):
+    state = install_fake_upstream(
+        monkeypatch,
+        content=json.dumps({"findings": []}),
+    )
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=structured_completion_payload(
+                settings,
+                content="""<review_target path="frontend\\app.tsx">
+```ts
+console.log('debug');
+```
+</review_target>
+<repo_context path="frontend\\app.tsx">
+```ts
+export const duplicateTarget = true;
+```
+</repo_context>
+<repo_context path="frontend\\logger.ts">
+```ts
+export function debugLog(message) {
+  return console.log(message);
+}
+```
+</repo_context>""",
+            ),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    upstream_prompt = state["instances"][0]["calls"][0]["messages"][1]["content"]
+    assert "Review target path: frontend/app.tsx" in upstream_prompt
+    assert "Repo context files supplied: 2" in upstream_prompt
+    assert "Repo context files forwarded: 1" in upstream_prompt
+    assert "Context file 1 path: frontend/logger.ts" in upstream_prompt
+    assert "Context file 1 relationship: same_dir" in upstream_prompt
+    assert "Context file 1 usage priority: high" in upstream_prompt
+    assert "duplicateTarget" not in upstream_prompt
+
+
 def test_stream_response_sse_format_with_upstream_live_backend(monkeypatch):
     payload = json.dumps(
         {
@@ -1136,6 +1190,62 @@ const token = 'sk-test-1234567890';
     assert state["instances"][0]["calls"][0]["stream"] is True
 
 
+def test_stream_response_sse_format_with_backslash_live_finding_path(monkeypatch):
+    payload = json.dumps(
+        {
+            "findings": [
+                {
+                    "title": "Temporary secret",
+                    "rule_id": "hardcoded_secret",
+                    "severity": "low",
+                    "file_path": "frontend\\app.tsx",
+                    "line_number": 1,
+                    "evidence": "token = 'sk-test-1234567890'",
+                    "fix": "Delete the statement.",
+                }
+            ]
+        }
+    )
+    state = install_fake_upstream(
+        monkeypatch,
+        content=payload,
+        stream_chunks=[payload[:32], payload[32:74], payload[74:]],
+    )
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=structured_completion_payload(
+                settings,
+                content="""<review_target path="frontend/app.tsx">
+```ts
+const token = 'sk-test-1234567890';
+```
+</review_target>""",
+                stream=True,
+            ),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    stream_content = collect_stream_content(response)
+    assert "Title: Hardcoded secret" in stream_content
+    assert "Rule ID: hardcoded_secret" in stream_content
+    assert "File: frontend/app.tsx:1" in stream_content
+    assert "frontend\\app.tsx" not in stream_content
+    assert len(state["instances"]) == 1
+    assert state["instances"][0]["calls"][0]["stream"] is True
+
+
 def test_stream_response_sse_format_with_style_equivalent_known_rule_id(monkeypatch):
     payload = json.dumps(
         {
@@ -1195,6 +1305,71 @@ console.log('debug');
     assert "Keep it for now." not in stream_content
     assert len(state["instances"]) == 1
     assert state["instances"][0]["calls"][0]["stream"] is True
+
+
+def test_non_stream_live_backend_keeps_backslash_multi_file_diff_path(
+    monkeypatch,
+):
+    state = install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Hardcoded secret",
+                        "rule_id": "hardcoded_secret",
+                        "severity": "high",
+                        "file_path": "backend\\service.py",
+                        "line_number": 21,
+                        "evidence": 'return "ok"',
+                        "fix": "Move the credential into environment variables.",
+                    }
+                ]
+            }
+        ),
+    )
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=structured_completion_payload(
+                settings,
+                content="""```diff
+diff --git a/frontend/app.tsx b/frontend/app.tsx
+--- a/frontend/app.tsx
++++ b/frontend/app.tsx
+@@ -8,2 +8,3 @@
+ const ready = true;
++const total = items.length;
+ export default ready;
+diff --git a/backend/service.py b/backend/service.py
+--- a/backend/service.py
++++ b/backend/service.py
+@@ -20,2 +20,3 @@
+ def handler():
++    return "ok"
+     return "ok"
+```""",
+            ),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    content = response.json()["choices"][0]["message"]["content"]
+    assert "Title: Hardcoded secret" in content
+    assert "File: backend/service.py:21" in content
+    assert "backend\\service.py" not in content
+    assert len(state["instances"]) == 1
+    assert state["instances"][0]["calls"][0]["stream"] is False
 
 
 def test_stream_live_backend_truncates_repo_context_before_streaming(monkeypatch):

@@ -313,20 +313,12 @@ def detect_input_kind(text: str, source_text: str) -> InputKind:
     return "plain_text"
 
 
-def normalize_diff_path(path: str) -> str | None:
-    normalized = path.strip().strip('"')
-    if not normalized or normalized == "/dev/null":
-        return None
-    if normalized.startswith(("a/", "b/")):
-        return normalized[2:]
-    return normalized
-
-
-def normalize_live_finding_path(path: str | None) -> str | None:
+def canonical_review_path(path: str | None) -> str | None:
     if path is None:
         return None
 
-    normalized = path.strip().strip('"').strip("'")
+    normalized = path.strip().strip("\"'`").strip()
+    normalized = normalized.replace("\\", "/")
     if normalized.startswith(("a/", "b/")):
         normalized = normalized[2:].strip()
 
@@ -337,8 +329,16 @@ def normalize_live_finding_path(path: str | None) -> str | None:
     return normalized
 
 
+def normalize_diff_path(path: str) -> str | None:
+    return canonical_review_path(path)
+
+
+def normalize_live_finding_path(path: str | None) -> str | None:
+    return canonical_review_path(path)
+
+
 def normalize_context_path(path: str | None) -> str | None:
-    return normalize_live_finding_path(path)
+    return canonical_review_path(path)
 
 
 def normalize_context_content(content: str) -> str:
@@ -356,9 +356,10 @@ def ordered_unique(values: list[str]) -> tuple[str, ...]:
 
 
 def split_path_parts(path: str | None) -> tuple[str, ...]:
-    if not path:
+    normalized = canonical_review_path(path)
+    if not normalized:
         return ()
-    return tuple(part for part in path.split("/") if part)
+    return tuple(part for part in normalized.split("/") if part)
 
 
 def context_relationship_priority(
@@ -600,7 +601,7 @@ def extract_structured_review_payload(text: str) -> StructuredReviewPayload:
         return StructuredReviewPayload(review_target_text=stripped)
 
     review_target_content = review_target_match.group("content").strip()
-    review_target_path = review_target_match.group("path").strip()
+    review_target_path = canonical_review_path(review_target_match.group("path"))
     if not review_target_path or not extract_review_text(review_target_content):
         return StructuredReviewPayload(review_target_text=stripped)
 
@@ -610,7 +611,7 @@ def extract_structured_review_payload(text: str) -> StructuredReviewPayload:
         if match.group("tag").lower() != "repo_context":
             continue
         context_content = match.group("content").strip()
-        context_path = match.group("path").strip()
+        context_path = canonical_review_path(match.group("path"))
         normalized_context = extract_review_text(context_content)
         if not context_path or not normalized_context:
             continue
@@ -632,6 +633,14 @@ def build_diff_review_input(
     default_file_path: str | None = None,
     context_file_paths: tuple[str, ...] = (),
 ) -> ReviewInput:
+    normalized_default_file_path = canonical_review_path(default_file_path)
+    normalized_context_file_paths = ordered_unique(
+        [
+            canonical_path
+            for raw_path in context_file_paths
+            if (canonical_path := canonical_review_path(raw_path)) is not None
+        ]
+    )
     raw_lines = source_text.splitlines()
     lines: list[ReviewLine] = []
     files_reviewed: list[str] = []
@@ -662,7 +671,7 @@ def build_diff_review_input(
             continue
 
         if raw_line.startswith("+") and not raw_line.startswith("+++"):
-            file_path = current_file or default_file_path or "<unknown>"
+            file_path = current_file or normalized_default_file_path or "<unknown>"
             files_reviewed.append(file_path)
             content = raw_line[1:]
             if content.strip():
@@ -691,8 +700,8 @@ def build_diff_review_input(
         raw_text=source_text,
         lines=lines,
         files_reviewed=ordered_unique(files_reviewed),
-        context_file_paths=context_file_paths,
-        review_target_path=default_file_path,
+        context_file_paths=normalized_context_file_paths,
+        review_target_path=normalized_default_file_path,
     )
 
 
@@ -702,14 +711,22 @@ def build_review_input(
     default_file_path: str | None = None,
     context_file_paths: tuple[str, ...] = (),
 ) -> ReviewInput:
+    normalized_default_file_path = canonical_review_path(default_file_path)
+    normalized_context_file_paths = ordered_unique(
+        [
+            canonical_path
+            for raw_path in context_file_paths
+            if (canonical_path := canonical_review_path(raw_path)) is not None
+        ]
+    )
     source_text = extract_review_text(text)
     kind = detect_input_kind(source_text, text)
 
     if kind == "unified_diff":
         return build_diff_review_input(
             source_text,
-            default_file_path=default_file_path,
-            context_file_paths=context_file_paths,
+            default_file_path=normalized_default_file_path,
+            context_file_paths=normalized_context_file_paths,
         )
 
     raw_lines = source_text.splitlines() or ([source_text] if source_text else [])
@@ -722,19 +739,21 @@ def build_review_input(
                     text=raw_line,
                     evidence=raw_line,
                     position=position,
-                    file_path=default_file_path,
-                    line_number=position if default_file_path else None,
+                    file_path=normalized_default_file_path,
+                    line_number=position if normalized_default_file_path else None,
                 )
             )
 
-    files_reviewed = (default_file_path,) if default_file_path else ()
+    files_reviewed = (
+        (normalized_default_file_path,) if normalized_default_file_path else ()
+    )
     return ReviewInput(
         kind=kind,
         raw_text=source_text,
         lines=lines,
         files_reviewed=files_reviewed,
-        context_file_paths=context_file_paths,
-        review_target_path=default_file_path,
+        context_file_paths=normalized_context_file_paths,
+        review_target_path=normalized_default_file_path,
     )
 
 
@@ -750,7 +769,8 @@ def normalize_anchor_text(text: str) -> str:
 
 
 def normalize_path_reference(text: str) -> str:
-    return text.strip().strip("\"'`").rstrip(".,:;!?)]}").replace("\\", "/")
+    normalized = text.strip().strip("\"'`").rstrip(".,:;!?)]}")
+    return canonical_review_path(normalized) or normalized.replace("\\", "/")
 
 
 def allowed_governed_path_references(*paths: str | None) -> set[str]:
@@ -758,13 +778,10 @@ def allowed_governed_path_references(*paths: str | None) -> set[str]:
     for path in paths:
         if not path:
             continue
-        normalized = normalize_path_reference(path)
+        normalized = canonical_review_path(path)
         if not normalized:
             continue
         references.add(normalized)
-        basename = normalized.rsplit("/", 1)[-1]
-        if basename:
-            references.add(basename)
     return references
 
 
