@@ -1317,6 +1317,49 @@ return total;
     assert "Fix: Review carefully." in review
 
 
+def test_upstream_openai_compatible_backend_preserves_unknown_rule_title_with_style_equivalent_identifier(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "request_body mismatch",
+                        "rule_id": "custom_rule",
+                        "severity": "medium",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return statusCode;",
+                        "fix": "Review carefully.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const requestBody = payload;
+return statusCode;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "1. Title: request_body mismatch" in review
+    assert "Rule ID: custom_rule" in review
+    assert "Fix: Review carefully." in review
+
+
 def test_upstream_openai_compatible_backend_rewrites_unknown_rule_title_with_foreign_identifier(
     monkeypatch,
 ):
@@ -1446,6 +1489,48 @@ return total;
     assert "Rule ID: custom_rule" in review
     assert f"Fix: {UNVALIDATED_UPSTREAM_FIX_ADVICE}" in review
     assert "Rename totalHelper before calling cacheManager." not in review
+
+
+def test_upstream_openai_compatible_backend_preserves_unknown_rule_fix_with_style_equivalent_identifier(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Custom upstream rule",
+                        "rule_id": "custom_rule",
+                        "severity": "medium",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return statusCode;",
+                        "fix": "Rename request_body before comparing status_code.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const requestBody = payload;
+return statusCode;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Rule ID: custom_rule" in review
+    assert "Fix: Rename request_body before comparing status_code." in review
 
 
 def test_upstream_openai_compatible_backend_rewrites_unknown_rule_fix_with_foreign_path(
@@ -1669,6 +1754,48 @@ return total;
     assert title == UNVALIDATED_UPSTREAM_TITLE
 
 
+def test_normalize_unknown_live_title_preserves_style_equivalent_identifier():
+    review_input = CodeReviewAgent(agent_name="code-review").prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```ts
+const requestBody = payload;
+return statusCode;
+```
+</review_target>"""
+    ).review_input
+
+    title = normalize_unknown_live_title(
+        review_input,
+        review_target_path="frontend/app.tsx",
+        file_path="frontend/app.tsx",
+        evidence="return statusCode;",
+        title="request_body mismatch",
+    )
+
+    assert title == "request_body mismatch"
+
+
+def test_normalize_unknown_live_title_rewrites_reordered_style_equivalent_identifier():
+    review_input = CodeReviewAgent(agent_name="code-review").prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```ts
+const cacheAdapter = adapter;
+return cacheAdapter;
+```
+</review_target>"""
+    ).review_input
+
+    title = normalize_unknown_live_title(
+        review_input,
+        review_target_path="frontend/app.tsx",
+        file_path="frontend/app.tsx",
+        evidence="return cacheAdapter;",
+        title="adapter_cache mismatch",
+    )
+
+    assert title == UNVALIDATED_UPSTREAM_TITLE
+
+
 def test_normalize_unknown_live_rule_id_rewrites_empty_rule_id():
     assert normalize_unknown_live_rule_id("   ") == UNVALIDATED_UPSTREAM_RULE_ID
 
@@ -1689,6 +1816,48 @@ return total;
         file_path="frontend/app.tsx",
         evidence="return total;",
         fix="   ",
+    )
+
+    assert advice == UNVALIDATED_UPSTREAM_FIX_ADVICE
+
+
+def test_normalize_unknown_live_fix_advice_preserves_style_equivalent_identifier():
+    review_input = CodeReviewAgent(agent_name="code-review").prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```ts
+const requestBody = payload;
+return statusCode;
+```
+</review_target>"""
+    ).review_input
+
+    advice = normalize_unknown_live_fix_advice(
+        review_input,
+        review_target_path="frontend/app.tsx",
+        file_path="frontend/app.tsx",
+        evidence="return statusCode;",
+        fix="Rename request_body before comparing status_code.",
+    )
+
+    assert advice == "Rename request_body before comparing status_code."
+
+
+def test_normalize_unknown_live_fix_advice_rewrites_reordered_style_equivalent_identifier():
+    review_input = CodeReviewAgent(agent_name="code-review").prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```ts
+const cacheAdapter = adapter;
+return cacheAdapter;
+```
+</review_target>"""
+    ).review_input
+
+    advice = normalize_unknown_live_fix_advice(
+        review_input,
+        review_target_path="frontend/app.tsx",
+        file_path="frontend/app.tsx",
+        evidence="return cacheAdapter;",
+        fix="Rename adapter_cache before returning.",
     )
 
     assert advice == UNVALIDATED_UPSTREAM_FIX_ADVICE

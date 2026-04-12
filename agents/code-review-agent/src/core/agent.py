@@ -733,12 +733,13 @@ def extract_substantive_governed_identifiers(
 ) -> set[str]:
     substantive: set[str] = set()
     for token in upstream_review.IDENTIFIER_PATTERN.findall(text):
-        normalized = token.lower()
-        if normalized in upstream_review.LOW_INFO_IDENTIFIERS:
+        normalized = upstream_review.canonical_shared_identifier(token)
+        if not normalized or normalized in upstream_review.LOW_INFO_IDENTIFIERS:
             continue
         if (
             normalized in reference_identifiers
             or "_" in token
+            or "_" in normalized
             or any(character.isdigit() for character in token)
             or any(character.isupper() for character in token[1:])
         ):
@@ -753,10 +754,10 @@ def collect_live_upstream_reference_identifiers(
     file_path: str | None,
     evidence: str,
 ) -> set[str]:
-    reference_identifiers = set(upstream_review.extract_identifiers(review_input.raw_text))
-    reference_identifiers.update(upstream_review.extract_identifiers(evidence))
-    reference_identifiers.update(upstream_review.extract_identifiers(file_path or ""))
-    reference_identifiers.update(upstream_review.extract_identifiers(review_target_path or ""))
+    reference_identifiers = set(upstream_review.repo_aware_identifiers(review_input.raw_text))
+    reference_identifiers.update(upstream_review.repo_aware_identifiers(evidence))
+    reference_identifiers.update(upstream_review.repo_aware_identifiers(file_path or ""))
+    reference_identifiers.update(upstream_review.repo_aware_identifiers(review_target_path or ""))
     return reference_identifiers
 
 
