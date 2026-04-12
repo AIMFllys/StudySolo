@@ -1,0 +1,30 @@
+name: Backend CI
+
+on:
+  push:
+    paths: ["backend/**"]
+  pull_request:
+    paths: ["backend/**"]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Install linting tools
+        run: |
+          pip install ruff pyright
+
+      - name: Lint
+        run: ruff check backend/
+
+      - name: Type check
+        run: pyright backend/

@@ -1,0 +1,51 @@
+name: Frontend CI
+
+on:
+  push:
+    paths: ["frontend/**"]
+  pull_request:
+    paths: ["frontend/**"]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Lint
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Type check
+        run: npx tsc --noEmit
+        working-directory: frontend
+
+      - name: Check feature isolation
+        run: |
+          echo "Checking cross-feature imports..."
+          VIOLATIONS=0
+          for feature in admin workflow auth knowledge settings; do
+            for other in admin workflow auth knowledge settings; do
+              if [ "$feature" != "$other" ]; then
+                RESULT=$(grep -r "from '@/features/$other" frontend/src/features/$feature/ 2>/dev/null | head -20)
+                if [ -n "$RESULT" ]; then
+                  echo "VIOLATION: features/$feature imports from features/$other:"
+                  echo "$RESULT"
+                  VIOLATIONS=$((VIOLATIONS + 1))
+                fi
+              fi
+            done
+          done
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo "Found $VIOLATIONS cross-feature import violation(s)"
+            exit 1
+          fi
+          echo "Feature isolation check passed"

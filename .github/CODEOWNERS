@@ -6,8 +6,8 @@
 #
 # 团队角色：
 #   @AIMFllys  — 羽升（队长 / 主系统负责人）
-#   TODO: 小李加入后添加 GitHub 用户名（Agent 开发）
-#   TODO: 小陈加入后添加 GitHub 用户名（Wiki 开发）
+#   TODO: 小李加入后添加 GitHub 用户名（Agent 开发，填入 @TODO_小李GitHub用户名）
+#   TODO: 小陈加入后添加 GitHub 用户名（Wiki 开发，填入 @TODO_小陈GitHub用户名）
 
 # ============================================
 # 全局兜底 — 所有文件默认由项目负责人 Review
@@ -26,7 +26,18 @@
 # 子后端 Agent（小李主要工作区）
 # ============================================
 /agents/                    @AIMFllys
-/backend/config/agents.yaml @AIMFllys
+/agents/_template/          @AIMFllys @TODO_小李GitHub用户名
+/agents/code-review-agent/  @TODO_小李GitHub用户名
+/agents/deep-research-agent/ @TODO_小李GitHub用户名
+/agents/news-agent/         @TODO_小李GitHub用户名
+/agents/study-tutor-agent/  @TODO_小李GitHub用户名
+/agents/visual-site-agent/  @TODO_小李GitHub用户名
+
+# ============================================
+# Agent Gateway（羽升负责）
+# ============================================
+/backend/app/services/agent_gateway/ @AIMFllys
+/backend/config/agents.yaml          @AIMFllys
 
 # ============================================
 # 前端
@@ -38,8 +49,8 @@
 # ============================================
 # Wiki（小陈主要工作区）
 # ============================================
-# /frontend/src/app/(wiki)/  @AIMFllys  # 小陈加入后取消注释并添加其 GitHub 用户名
-# /docs/wiki-content/        @AIMFllys  # 小陈加入后取消注释
+/frontend/src/app/(wiki)/   @TODO_小陈GitHub用户名
+/docs/wiki-content/          @TODO_小陈GitHub用户名
 
 # ============================================
 # 数据库 Migrations — 非常敏感，需要谨慎 Review

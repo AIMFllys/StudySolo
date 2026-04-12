@@ -1,0 +1,23 @@
+name: Agents CI
+
+on:
+  push:
+    paths: ["agents/**"]
+  pull_request:
+    paths: ["agents/**"]
+
+jobs:
+  test-code-review-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r agents/code-review-agent/requirements.txt
+
+      - name: Run tests
+        run: pytest agents/code-review-agent/tests/ -q
