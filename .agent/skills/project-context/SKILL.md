@@ -2,7 +2,7 @@
 name: project-context
 description: StudySolo 项目主上下文技能。用于快速理解当前仓库的真实架构、技术栈、端口、API 分组、工作流节点体系、AI catalog / usage / admin / collaboration / feedback 域，以及 shared 子模块与 Platform subtree 的边界。每次进入本项目都应优先参考它。
 allowed-tools: Read, Write, Edit
-version: 5.1
+version: 6.0
 priority: CRITICAL
 auto-load: true
 ---
@@ -11,7 +11,7 @@ auto-load: true
 
 > 最后更新：2026-04-12
 > 文档编码：UTF-8（无 BOM） / LF
-> 版本：v5.1（反映 Phase 4 当前 owner 侧收口 + Phase 5 集成起点）
+> 版本：v6.0（反映 Phase 5 规范整合 + Gateway 规划起点）
 
 ## 1. 一句话说明
 
@@ -377,14 +377,17 @@ agents/
 
 ## 11. 文档权威层级
 
+> 完整规范索引见 `docs/项目规范与框架流程/项目规范/00-规范索引.md`
+
 | 优先级 | 文档位置 | 说明 |
 |--------|---------|------|
 | **L0（最高）** | `docs/team/*.md` | 团队协作铁规 |
 | **L0** | `.github/CODEOWNERS` | GitHub 代码所有权 |
-| **L0** | `shared/docs/conventions/` | 共享层事实，跨项目稳定 |
-| **L1** | `docs/team/refactor/final-plan/` | 重构实施方案 |
-| **L1** | `docs/项目规范与框架流程/` | 功能 SOP |
+| **L0** | `docs/team/refactor/contracts/` | Phase 1 冻结契约（不可修改） |
+| **L1** | `docs/项目规范与框架流程/项目规范/` | 技术规范主体（整合后统一入口） |
+| **L1** | `docs/team/refactor/final-plan/` | 重构执行计划（只记录阶段状态） |
 | **L2** | `agents/README.md` | Agent 开发指南 |
+| **L2** | 本文档 | AI 编程速查（索引 + 摘要） |
 | **L3（参考）** | `docs/team/refactor/claude-analysis/` | 历史分析，只读 |
 | **L3（参考）** | `docs/team/refactor/codex-analysis/` | 历史分析，只读 |
 
@@ -396,12 +399,19 @@ agents/
 | Phase 1 | ✅ 完成 | 接口契约冻结（已签字） |
 | Phase 2 | ✅ 完成 | 后端核心重构（2026-04-10） |
 | Phase 3 | ✅ 完成 | 前端架构重构（工程主线；手动 smoke 待补） |
-| Phase 4 | 🔨 进行中 | Phase 4A 主线完成；当前 owner 侧 4B 已在责任边界内收口；其他 Agent 扩展仍属其他 lane |
-| Phase 5 | ⏳ 可启动 | 平台集成 + Agent Gateway + Wiki + 根级治理 + 文档对齐 |
+| Phase 4 | 🔨 进行中 | Phase 4A 主线完成；当前 owner 侧 4B 已在责任边界内收口 |
+| Phase 5 | 🔨 进行中 | 第一波（规范统一）已启动；Gateway / 治理 / CI 待推进 |
 
 ## 13. 高价值事实源
 
 优先阅读（按优先级）：
+
+**规范层**（整合后）：
+- `docs/项目规范与框架流程/项目规范/00-规范索引.md` — 规范统一入口
+- `docs/team/refactor/final-plan/00-索引.md` — 重构总览
+- `docs/team/refactor/final-plan/agent-architecture.md` — 四层协议（冻结）
+- `docs/team/refactor/contracts/` — Phase 1 冻结契约
+- `docs/issues/phase5-master-plan/00-总览与执行顺序.md` — Phase 5 完整规划
 
 **代码层**：
 - `frontend/src/types/workflow.ts` — 节点类型和状态
@@ -413,14 +423,7 @@ agents/
 - `backend/app/models/ai_catalog.py` — AI Catalog Pydantic 模型
 - `backend/app/models/usage.py` — Usage Pydantic 模型
 - `backend/config.yaml` — AI 运行时配置
-
-**规范层**：
-- `docs/team/refactor/final-plan/00-索引.md` — 重构总览
-- `docs/team/refactor/final-plan/phase-4-nodes-and-agents.md` — Phase 4 当前真实状态
-- `docs/team/refactor/final-plan/phase-5-integration.md` — Phase 5 当前起点与执行顺序
-- `docs/team/refactor/final-plan/agent-architecture.md` — 四层协议
-- `docs/Updates/2026-04-12.md` — 2026-04-12 当天收口日志
-- `docs/team/refactor/contracts/` — Phase 1 冻结契约
+- `agents/code-review-agent/src/core/agent.py` — 首个可运行 Agent
 
 ## 14. 典型任务映射
 

@@ -1,6 +1,6 @@
 # 共享数据库规范
 
-> 最后更新：2026-03-26
+> 最后更新：2026-04-12
 > 文档编码：UTF-8（无 BOM） / LF
 
 本文档是 1037Solo 共享数据库的快速参考，覆盖命名、前缀、RLS 与共享层边界。
@@ -69,10 +69,24 @@
 
 ## 6. AI 目录与计费规则
 
-- 模型目录权威表：`ai_model_families` + `ai_model_skus`
-- `ai_models` 是兼容层，不是新的主目录
-- 正式金额字段统一 `*_cny`
-- 正式模型选择主键是 `selected_model_key`
+### 6.1 权威表
+
+- `ai_model_families` — 模型族（如 "通义千问"、"DeepSeek"）
+- `ai_model_skus` — 可计费/可路由的具体模型条目
+- `ai_models` — 兼容层（已降级，不是新权威）
+
+### 6.2 计费字段规范（Phase 1 冻结）
+
+| 字段 | 说明 | 状态 |
+|------|------|------|
+| `input_price_cny_per_million` | 正式计费字段 | ✅ |
+| `output_price_cny_per_million` | 正式计费字段 | ✅ |
+| `cost_amount_cny` | 正式单次花费 | ✅ |
+| `total_cost_cny` | 正式累计花费 | ✅ |
+| `selected_model_key` | 正式模型选择主键 | ✅ |
+| `selected_platform` | 兼容层保留 | ⚠️ 废弃 |
+| `selected_model` | 兼容层保留 | ⚠️ 废弃 |
+| `*_usd` | 不再使用 | ❌ |
 
 ## 7. 新建表检查清单
 
@@ -81,3 +95,14 @@
 - Policy 是否使用 `(SELECT auth.uid())`
 - 是否需要同步更新 `shared/src/types/database.ts`
 - 是否需要同步更新共享文档和项目文档
+- 是否使用了正确的计费字段（`*_cny` 而非 `*_usd`）
+
+## 8. Phase 2/3/4 变更记录
+
+| 变更 | 日期 | 说明 |
+|------|------|------|
+| AI 模型目录升级 | 2026-03-26 | 新增 `ai_model_families` + `ai_model_skus` 权威表 |
+| CNY 计费升级 | 2026-03-26 | 新增 `input_price_cny_per_million` 等字段 |
+| Usage 账本表 | 2026-03-26 | `ss_ai_usage_events` + `ss_ai_usage_minute` |
+| 知识库表 | 2026-03-25 | `ss_kb_*` 系列表 + pgvector |
+| Phase 4 完成 | 2026-04-11 | 节点系统单一事实源 + Agent 样板完成 |

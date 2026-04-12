@@ -58,28 +58,39 @@ uvicorn app.main:app --reload --port 2038
 ```text
 backend/
 ├── app/
-│   ├── main.py               # FastAPI 入口（app 对象）
-│   ├── api/                   # REST API 路由
-│   │   ├── router.py          # 总路由聚合
-│   │   ├── workflow.py        # 工作流 CRUD
-│   │   ├── ai_chat.py         # AI 对话（SSE 流式）
-│   │   ├── community.py       # 社区工作流
-│   │   ├── admin_*.py         # 管理后台接口
-│   │   └── ...
-│   ├── engine/                # DAG 执行引擎
-│   │   ├── dag_executor.py    # 拓扑排序 + 并行执行
+│   ├── main.py                  # FastAPI 入口（app 对象）
+│   ├── api/                     # REST API 路由（按领域分组）
+│   │   ├── router.py            # 总路由聚合
+│   │   ├── ai/                  # AI 对话 & 生成（SSE 流式）
+│   │   ├── auth/                # 认证（登录/注册/密码/验证码/同意）
+│   │   ├── workflow/            # 工作流 CRUD / 执行 / 协作 / 社交
+│   │   ├── admin_*.py           # 管理后台接口（认证/面板/用户/通知/模型/成员/评分/配置/审计）
+│   │   └── ...                  # nodes / knowledge / exports / feedback / usage / discounts / community-nodes
+│   ├── engine/                  # DAG 执行引擎
+│   │   ├── dag_executor.py      # 拓扑排序 + 并行执行
 │   │   └── execution_context.py # 黑板模型上下文
-│   ├── nodes/                 # 18 种工作流节点实现
-│   ├── prompts/               # 模块化 Prompt 文件（MD + Jinja2）
-│   ├── core/                  # 配置、数据库、认证等核心模块
-│   │   ├── config.py          # Pydantic Settings 配置
-│   │   ├── database.py        # Supabase 客户端
-│   │   └── auth.py            # JWT 认证中间件
-│   └── services/              # 业务逻辑层
-├── tests/                     # 测试代码
-├── requirements.txt           # 生产依赖（== 锁定版本）
-├── .env                       # 环境变量（不入 Git）
-└── .env.production            # 环境变量模板
+│   ├── nodes/                   # 19 种工作流节点（按分类组织）
+│   │   ├── analysis/            # ai_analyzer / ai_planner / logic_switch / loop_map
+│   │   ├── generation/          # compare / content_extract / flashcard / merge_polish / mind_map / outline_gen / quiz_gen / summary
+│   │   ├── input/               # knowledge_base / trigger_input / web_search
+│   │   ├── interaction/         # chat_response
+│   │   ├── output/              # export_file / write_db
+│   │   ├── structure/           # loop_group
+│   │   └── community/           # community_node（非官方治理）
+│   ├── services/                # 业务逻辑层
+│   │   ├── ai_chat/             # AI 对话服务（意图识别/模型调用/校验/辅助）
+│   │   └── llm/                 # LLM 路由层（provider/caller/router，8 平台 17+ 模型）
+│   ├── models/                  # Pydantic 数据模型（workflow / ai / user / admin ...）
+│   ├── middleware/              # 中间件（认证/管理员权限/安全头）
+│   ├── prompts/                 # 模块化 Prompt 文件（MD + Jinja2）
+│   ├── core/                    # 配置、数据库等核心模块
+│   │   ├── config.py            # Pydantic Settings 配置
+│   │   └── database.py          # Supabase 客户端
+│   └── utils/                   # 工具函数（输出截断 / token 计数）
+├── tests/                       # 测试代码
+├── requirements.txt             # 生产依赖（== 锁定版本）
+├── .env                         # 环境变量（不入 Git）
+└── .env.production              # 环境变量模板
 ```
 
 ## 5. 测试
@@ -114,9 +125,15 @@ uvicorn app.main:app --host 127.0.0.1 --port 2038 --workers 4
 | 路由前缀 | 功能 |
 | :--- | :--- |
 | `GET /api/health` | 健康检查 |
-| `/api/workflows/*` | 工作流 CRUD |
-| `/api/ai/*` | AI 对话 & 工作流生成 |
-| `/api/community/*` | 社区工作流共享 |
-| `/api/admin/*` | 管理后台 |
-| `/api/auth/*` | 认证相关 |
-| `/api/user/*` | 用户设置 |
+| `/api/auth/*` | 认证（登录/注册/密码/验证码/同意） |
+| `/api/workflow/*` | 工作流 CRUD |
+| `/api/workflow-runs/*` | 工作流执行记录 |
+| `/api/ai/*` | AI 对话 & 模型目录 & 生成 |
+| `/api/nodes/*` | 节点 Manifest 查询 |
+| `/api/knowledge/*` | 知识库管理 |
+| `/api/exports/*` | 导出功能 |
+| `/api/feedback/*` | 用户反馈 |
+| `/api/usage/*` | 用量统计 |
+| `/api/discounts/*` | 折扣码 |
+| `/api/community-nodes/*` | 社区节点 |
+| `/api/admin/*` | 管理后台（认证/面板/用户/通知/模型/成员/评分/配置/审计） |

@@ -1,6 +1,6 @@
 # AI Agent Context — 1037Solo Shared Module
 
-> 最后更新：2026-03-26
+> 最后更新：2026-04-12
 > 文档编码：UTF-8（无 BOM） / LF
 
 本文档是 AI 助手在 1037Solo 共享层工作时的强制上下文。无论任务落在 StudySolo 还是 Platform，只要触及 `shared/`、共享数据库或跨项目边界，都必须优先遵守此文档。

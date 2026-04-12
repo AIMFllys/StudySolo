@@ -1,6 +1,6 @@
 # Issue 001：Platform 中 StudySolo subtree 版本滞后
 
-> 最后更新：2026-03-26
+> 最后更新：2026-04-12
 > 状态：已知风险
 > 文档编码：UTF-8（无 BOM） / LF
 

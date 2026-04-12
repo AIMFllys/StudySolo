@@ -1,6 +1,6 @@
 # 1037solo-shared
 
-> 最后更新：2026-03-26
+> 最后更新：2026-04-12
 > 文档编码：UTF-8（无 BOM） / LF
 
 `shared/` 是 1037Solo 生态的共享模块，当前在 StudySolo 仓库中以 Git submodule 形式接入。

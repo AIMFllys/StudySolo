@@ -7,13 +7,13 @@
 
 ## 先看什么
 
-1. [项目规范与框架流程/项目规范/项目架构全景.md](项目规范与框架流程/项目规范/项目架构全景.md)
+1. [项目规范与框架流程/项目规范/01-项目架构全景.md](项目规范与框架流程/项目规范/01-项目架构全景.md)
    唯一可信的架构全景文档，包含前后端完整结构、技术栈、部署架构、边界约束。
 2. [summaries/current-engineering-baseline.md](summaries/current-engineering-baseline.md)
    当前工程基线，只写已经落地的真实状态、门禁命令和事实源优先级。
 3. [项目规范与框架流程/项目规范/progress.md](项目规范与框架流程/项目规范/progress.md)
    当前开发进度、已完成项和下一阶段待办。
-4. [项目规范与框架流程/项目规范/frontend-engineering-spec.md](项目规范与框架流程/项目规范/frontend-engineering-spec.md)
+4. [项目规范与框架流程/项目规范/08-前端工程规范.md](项目规范与框架流程/项目规范/08-前端工程规范.md)
    前端工程约束，已按 `features/workflow`、`features/knowledge` 等新结构更新。
 
 ## 当前可信事实
