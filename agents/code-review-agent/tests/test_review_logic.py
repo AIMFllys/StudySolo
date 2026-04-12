@@ -2038,7 +2038,7 @@ export const ignored = true;
     assert prepared.forwarded_context[0].content == 'export const helper = "first";'
     assert prepared.forwarded_context[0].relationship == "same_dir"
     assert prepared.forwarded_context[0].shared_identifiers == ()
-    assert prepared.forwarded_context[0].usage_priority == "high"
+    assert prepared.forwarded_context[0].usage_priority == "medium"
     assert prepared.forwarded_context[0].truncated is False
 
 
@@ -2097,7 +2097,7 @@ print("task")
     )
     assert tuple(block.usage_priority for block in prepared.forwarded_context) == (
         "high",
-        "high",
+        "medium",
         "medium",
         "low",
     )
@@ -2145,7 +2145,45 @@ export function renderBadge(totalCount: number) {
     assert prepared.forwarded_context[0].shared_identifiers == ("renderbadge", "totalcount")
     assert prepared.forwarded_context[0].usage_priority == "high"
     assert prepared.forwarded_context[1].shared_identifiers == ()
-    assert prepared.forwarded_context[1].usage_priority == "high"
+    assert prepared.forwarded_context[1].usage_priority == "medium"
+
+
+def test_prepare_review_text_single_overlap_beats_zero_overlap_same_dir_context():
+    agent = CodeReviewAgent(agent_name="code-review")
+    prepared = agent.prepare_review_text(
+        """<review_target path="frontend/components/app.tsx">
+```tsx
+export function AppCard(totalCount: number) {
+  return formatCount(totalCount);
+}
+```
+</review_target>
+<repo_context path="frontend/components/button.tsx">
+```tsx
+export function Button() {
+  return null;
+}
+```
+</repo_context>
+<repo_context path="frontend/utils/format.ts">
+```ts
+export function formatCount(value: string) {
+  return value;
+}
+```
+</repo_context>"""
+    )
+
+    assert tuple(block.path for block in prepared.forwarded_context) == (
+        "frontend/utils/format.ts",
+        "frontend/components/button.tsx",
+    )
+    assert tuple(block.usage_priority for block in prepared.forwarded_context) == (
+        "medium",
+        "medium",
+    )
+    assert prepared.forwarded_context[0].shared_identifiers == ("formatcount",)
+    assert prepared.forwarded_context[1].shared_identifiers == ()
 
 
 def test_prepare_review_text_truncates_long_repo_context_content():
@@ -2287,7 +2325,7 @@ export const duplicateTarget = true;
     assert "Repo context files forwarded: 1" in request.messages[1]["content"]
     assert "Context file 1 path: frontend/logger.ts" in request.messages[1]["content"]
     assert "Context file 1 relationship: same_dir" in request.messages[1]["content"]
-    assert "Context file 1 usage priority: high" in request.messages[1]["content"]
+    assert "Context file 1 usage priority: medium" in request.messages[1]["content"]
     assert "Context file 1 shared identifiers: <none>" in request.messages[1]["content"]
     assert "Context file 1 truncated: yes" in request.messages[1]["content"]
     assert "... [truncated]" in request.messages[1]["content"]

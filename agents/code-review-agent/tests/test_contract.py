@@ -691,7 +691,7 @@ print("task")
         in upstream_prompt
     )
     assert "Context file 1 path: frontend/components/button.tsx" in upstream_prompt
-    assert "Context file 1 usage priority: high" in upstream_prompt
+    assert "Context file 1 usage priority: medium" in upstream_prompt
     assert "Context file 1 shared identifiers: <none>" in upstream_prompt
     assert "Context file 2 path: frontend/utils/math.ts" in upstream_prompt
     assert "Context file 3 path: backend/render.tsx" in upstream_prompt
@@ -819,7 +819,7 @@ export const duplicateTarget = true;
     )
     assert "Repo context files supplied: 2" in upstream_prompt
     assert "Repo context files forwarded: 1" in upstream_prompt
-    assert "Context file 1 usage priority: high" in upstream_prompt
+    assert "Context file 1 usage priority: medium" in upstream_prompt
     assert "Context file 1 shared identifiers: <none>" in upstream_prompt
     assert "Context file 1 truncated: yes" in upstream_prompt
     assert "... [truncated]" in upstream_prompt

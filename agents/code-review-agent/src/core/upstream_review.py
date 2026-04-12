@@ -196,8 +196,10 @@ def usage_priority(
     relationship: ContextRelationship,
     shared_identifier_count: int,
 ) -> UsagePriority:
-    if relationship == "same_dir" or shared_identifier_count >= 2:
+    if shared_identifier_count >= 2:
         return "high"
+    if relationship == "same_dir":
+        return "high" if shared_identifier_count >= 1 else "medium"
     if relationship in {"same_top_level", "same_extension"} or shared_identifier_count == 1:
         return "medium"
     return "low"
