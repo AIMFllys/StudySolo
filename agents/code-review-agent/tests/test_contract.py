@@ -761,13 +761,16 @@ renderBadge totalCount
     assert response.status_code == 200
     upstream_prompt = state["instances"][0]["calls"][0]["messages"][1]["content"]
     assert "Repo context files supplied: 5" in upstream_prompt
-    assert "Repo context files forwarded: 4" in upstream_prompt
-    assert "Context file 1 path: docs/review.md" in upstream_prompt
+    assert "Repo context files forwarded: 3" in upstream_prompt
+    assert "Context file 1 path: frontend/long-a.ts" in upstream_prompt
     assert "Context file 1 usage priority: high" in upstream_prompt
     assert "Context file 1 shared identifiers: renderbadge, totalcount" in upstream_prompt
-    assert "Context file 2 path: frontend/long-a.ts" in upstream_prompt
-    assert "Context file 2 usage priority: medium" in upstream_prompt
-    assert "Context file 2 shared identifiers: <none>" in upstream_prompt
+    assert "Context file 2 path: frontend/long-b.ts" in upstream_prompt
+    assert "Context file 2 usage priority: high" in upstream_prompt
+    assert "Context file 2 shared identifiers: renderbadge, totalcount" in upstream_prompt
+    assert "Context file 3 path: frontend/long-c.ts" in upstream_prompt
+    assert "renderBadge(totalCount)\n... [truncated]" in upstream_prompt
+    assert "docs/review.md" not in upstream_prompt
     assert "frontend/long-d.ts" not in upstream_prompt
 
 
@@ -874,14 +877,18 @@ renderBadge totalCount
     assert response.status_code == 200
     upstream_prompt = state["instances"][0]["calls"][0]["messages"][1]["content"]
     assert "Context file 1 path: frontend/visible-a.ts" in upstream_prompt
+    assert "Context file 1 usage priority: high" in upstream_prompt
+    assert "Context file 1 shared identifiers: renderbadge, totalcount" in upstream_prompt
+    assert "Context file 1 truncated: yes" in upstream_prompt
     assert "Context file 2 path: frontend/visible-b.ts" in upstream_prompt
-    assert "Context file 3 path: docs/summary.md" in upstream_prompt
+    assert "Context file 3 path: frontend/utils/late.ts" in upstream_prompt
     assert "Context file 3 usage priority: high" in upstream_prompt
     assert "Context file 3 shared identifiers: renderbadge, totalcount" in upstream_prompt
-    assert "Context file 4 path: frontend/utils/late.ts" in upstream_prompt
-    assert "Context file 4 usage priority: medium" in upstream_prompt
-    assert "Context file 4 shared identifiers: <none>" in upstream_prompt
-    assert "Context file 4 truncated: yes" in upstream_prompt
+    assert "Context file 3 truncated: no" in upstream_prompt
+    assert "Context file 4 path: docs/summary.md" in upstream_prompt
+    assert "Context file 4 usage priority: high" in upstream_prompt
+    assert "Context file 4 shared identifiers: renderbadge, totalcount" in upstream_prompt
+    assert "renderBadge(totalCount)\n... [truncated]" in upstream_prompt
 
 
 def test_stream_response_sse_format_with_upstream_live_backend(monkeypatch):

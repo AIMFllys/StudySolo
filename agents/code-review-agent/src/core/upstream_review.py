@@ -218,10 +218,17 @@ def _filter_shared_identifier_candidates(identifiers: set[str]) -> set[str]:
     }
 
 
-def shared_identifiers(review_target_text: str, context_text: str) -> tuple[str, ...]:
+def _shared_identifier_candidates(
+    review_target_text: str,
+    context_text: str,
+) -> tuple[str, ...]:
     shared = extract_identifiers(review_target_text).intersection(extract_identifiers(context_text))
     shared = _filter_shared_identifier_candidates(shared)
-    return tuple(sorted(shared)[:MAX_SHARED_IDENTIFIERS])
+    return tuple(sorted(shared))
+
+
+def shared_identifiers(review_target_text: str, context_text: str) -> tuple[str, ...]:
+    return _shared_identifier_candidates(review_target_text, context_text)[:MAX_SHARED_IDENTIFIERS]
 
 
 def usage_priority(

@@ -373,9 +373,60 @@ def _preview_forwarded_context(
         return None
 
     content_lines = normalized_content.splitlines()
-    kept_lines = content_lines[:line_limit]
-    if not kept_lines:
+    if not content_lines:
         return None
+
+    if len(content_lines) <= line_limit:
+        kept_lines = content_lines
+    else:
+        shared_identifier_candidates = set(
+            upstream_review._shared_identifier_candidates(
+                review_target_text,
+                normalized_content,
+            )
+        )
+        if not shared_identifier_candidates:
+            kept_lines = content_lines[:line_limit]
+        else:
+            line_hits: list[set[str]] = [
+                upstream_review.extract_identifiers(line).intersection(shared_identifier_candidates)
+                for line in content_lines
+            ]
+            best_window_score: tuple[int, int, int, int] | None = None
+            best_window_start = 0
+            best_window_end = line_limit
+
+            for start in range(len(content_lines)):
+                window_identifier_counts: dict[str, int] = {}
+                total_hit_count = 0
+                hit_line_count = 0
+                end_limit = min(len(content_lines), start + line_limit)
+
+                for end in range(start, end_limit):
+                    current_hits = line_hits[end]
+                    if current_hits:
+                        total_hit_count += len(current_hits)
+                        hit_line_count += 1
+                        for identifier in current_hits:
+                            window_identifier_counts[identifier] = (
+                                window_identifier_counts.get(identifier, 0) + 1
+                            )
+
+                    window_score = (
+                        len(window_identifier_counts),
+                        total_hit_count,
+                        hit_line_count,
+                        -start,
+                    )
+                    if best_window_score is None or window_score > best_window_score:
+                        best_window_score = window_score
+                        best_window_start = start
+                        best_window_end = end + 1
+
+            if best_window_score is None or best_window_score[0] <= 0:
+                kept_lines = content_lines[:line_limit]
+            else:
+                kept_lines = content_lines[best_window_start:best_window_end]
 
     kept_content = "\n".join(kept_lines)
     shared_identifiers = upstream_review.shared_identifiers(

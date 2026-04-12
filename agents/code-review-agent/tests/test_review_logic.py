@@ -2228,21 +2228,20 @@ renderBadge totalCount
     )
 
     assert tuple(block.path for block in prepared.forwarded_context) == (
-        "docs/review.md",
         "frontend/long-a.ts",
         "frontend/long-b.ts",
         "frontend/long-c.ts",
     )
-    assert prepared.forwarded_context[0].shared_identifiers == (
-        "renderbadge",
-        "totalcount",
-    )
-    assert prepared.forwarded_context[0].usage_priority == "high"
-    for block in prepared.forwarded_context[1:]:
-        assert block.shared_identifiers == ()
-        assert block.usage_priority == "medium"
+    for block in prepared.forwarded_context:
+        assert block.shared_identifiers == ("renderbadge", "totalcount")
+        assert block.usage_priority == "high"
         assert block.truncated is True
-        assert "renderBadge(totalCount)" not in block.content
+        assert "renderBadge(totalCount)" in block.content
+    assert prepared.forwarded_context[0].content.splitlines()[0] == "line 2"
+    assert prepared.forwarded_context[2].content.splitlines()[0] == "line 42"
+    assert "docs/review.md" not in {
+        block.path for block in prepared.forwarded_context
+    }
 
 
 def test_prepare_review_text_recomputes_metadata_after_budget_is_consumed():
@@ -2284,18 +2283,26 @@ renderBadge totalCount
     assert tuple(block.path for block in prepared.forwarded_context) == (
         "frontend/visible-a.ts",
         "frontend/visible-b.ts",
-        "docs/summary.md",
         "frontend/utils/late.ts",
+        "docs/summary.md",
     )
     assert tuple(block.usage_priority for block in prepared.forwarded_context) == (
         "high",
         "high",
         "high",
-        "medium",
+        "high",
     )
-    assert prepared.forwarded_context[3].shared_identifiers == ()
-    assert prepared.forwarded_context[3].truncated is True
-    assert "renderBadge(totalCount)" not in prepared.forwarded_context[3].content
+    assert prepared.forwarded_context[0].shared_identifiers == ("renderbadge", "totalcount")
+    assert prepared.forwarded_context[0].truncated is True
+    assert prepared.forwarded_context[0].content.splitlines() == [
+        "renderBadge(totalCount)",
+        "... [truncated]",
+    ]
+    assert prepared.forwarded_context[2].shared_identifiers == ("renderbadge", "totalcount")
+    assert prepared.forwarded_context[2].truncated is False
+    assert "renderBadge(totalCount)" in prepared.forwarded_context[2].content
+    assert prepared.forwarded_context[3].shared_identifiers == ("renderbadge", "totalcount")
+    assert prepared.forwarded_context[3].truncated is False
 
 
 def test_prepare_review_text_truncates_long_repo_context_content():

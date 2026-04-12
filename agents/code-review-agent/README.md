@@ -28,7 +28,8 @@
   - `<repo_context path="...">...</repo_context>`
   - 仍只对 `review_target` 出 findings；`repo_context` 在 live upstream 路径下只作为经过治理后的辅助上下文
   - forwarded context 会做路径归一化、去重、shared-identifier-aware 排序与预算裁剪，并在超限时追加 `... [truncated]`
-  - forwarding 排序现在会基于当前预算内真正可见的 context 切片，而不是完整原始 `repo_context`
+- forwarding 排序现在会基于当前预算内真正可见的 context 切片，而不是完整原始 `repo_context`
+- 当 context 超过单文件预算时，会优先选择预算内包含 shared identifier 的最佳连续窗口，而不是固定截取前 `80` 行
 - repo-aware utilization hints：
   - upstream system prompt 会明确 findings 只能针对 `review_target`
   - upstream user prompt 会显式带上 `review scope hint`
@@ -102,7 +103,8 @@ export function debugLog(message: string) {
   - 配置缺失、超时、HTTP 异常、空内容或 JSON / findings 不合规都会严格回退到 `heuristic`
   - 上游成功后只消费内部 JSON findings，并归一化回当前稳定文本模板
   - 上游 prompt 中的 `repo_context` 会先经过 forwarding governance：归一化路径、丢弃与 `review_target` 重复的 context、按 `usage priority -> shared identifiers -> relationship -> 原始顺序` 排序，并按 `4` 文件 / 单文件 `80` 行 / 总计 `200` 行预算裁剪
-  - 这些排序信号现在会基于当前预算内实际可见的 forwarded 切片逐轮重算，不再被长文件后半段的隐藏 identifier 抬高
+- 这些排序信号现在会基于当前预算内实际可见的 forwarded 切片逐轮重算，不再被长文件后半段的隐藏 identifier 抬高
+- 当 forwarded context 需要裁剪时，会优先选出预算内最有利用价值的单段连续窗口，而不是继续保留低价值前缀
   - generic overlap token 现在会在 shared identifier 计算阶段被过滤，避免仅凭 `data/status/message/items/value/result/path` 抬高 repo context 优先级
   - forwarded context 现在会在 preprocessing 阶段直接携带 `shared identifiers`、`usage priority`，upstream prompt 只复用这些元数据，并继续保留 `relationship / truncated`
 
