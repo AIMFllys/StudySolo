@@ -699,6 +699,148 @@ print("task")
     assert "scripts/task.py" not in upstream_prompt
 
 
+def test_non_stream_live_backend_budget_aware_prompt_keeps_visible_high_value_context(
+    monkeypatch,
+):
+    state = install_fake_upstream(
+        monkeypatch,
+        content=json.dumps({"findings": []}),
+    )
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    long_context = "\n".join(
+        [f"line {index}" for index in range(1, 81)] + ["renderBadge(totalCount)"]
+    )
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=structured_completion_payload(
+                settings,
+                content=f"""<review_target path="frontend/app.tsx">
+```ts
+renderBadge(totalCount)
+```
+</review_target>
+<repo_context path="frontend/long-a.ts">
+```ts
+{long_context}
+```
+</repo_context>
+<repo_context path="frontend/long-b.ts">
+```ts
+{long_context}
+```
+</repo_context>
+<repo_context path="frontend/long-c.ts">
+```ts
+{long_context}
+```
+</repo_context>
+<repo_context path="frontend/long-d.ts">
+```ts
+{long_context}
+```
+</repo_context>
+<repo_context path="docs/review.md">
+```md
+renderBadge totalCount
+```
+</repo_context>""",
+            ),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    upstream_prompt = state["instances"][0]["calls"][0]["messages"][1]["content"]
+    assert "Repo context files supplied: 5" in upstream_prompt
+    assert "Repo context files forwarded: 4" in upstream_prompt
+    assert "Context file 1 path: docs/review.md" in upstream_prompt
+    assert "Context file 1 usage priority: high" in upstream_prompt
+    assert "Context file 1 shared identifiers: renderbadge, totalcount" in upstream_prompt
+    assert "Context file 2 path: frontend/long-a.ts" in upstream_prompt
+    assert "Context file 2 usage priority: medium" in upstream_prompt
+    assert "Context file 2 shared identifiers: <none>" in upstream_prompt
+    assert "frontend/long-d.ts" not in upstream_prompt
+
+
+def test_non_stream_live_backend_recomputes_prompt_metadata_after_budget_consumption(
+    monkeypatch,
+):
+    state = install_fake_upstream(
+        monkeypatch,
+        content=json.dumps({"findings": []}),
+    )
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    visible_long_context = "\n".join(
+        ["renderBadge(totalCount)"] + [f"line {index}" for index in range(1, 81)]
+    )
+    late_overlap_context = "\n".join(
+        [f"line {index}" for index in range(1, 60)] + ["renderBadge(totalCount)"]
+    )
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=structured_completion_payload(
+                settings,
+                content=f"""<review_target path="frontend/app.tsx">
+```ts
+renderBadge(totalCount)
+```
+</review_target>
+<repo_context path="frontend/visible-a.ts">
+```ts
+{visible_long_context}
+```
+</repo_context>
+<repo_context path="frontend/visible-b.ts">
+```ts
+{visible_long_context}
+```
+</repo_context>
+<repo_context path="frontend/utils/late.ts">
+```ts
+{late_overlap_context}
+```
+</repo_context>
+<repo_context path="docs/summary.md">
+```md
+renderBadge totalCount
+```
+</repo_context>""",
+            ),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    upstream_prompt = state["instances"][0]["calls"][0]["messages"][1]["content"]
+    assert "Context file 1 path: frontend/visible-a.ts" in upstream_prompt
+    assert "Context file 2 path: frontend/visible-b.ts" in upstream_prompt
+    assert "Context file 3 path: docs/summary.md" in upstream_prompt
+    assert "Context file 3 usage priority: high" in upstream_prompt
+    assert "Context file 3 shared identifiers: renderbadge, totalcount" in upstream_prompt
+    assert "Context file 4 path: frontend/utils/late.ts" in upstream_prompt
+    assert "Context file 4 usage priority: medium" in upstream_prompt
+    assert "Context file 4 shared identifiers: <none>" in upstream_prompt
+    assert "Context file 4 truncated: yes" in upstream_prompt
+
+
 def test_stream_response_sse_format_with_upstream_live_backend(monkeypatch):
     payload = json.dumps(
         {

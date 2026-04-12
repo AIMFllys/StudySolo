@@ -144,6 +144,15 @@ class PreparedReview:
     forwarded_context: tuple[upstream_review.UpstreamContextBlock, ...] = ()
 
 
+@dataclass(frozen=True, slots=True)
+class _ForwardedContextPreview:
+    content: str
+    line_count: int
+    truncated: bool
+    shared_identifiers: tuple[str, ...]
+    usage_priority: upstream_review.UsagePriority
+
+
 RULES: tuple[RuleSpec, ...] = (
     RuleSpec(
         rule_id="hardcoded_secret",
@@ -353,6 +362,38 @@ def path_relationship(
     return "other"
 
 
+def _preview_forwarded_context(
+    review_target_text: str,
+    normalized_content: str,
+    relationship: upstream_review.ContextRelationship,
+    remaining_total_lines: int,
+) -> _ForwardedContextPreview | None:
+    line_limit = min(MAX_FORWARDED_CONTEXT_LINES_PER_FILE, remaining_total_lines)
+    if line_limit <= 0:
+        return None
+
+    content_lines = normalized_content.splitlines()
+    kept_lines = content_lines[:line_limit]
+    if not kept_lines:
+        return None
+
+    kept_content = "\n".join(kept_lines)
+    shared_identifiers = upstream_review.shared_identifiers(
+        review_target_text,
+        kept_content,
+    )
+    return _ForwardedContextPreview(
+        content=kept_content,
+        line_count=len(kept_lines),
+        truncated=len(kept_lines) < len(content_lines),
+        shared_identifiers=shared_identifiers,
+        usage_priority=upstream_review.usage_priority(
+            relationship,
+            len(shared_identifiers),
+        ),
+    )
+
+
 def preprocess_forwarded_context(
     payload: StructuredReviewPayload,
     *,
@@ -370,8 +411,6 @@ def preprocess_forwarded_context(
             str,
             int,
             upstream_review.ContextRelationship,
-            tuple[str, ...],
-            upstream_review.UsagePriority,
         ]
     ] = []
     seen_paths: set[str] = set()
@@ -387,59 +426,56 @@ def preprocess_forwarded_context(
 
         seen_paths.add(normalized_path)
         relationship = path_relationship(normalized_target_path, normalized_path)
-        shared_identifiers = upstream_review.shared_identifiers(
-            review_target_text,
-            normalized_content,
-        )
-        usage_priority = upstream_review.usage_priority(
-            relationship,
-            len(shared_identifiers),
-        )
         unique_contexts.append(
             (
                 normalized_path,
                 normalized_content,
                 index,
                 relationship,
-                shared_identifiers,
-                usage_priority,
             )
         )
 
-    unique_contexts.sort(
-        key=lambda item: (
-            usage_priority_priority(item[5]),
-            -len(item[4]),
-            context_relationship_priority(item[3]),
-            item[2],
-        )
-    )
-
     forwarded_context: list[upstream_review.UpstreamContextBlock] = []
     remaining_total_lines = MAX_FORWARDED_CONTEXT_LINES_TOTAL
+    remaining_contexts = list(unique_contexts)
 
-    for normalized_path, normalized_content, _, relationship, _, _ in unique_contexts:
+    while remaining_contexts:
         if len(forwarded_context) >= MAX_FORWARDED_CONTEXT_FILES or remaining_total_lines <= 0:
             break
 
-        content_lines = normalized_content.splitlines()
-        line_limit = min(MAX_FORWARDED_CONTEXT_LINES_PER_FILE, remaining_total_lines)
-        kept_lines = content_lines[:line_limit]
-        if not kept_lines:
-            continue
+        ranked_contexts: list[
+            tuple[
+                tuple[str, str, int, upstream_review.ContextRelationship],
+                _ForwardedContextPreview,
+            ]
+        ] = []
+        for candidate in remaining_contexts:
+            preview = _preview_forwarded_context(
+                review_target_text,
+                candidate[1],
+                candidate[3],
+                remaining_total_lines,
+            )
+            if preview is None:
+                continue
+            ranked_contexts.append((candidate, preview))
 
-        truncated = len(kept_lines) < len(content_lines)
-        kept_content = "\n".join(kept_lines)
-        shared_identifiers = upstream_review.shared_identifiers(
-            review_target_text,
-            kept_content,
+        if not ranked_contexts:
+            break
+
+        ranked_contexts.sort(
+            key=lambda item: (
+                usage_priority_priority(item[1].usage_priority),
+                -len(item[1].shared_identifiers),
+                context_relationship_priority(item[0][3]),
+                item[0][2],
+            )
         )
-        usage_priority = upstream_review.usage_priority(
-            relationship,
-            len(shared_identifiers),
-        )
-        forwarded_content = kept_content
-        if truncated:
+
+        selected_context, preview = ranked_contexts[0]
+        normalized_path, _, _, relationship = selected_context
+        forwarded_content = preview.content
+        if preview.truncated:
             forwarded_content = f"{forwarded_content}\n... [truncated]"
 
         forwarded_context.append(
@@ -447,12 +483,15 @@ def preprocess_forwarded_context(
                 path=normalized_path,
                 content=forwarded_content,
                 relationship=relationship,
-                shared_identifiers=shared_identifiers,
-                usage_priority=usage_priority,
-                truncated=truncated,
+                shared_identifiers=preview.shared_identifiers,
+                usage_priority=preview.usage_priority,
+                truncated=preview.truncated,
             )
         )
-        remaining_total_lines -= len(kept_lines)
+        remaining_total_lines -= preview.line_count
+        remaining_contexts = [
+            candidate for candidate in remaining_contexts if candidate != selected_context
+        ]
 
     return tuple(forwarded_context)
 

@@ -28,12 +28,14 @@
   - `<repo_context path="...">...</repo_context>`
   - 仍只对 `review_target` 出 findings；`repo_context` 在 live upstream 路径下只作为经过治理后的辅助上下文
   - forwarded context 会做路径归一化、去重、shared-identifier-aware 排序与预算裁剪，并在超限时追加 `... [truncated]`
+  - forwarding 排序现在会基于当前预算内真正可见的 context 切片，而不是完整原始 `repo_context`
 - repo-aware utilization hints：
   - upstream system prompt 会明确 findings 只能针对 `review_target`
   - upstream user prompt 会显式带上 `review scope hint`
   - 每个 forwarded context 会补入 `shared identifiers`、`usage priority`
   - 这些元数据现在也会直接参与 forwarding 排序与预算分配，而不再只停留在 prompt hints
   - `same_dir` 但 `shared identifiers = 0` 的 context 不再自动标成 `high`，而是收口到 `medium`
+  - 长 context 在第 `80` 行之后才出现的 identifier，不会再错误抬高排序或 prompt hints
   - 在 `unified_diff` 场景下，这些元数据现在只基于真正可审查的新增行计算，不再被删除行或 diff 元数据误导
   - 既有的 `relationship / truncated` 提示继续保留
 
@@ -99,6 +101,7 @@ export function debugLog(message: string) {
   - 配置缺失、超时、HTTP 异常、空内容或 JSON / findings 不合规都会严格回退到 `heuristic`
   - 上游成功后只消费内部 JSON findings，并归一化回当前稳定文本模板
   - 上游 prompt 中的 `repo_context` 会先经过 forwarding governance：归一化路径、丢弃与 `review_target` 重复的 context、按 `usage priority -> shared identifiers -> relationship -> 原始顺序` 排序，并按 `4` 文件 / 单文件 `80` 行 / 总计 `200` 行预算裁剪
+  - 这些排序信号现在会基于当前预算内实际可见的 forwarded 切片逐轮重算，不再被长文件后半段的隐藏 identifier 抬高
   - forwarded context 现在会在 preprocessing 阶段直接携带 `shared identifiers`、`usage priority`，upstream prompt 只复用这些元数据，并继续保留 `relationship / truncated`
 
 当前预留配置项均沿用 `AGENT_` 前缀环境变量：
@@ -169,7 +172,7 @@ export function debugLog(message: string) {
 ## 当前测试基线
 
 - `pytest tests -q`
-- 最新真实结果：`102 passed`
+- 最新真实结果：`106 passed`
 
 ## 参考
 

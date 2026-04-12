@@ -2186,6 +2186,115 @@ export function formatCount(value: string) {
     assert prepared.forwarded_context[1].shared_identifiers == ()
 
 
+def test_prepare_review_text_budget_aware_sort_keeps_visible_high_value_context():
+    agent = CodeReviewAgent(agent_name="code-review")
+    long_context = "\n".join(
+        [f"line {index}" for index in range(1, 81)] + ["renderBadge(totalCount)"]
+    )
+    prepared = agent.prepare_review_text(
+        f"""<review_target path="frontend/app.tsx">
+```ts
+renderBadge(totalCount)
+```
+</review_target>
+<repo_context path="frontend/long-a.ts">
+```ts
+{long_context}
+```
+</repo_context>
+<repo_context path="frontend/long-b.ts">
+```ts
+{long_context}
+```
+</repo_context>
+<repo_context path="frontend/long-c.ts">
+```ts
+{long_context}
+```
+</repo_context>
+<repo_context path="frontend/long-d.ts">
+```ts
+{long_context}
+```
+</repo_context>
+<repo_context path="docs/review.md">
+```md
+renderBadge totalCount
+```
+</repo_context>"""
+    )
+
+    assert tuple(block.path for block in prepared.forwarded_context) == (
+        "docs/review.md",
+        "frontend/long-a.ts",
+        "frontend/long-b.ts",
+        "frontend/long-c.ts",
+    )
+    assert prepared.forwarded_context[0].shared_identifiers == (
+        "renderbadge",
+        "totalcount",
+    )
+    assert prepared.forwarded_context[0].usage_priority == "high"
+    for block in prepared.forwarded_context[1:]:
+        assert block.shared_identifiers == ()
+        assert block.usage_priority == "medium"
+        assert block.truncated is True
+        assert "renderBadge(totalCount)" not in block.content
+
+
+def test_prepare_review_text_recomputes_metadata_after_budget_is_consumed():
+    agent = CodeReviewAgent(agent_name="code-review")
+    visible_long_context = "\n".join(
+        ["renderBadge(totalCount)"] + [f"line {index}" for index in range(1, 81)]
+    )
+    late_overlap_context = "\n".join(
+        [f"line {index}" for index in range(1, 60)] + ["renderBadge(totalCount)"]
+    )
+    prepared = agent.prepare_review_text(
+        f"""<review_target path="frontend/app.tsx">
+```ts
+renderBadge(totalCount)
+```
+</review_target>
+<repo_context path="frontend/visible-a.ts">
+```ts
+{visible_long_context}
+```
+</repo_context>
+<repo_context path="frontend/visible-b.ts">
+```ts
+{visible_long_context}
+```
+</repo_context>
+<repo_context path="frontend/utils/late.ts">
+```ts
+{late_overlap_context}
+```
+</repo_context>
+<repo_context path="docs/summary.md">
+```md
+renderBadge totalCount
+```
+</repo_context>"""
+    )
+
+    assert tuple(block.path for block in prepared.forwarded_context) == (
+        "frontend/visible-a.ts",
+        "frontend/visible-b.ts",
+        "docs/summary.md",
+        "frontend/utils/late.ts",
+    )
+    assert tuple(block.usage_priority for block in prepared.forwarded_context) == (
+        "high",
+        "high",
+        "high",
+        "medium",
+    )
+    assert prepared.forwarded_context[3].shared_identifiers == ()
+    assert prepared.forwarded_context[3].truncated is True
+    assert "renderBadge(totalCount)" not in prepared.forwarded_context[3].content
+
+
 def test_prepare_review_text_truncates_long_repo_context_content():
     agent = CodeReviewAgent(agent_name="code-review")
     long_context = "\n".join(f"line {index}" for index in range(1, 86))
