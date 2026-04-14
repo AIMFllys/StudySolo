@@ -81,6 +81,7 @@ class AgentGateway:
             model=resolved_model,
             timeout=agent.timeout,
             headers=headers,
+            max_retries=agent.max_retries,
         )
         result.request_id = request_id
 
