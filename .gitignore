@@ -63,6 +63,8 @@ Desktop.ini
 !/docs/summary/**
 !/docs/summaries/
 !/docs/summaries/**
+!/docs/wiki-content/
+!/docs/wiki-content/**
 !/docs/issue/
 !/docs/issue/**
 !/docs/issues/
