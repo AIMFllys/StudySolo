@@ -320,7 +320,8 @@
 |------|------|------|
 | Agent 四层协议冻结 | 2026-04-10 | `agent-architecture.md` 协议规范 v1.0 冻结 |
 | Agent 样板完成 | 2026-04-11 | `agents/_template/` + `code-review-agent` 可运行 |
-| 契约测试通过 | 2026-04-11 | `code-review-agent` 87 passed |
-| Agent Gateway | 待 Phase 5 | `backend/config/agents.yaml` 注册表 |
+| 契约测试通过 | 2026-04-11 | `code-review-agent` 87 passed → Phase 4B 收口 177 passed |
+| Agent Gateway 实现 | 2026-04-13 | `backend/app/services/agent_gateway/` + `backend/config/agents.yaml` |
+| `/api/agents/*` 路由上线 | 2026-04-13 | `GET /api/agents`、`POST /api/agents/{name}/chat`、`GET /api/agents/{name}/health` |
 
 > **注意**：API 路径前缀保持不变（`/api/workflow/*`、`/api/ai/*`），仅内部文件组织方式改变。

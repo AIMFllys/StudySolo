@@ -226,7 +226,7 @@ A：**不可以。** 团队统一使用 Python + FastAPI，降低维护成本。
 
 ---
 
-## 10. Phase 4B 完成状态
+## 10. Phase 4B + Phase 5 完成状态
 
 ### 10.1 代码审查 Agent（`code-review-agent`）
 
@@ -234,24 +234,24 @@ A：**不可以。** 团队统一使用 Python + FastAPI，降低维护成本。
 - ✅ 最小可运行 FastAPI 服务
 - ✅ `GET /health` + `GET /health/ready` + `GET /v1/models` + `POST /v1/chat/completions`
 - ✅ non-stream + SSE stream 响应
-- ✅ 7 类固定规则审查（硬编码密钥、危险动态执行、危险 HTML sink、Shell 命令执行、关闭 TLS 校验、调试遗留、宽泛吞错）
+- ✅ 7 类固定规则审查
 - ✅ 多文件 unified diff 感知
 - ✅ live upstream findings 治理（evidence anchoring、known-rule metadata canonicalization、unknown-rule groundedness 治理）
 - ✅ repo-context forwarding governance（归一化、去重、关系排序、预算裁剪）
-- ✅ 四层契约测试通过（87 passed）
+- ✅ 四层契约测试通过（**177 passed**，Phase 4B 最终基线）
 
 **仍未实现**：
 - ⚠️ 不读取本地仓库文件
 - ⚠️ 不透传 provider usage
-- ⚠️ Agent Gateway 注册（Phase 5）
 
-### 10.2 Phase 5 后续计划
+### 10.2 Phase 5 完成状态
 
-- [ ] `backend/config/agents.yaml` Agent 注册表
-- [ ] Agent Gateway 主后端接入层
-- [ ] `deep-research-agent` 迁移
-- [ ] `news-agent` 迁移
-- [ ] Wiki 文档
+- ✅ `backend/config/agents.yaml` Agent 注册表已创建
+- ✅ Agent Gateway 主后端接入层已实现（`backend/app/services/agent_gateway/`）
+- ✅ `/api/agents/*` 路由已接入（`backend/app/api/agents.py`）
+- ✅ `code-review-agent` 可通过 Gateway 端到端调用（non-stream + stream）
+- ⬜ `deep-research-agent` 迁移（小李，后续 lane）
+- ⬜ `news-agent` 迁移（小李，后续 lane）
 
 ## 11. 参考文档
 
