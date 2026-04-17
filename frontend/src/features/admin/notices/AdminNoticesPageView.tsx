@@ -108,7 +108,7 @@ export function AdminNoticesPageView() {
         action={
           <button
             onClick={() => router.push('/admin-analysis/notices/create')}
-            className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-[13px] font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="admin-btn-primary"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             新建公告
@@ -116,7 +116,7 @@ export function AdminNoticesPageView() {
         }
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-4 sm:flex-row items-center">
         <AdminSelect
           value={typeFilter}
           options={TYPE_OPTIONS}
@@ -131,20 +131,21 @@ export function AdminNoticesPageView() {
       </div>
 
       {error ? (
-        <div className="flex items-center justify-between rounded-md border border-destructive/30 bg-destructive/10 p-4 text-[13px] text-destructive">
+        <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-[13px] text-destructive">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[20px] text-destructive">error</span>
-            <span>{error}</span>
+            <span className="font-semibold">{error}</span>
           </div>
           <button 
             onClick={() => void fetchNotices()} 
-            className="flex items-center gap-1 text-[12px] font-medium text-destructive hover:text-destructive transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-destructive/30 bg-card px-4 py-1.5 text-[12px] font-semibold text-destructive transition-colors hover:bg-destructive/10"
           >
             <span className="material-symbols-outlined text-[16px]">refresh</span>
             重试
           </button>
         </div>
       ) : null}
+
 
       <AdminNoticesTable
         data={data}

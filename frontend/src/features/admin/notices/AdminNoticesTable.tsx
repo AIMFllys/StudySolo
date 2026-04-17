@@ -32,26 +32,29 @@ export function AdminNoticesTable({
   const router = useRouter();
 
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-card">
+    <div className="admin-table-container">
       <div className="overflow-x-auto">
-        <table className="w-full text-[13px]">
+        <table className="admin-table w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-border bg-card">
-              <th className="px-6 py-4 text-left text-[11px] font-medium tracking-wider text-muted-foreground/60 uppercase">标题</th>
-              <th className="px-6 py-4 text-left text-[11px] font-medium tracking-wider text-muted-foreground/60 uppercase">类型</th>
-              <th className="px-6 py-4 text-left text-[11px] font-medium tracking-wider text-muted-foreground/60 uppercase">状态</th>
-              <th className="px-6 py-4 text-left text-[11px] font-medium tracking-wider text-muted-foreground/60 uppercase">创建时间</th>
-              <th className="px-6 py-4 text-left text-[11px] font-medium tracking-wider text-muted-foreground/60 uppercase">发布时间</th>
-              <th className="px-6 py-4 text-left text-[11px] font-medium tracking-wider text-muted-foreground/60 uppercase">操作</th>
+            <tr>
+              <th>标题</th>
+              <th>类型</th>
+              <th>状态</th>
+              <th>创建时间</th>
+              <th>发布时间</th>
+              <th>操作</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border bg-card">
+          <tbody>
             {loading ? (
               <TableSkeletonRows rows={8} cols={6} />
             ) : !data || data.notices.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-[13px] text-muted-foreground">
-                  暂无公告
+                <td colSpan={6} className="px-6 py-12 text-center">
+                  <div className="flex flex-col items-center justify-center text-muted-foreground/40">
+                    <span className="material-symbols-outlined text-[32px] mb-2 opacity-20">inventory_2</span>
+                    <p className="text-[13px] font-medium tracking-wide">暂无公告</p>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -63,34 +66,34 @@ export function AdminNoticesTable({
                   <tr
                     key={notice.id}
                     onClick={() => router.push(`/admin-analysis/notices/${notice.id}/edit`)}
-                    className="group cursor-pointer transition-colors hover:bg-muted"
+                    className="cursor-pointer"
                   >
-                    <td className="max-w-xs px-6 py-4 text-[13px] font-medium text-foreground">
-                      <span className="line-clamp-1">{notice.title}</span>
+                    <td className="max-w-xs">
+                      <span className="line-clamp-1 font-bold text-foreground">{notice.title}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td>
                       <StatusBadge label={typeBadge.label} className={typeBadge.className} />
                     </td>
-                    <td className="px-6 py-4">
+                    <td>
                       <StatusBadge label={statusBadge.label} className={statusBadge.className} />
                     </td>
-                    <td className="px-6 py-4 text-[12px] font-medium text-muted-foreground">{formatDate(notice.created_at)}</td>
-                    <td className="px-6 py-4 text-[12px] font-medium text-muted-foreground">{formatDate(notice.published_at)}</td>
-                    <td className="px-6 py-4">
+                    <td className="text-muted-foreground/70">{formatDate(notice.created_at)}</td>
+                    <td className="text-muted-foreground/70">{formatDate(notice.published_at)}</td>
+                    <td>
                       <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
                         {notice.status === 'draft' ? (
                           <>
                             <button
                               onClick={() => onPublish(notice.id)}
                               disabled={actionLoading === notice.id}
-                              className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-[12px] font-medium text-accent transition-colors hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-card px-3 py-1.5 text-[12px] font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 disabled:opacity-40"
                             >
                               {actionLoading === notice.id ? '...' : '发布'}
                             </button>
                             <button
                               onClick={() => onDelete(notice.id, notice.title)}
                               disabled={actionLoading === notice.id}
-                              className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-[12px] font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="inline-flex items-center gap-2 rounded-lg border border-rose-500/30 bg-card px-3 py-1.5 text-[12px] font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-40"
                             >
                               删除
                             </button>
@@ -98,7 +101,7 @@ export function AdminNoticesTable({
                         ) : (
                           <button
                             onClick={() => router.push(`/admin-analysis/notices/${notice.id}/edit`)}
-                            className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-[12px] font-medium text-primary transition-colors hover:bg-muted"
+                            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-[12px] font-semibold text-foreground transition-colors hover:bg-muted"
                           >
                             编辑
                           </button>
@@ -113,7 +116,7 @@ export function AdminNoticesTable({
         </table>
       </div>
 
-      <div className="border-t border-border p-2">
+      <div className="border-t border-border/40 p-2 bg-muted/5">
         <Pagination
           page={page}
           totalPages={data?.total_pages ?? 1}
@@ -125,3 +128,4 @@ export function AdminNoticesTable({
     </div>
   );
 }
+

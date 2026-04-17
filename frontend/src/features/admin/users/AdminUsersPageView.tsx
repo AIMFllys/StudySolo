@@ -65,17 +65,17 @@ export function AdminUsersPageView() {
         description={data ? `共 ${data.total.toLocaleString('zh-CN')} 位注册用户` : '按邮箱、等级和状态筛选用户'}
       />
 
-      <section className="rounded-md border border-border bg-card p-5 transition-all">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr,1fr,1fr,auto]">
+      <section className="admin-table-container p-6">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[2fr,1fr,1fr,auto] items-center">
           <div className="relative">
-            <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-muted-foreground/60">
+            <span className="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-muted-foreground/40">
               search
             </span>
             <input
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="按邮箱检索..."
-              className="w-full rounded-md border border-border bg-card py-2.5 pl-10 pr-4 text-[13px] text-foreground transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:bg-card focus:outline-none focus:ring-4 focus:ring-ring/10"
+              placeholder="输入邮箱地址进行检索..."
+              className="admin-input pl-11"
             />
           </div>
           <AdminSelect
@@ -99,8 +99,9 @@ export function AdminUsersPageView() {
               setSearch(searchInput.trim());
               setPage(1);
             }}
-            className="flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-2.5 text-[13px] font-medium text-primary-foreground transition-all hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="admin-btn-primary"
           >
+            <span className="material-symbols-outlined text-[18px]">search</span>
             查询记录
           </button>
         </div>

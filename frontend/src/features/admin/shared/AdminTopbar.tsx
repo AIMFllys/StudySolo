@@ -21,7 +21,7 @@ export function AdminTopbar() {
   return (
     <header className="flex h-12 w-full shrink-0 items-center justify-between border-b border-border/40 bg-card/80 backdrop-blur-md px-6">
       <div className="flex items-center gap-2.5 text-[13px]">
-        <span className="font-medium text-muted-foreground/60 scholarly-label !tracking-normal">管理后台</span>
+        <span className="font-medium text-muted-foreground/60 tracking-normal uppercase text-[11px]">管理后台</span>
         <span className="text-border/40 select-none">/</span>
         <span className="font-semibold text-foreground tracking-tight">{page.label}</span>
       </div>

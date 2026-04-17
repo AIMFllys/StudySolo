@@ -25,31 +25,30 @@ export function WorkflowTableSection({
   icon,
 }: WorkflowTableSectionProps) {
   return (
-    <section className="overflow-hidden rounded-md border border-border bg-card">
-      <div className={`flex items-center justify-between border-b border-border px-6 py-4 bg-card ${accentClassName}`}>
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] opacity-70">{icon}</span>
-          <h2 className="text-[13px] font-medium tracking-wide">{title}</h2>
+    <section className="admin-table-container">
+      <div className="admin-table-header flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <span className={`material-symbols-outlined text-[18px] ${accentClassName}`}>{icon}</span>
+          <h2 className="scholarly-label text-[11px] text-foreground/70">{title}</h2>
         </div>
-        <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[12px] font-medium text-muted-foreground">
-          共 {total} 条
+        <span className="text-[11px] font-bold text-muted-foreground/40 tracking-widest">
+          TOTAL: {total}
         </span>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left">
+        <table className="admin-table w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-border bg-card">
+            <tr>
               {headers.map((header) => (
                 <th
                   key={header}
-                  className="px-6 py-3.5 text-[12px] font-medium tracking-wider text-muted-foreground/60 uppercase"
                 >
                   {header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody>
             {loading ? (
               <TableSkeletonRows rows={3} cols={emptyColSpan} />
             ) : (
@@ -57,9 +56,12 @@ export function WorkflowTableSection({
                 <tr>
                   <td
                     colSpan={emptyColSpan}
-                    className="bg-card px-6 py-12 text-center text-[13px] font-medium tracking-wide text-muted-foreground"
+                    className="px-6 py-12 text-center"
                   >
-                    {emptyText}
+                    <div className="flex flex-col items-center justify-center text-muted-foreground/40">
+                      <span className="material-symbols-outlined text-[32px] mb-2 opacity-20">inventory_2</span>
+                      <p className="text-[13px] font-medium tracking-wide">{emptyText}</p>
+                    </div>
                   </td>
                 </tr>
               )
@@ -70,3 +72,4 @@ export function WorkflowTableSection({
     </section>
   );
 }
+

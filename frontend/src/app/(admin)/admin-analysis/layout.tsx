@@ -20,9 +20,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       ) : (
         <div className="flex h-screen overflow-hidden bg-background font-sans text-foreground antialiased">
           <AdminSidebar />
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden millimeter-grid bg-admin-bg-ivory/30">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden millimeter-grid bg-background">
           <AdminTopbar />
-          <main className="flex-1 overflow-auto p-6 lg:p-8">{children}</main>
+          <main className="flex-1 overflow-auto">{children}</main>
         </div>
         </div>
       )}

@@ -70,15 +70,15 @@ export function AdminWorkflowsPageView() {
             : '查看工作流运行状态、失败记录与时间范围统计。'
         }
         action={
-          <div className="flex items-center gap-1 overflow-hidden rounded-md border border-border bg-card p-1">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/30 border border-border/40 backdrop-blur-sm">
             {TIME_RANGE_OPTIONS.map(([value, label]) => (
               <button
                 key={value}
                 onClick={() => setTimeRange(value)}
-                className={`rounded-md px-4 py-1.5 text-[12px] font-medium tracking-wide transition-all ${
+                className={`rounded-lg px-4 py-1.5 text-[12px] font-bold tracking-tight transition-all duration-200 ${
                   timeRange === value
-                    ? 'bg-secondary text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
                 {label}
@@ -89,14 +89,14 @@ export function AdminWorkflowsPageView() {
       />
 
       {error ? (
-        <div className="flex items-center justify-between rounded-md border border-destructive/30 bg-destructive/10 p-4">
+        <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/5 p-4">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-destructive">error</span>
-            <span className="text-[13px] font-medium tracking-wide text-destructive">系统错误：{error}</span>
+            <span className="material-symbols-outlined text-destructive text-[20px]">error</span>
+            <span className="text-[13px] font-semibold text-destructive">系统错误：{error}</span>
           </div>
           <button
             onClick={() => void fetchAll()}
-            className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-destructive transition-colors hover:bg-destructive/20"
+            className="inline-flex items-center gap-2 rounded-lg border border-destructive/30 bg-card px-4 py-1.5 text-[12px] font-semibold text-destructive transition-colors hover:bg-destructive/10"
           >
             重新加载
           </button>
@@ -106,7 +106,7 @@ export function AdminWorkflowsPageView() {
       <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="h-32 rounded-md border border-border bg-card p-6" />
+            <div key={index} className="h-32 rounded-xl border border-border/40 bg-card animate-pulse" />
           ))
         ) : stats ? (
           <>
@@ -121,25 +121,26 @@ export function AdminWorkflowsPageView() {
       {stats ? (
         <div className="grid gap-5 md:grid-cols-3">
           {[
-            ['已完成执行', stats.completed, 'border-accent/30 bg-accent/10 text-accent', 'check_circle'],
-            ['运行中任务', stats.running, 'border-primary/30 bg-primary/10 text-primary', 'cycle'],
-            ['失败任务', stats.failed, 'border-destructive/30 bg-destructive/10 text-destructive', 'cancel'],
-          ].map(([label, value, accentClassName, icon]) => (
+            ['已完成执行', stats.completed, 'admin-card-accent-success', 'check_circle', 'text-emerald-500'],
+            ['运行中任务', stats.running, 'admin-card-accent-primary', 'cycle', 'text-primary'],
+            ['失败任务', stats.failed, 'admin-card-accent-destructive', 'cancel', 'text-rose-500'],
+          ].map(([label, value, accentClassName, icon, iconColor]) => (
             <section
               key={label as string}
-              className={`flex flex-col items-center justify-center rounded-md border p-6 transition-all ${accentClassName}`}
+              className={`admin-card-accent ${accentClassName} flex flex-col items-center justify-center py-8`}
             >
               <div className="mb-3 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px] opacity-70">{icon}</span>
-                <p className="text-[12px] font-medium tracking-wider uppercase opacity-80">
+                <span className={`material-symbols-outlined text-[20px] ${iconColor}`}>{icon}</span>
+                <p className="scholarly-label text-[10px] text-foreground/60">
                   {label}
                 </p>
               </div>
-              <p className="text-4xl font-extrabold tracking-tight">{value}</p>
+              <p className="text-4xl font-black tracking-tighter text-foreground">{value}</p>
             </section>
           ))}
         </div>
       ) : null}
+
 
       <WorkflowTableSection
         title="运行中实例"

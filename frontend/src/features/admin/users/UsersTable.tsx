@@ -30,19 +30,19 @@ export function UsersTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-card">
+    <div className="admin-table-container">
       <div className="overflow-x-auto">
-        <table className="w-full text-left">
+        <table className="admin-table w-full text-left">
           <thead>
-            <tr className="border-b border-border bg-card">
+            <tr>
               {['邮箱', '会员等级', '状态', '注册时间', '最后登录'].map((header) => (
-                <th key={header} className="px-6 py-3.5 text-[12px] font-medium tracking-wider text-muted-foreground/60 uppercase">
+                <th key={header}>
                   {header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody>
             {loading ? (
               <TableSkeletonRows rows={8} cols={5} />
             ) : (
@@ -50,19 +50,20 @@ export function UsersTable({
                 <tr
                   key={user.id}
                   onClick={() => onSelectUser(user)}
-                  className={`cursor-pointer transition-colors group ${
-                    selectedUserId === user.id ? 'bg-secondary' : 'hover:bg-muted'
+                  className={`cursor-pointer transition-all ${
+                    selectedUserId === user.id ? 'bg-primary/5' : ''
                   }`}
+                  style={selectedUserId === user.id ? { borderLeft: '3px solid var(--primary)' } : undefined}
                 >
-                  <td className="px-6 py-4 text-[13px] font-medium text-foreground">{maskEmail(user.email)}</td>
-                  <td className="px-6 py-4">
+                  <td className="font-semibold text-foreground">{maskEmail(user.email)}</td>
+                  <td>
                     <TierBadge tier={user.tier} />
                   </td>
-                  <td className="px-6 py-4">
+                  <td>
                     <StatusBadgeWithDot isActive={user.is_active} />
                   </td>
-                  <td className="px-6 py-4 text-[13px] text-muted-foreground">{formatDateTime(user.created_at)}</td>
-                  <td className="px-6 py-4 text-[13px] text-muted-foreground">{formatDateTime(user.last_login)}</td>
+                  <td className="text-muted-foreground/70">{formatDateTime(user.created_at)}</td>
+                  <td className="text-muted-foreground/70">{formatDateTime(user.last_login)}</td>
                 </tr>
               ))
             )}
