@@ -173,6 +173,7 @@ export async function parseSSEStream(
       if (!trimmed.startsWith('data:')) continue;
       const raw = trimmed.slice(5).trim();
       if (raw === '[DONE]') {
+        flushSnapshots();
         await reader.cancel();
         return { fullText, intent, segments, summary };
       }
@@ -271,6 +272,7 @@ export async function parseSSEStream(
         if (parsed.done && (intent === 'MODIFY' || intent === 'BUILD')) {
           fullText = JSON.stringify(parsed);
           onEvent?.({ type: 'legacy_done', payload: parsed });
+          flushSnapshots();
           await reader.cancel();
           return { fullText, intent, segments, summary };
         }
@@ -284,6 +286,7 @@ export async function parseSSEStream(
 
         if (parsed.done) {
           onEvent?.({ type: 'legacy_done', payload: parsed });
+          flushSnapshots();
           await reader.cancel();
           return { fullText, intent, segments, summary };
         }
