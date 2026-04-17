@@ -13,23 +13,41 @@
   </p>
 </div>
 
-> [!WARNING]
-> **当前仓库为开发版本（Development Branch）**
+> [!IMPORTANT]
+> **评审与版本策略（main 即最新）**
 >
-> 本仓库是 StudySolo 的**活跃开发分支**，包含持续迭代中的最新特性，可能存在未经充分测试的功能或不稳定行为，**不建议直接用于生产参考**。
+> - 当前评审主入口：[`AIMFllys/StudySolo` 的 `main`](https://github.com/AIMFllys/StudySolo)
+> - 同步策略：`StudySolo/main` 与 `StudySolo-Dev/main` 保持同步，`main` 即当前最新可评审代码
+> - 保护标签：已在 `StudySolo` 打 `before-dev-sync-2026-04-17`，用于保留同步前基线
 >
 > **版本说明（Version History）**
 >
 > | 版本 | 仓库 | 状态 | 说明 |
 > | :--- | :--- | :--- | :--- |
-> | **竞赛提交版（Frozen）** | [AIMFllys/StudySolo](https://github.com/AIMFllys/StudySolo) | 🔒 已冻结 | 华科 AI 智能体大赛参赛提报版本，代码已冻结；由于大赛截止日期限制，该版本存在**若干已知缺陷（Known Issues）**，不再向此分支回合补丁 |
-> | **当前开发版（Dev）** | 本仓库 | 🚧 活跃开发 | 修复上述已知缺陷，并持续扩展新功能 |
+> | **当前评审版（Latest Main）** | [AIMFllys/StudySolo](https://github.com/AIMFllys/StudySolo) | ✅ 最新 | 评委查看入口，默认与开发主线同步 |
+> | **持续开发版（Dev）** | [AIMFllys/StudySolo-Dev](https://github.com/AIMFllys/StudySolo-Dev) | 🚧 活跃开发 | 用于日常迭代、实验验证与预发布协作 |
 
 ---
 
 **StudySolo** 是一个专注于学习场景的 AI 工作流编排平台。用户通过自然语言描述学习目标，系统自动生成多节点工作流，18 种专业学习节点在 DAG 执行引擎的调度下按依赖顺序运行，执行过程通过 SSE 全程实时可见。
 
 平台同时具备工作流社区共享、用户自建节点、多平台 AI 模型路由与容灾、管理后台等完整的生产级能力，已部署上线：**[StudyFlow.1037solo.com](https://StudyFlow.1037solo.com)**
+
+---
+
+## 🔎 评审快速入口
+
+- **在线演示**：<https://StudyFlow.1037solo.com>
+- **演示视频**：<https://b23.tv/uPd6KUr>
+- **核心架构**：[项目架构全景](./docs/项目规范与框架流程/项目规范/01-项目架构全景.md)
+- **快速运行**：[快速开始](#-快速开始)
+- **技术原理**：[AI 工作流底层原理](./docs/项目规范与框架流程/项目介绍/AI工作流系统底层原理.md)
+
+## 📌 本次同步说明（2026-04-17）
+
+- 已将 `StudySolo-Dev/main` 通过 fast-forward 同步到 `StudySolo/main`
+- 同步内容包含：代码与完整 commit 历史（未 squash / 未 rebase）
+- 如需查看同步前基线，请使用标签 `before-dev-sync-2026-04-17`
 
 ---
 
