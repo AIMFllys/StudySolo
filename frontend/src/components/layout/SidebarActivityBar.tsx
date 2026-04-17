@@ -68,27 +68,31 @@ export function SidebarActivityBar({ logoutAndRedirect, isRight }: SidebarActivi
 
   return (
     <>
-      <div className="flex h-full w-12 shrink-0 flex-col items-center bg-background py-2 overflow-y-auto scrollbar-hide">
-        {rightPanelDockedToSidebar && renderButton('execution')}
-        {renderButton('user-panel')}
-        <div className="my-1 h-px w-6 bg-border/50" />
-        <div className="space-y-1">{IMMOVABLE_UPPER.map((p) => renderButton(p))}</div>
-        {dynamicPinned.length > 0 && <div className="space-y-1 mt-1">{dynamicPinned.map((p) => renderButton(p))}</div>}
-        <div className="mt-1">{renderButton('extensions')}</div>
-        <div className="flex-1" />
-        <div className="space-y-1">
-          <Link href="/upgrade" className="group relative flex h-10 w-10 mx-auto items-center justify-center rounded-xl text-amber-500 transition-all border-[1.5px] border-transparent hover:border-amber-200/50 dark:hover:border-amber-900/30 hover:bg-amber-50/30 dark:hover:bg-amber-950/20" title="升级会员">
+      <div className="flex h-full w-12 shrink-0 flex-col items-center bg-background py-2 overflow-y-auto scrollbar-hide border-r border-border/10">
+        <div className="flex flex-col items-center w-full space-y-1.5 px-1">
+          {rightPanelDockedToSidebar && renderButton('execution')}
+          {renderButton('user-panel')}
+        </div>
+        <div className="my-1.5 h-px w-6 bg-border/50 shrink-0" />
+        <div className="flex flex-col items-center w-full space-y-1.5 px-1">
+          <div className="space-y-1.5 w-full">{IMMOVABLE_UPPER.map((p) => renderButton(p))}</div>
+          {dynamicPinned.length > 0 && <div className="space-y-1.5 w-full mt-1">{dynamicPinned.map((p) => renderButton(p))}</div>}
+          <div className="mt-1 w-full">{renderButton('extensions')}</div>
+        </div>
+        <div className="flex-1 min-h-[20px]" />
+        <div className="flex flex-col items-center w-full space-y-1.5 px-1 pb-2">
+          <Link href="/upgrade" className="group relative flex h-10 w-10 mx-auto items-center justify-center rounded-xl text-amber-500 transition-all border-[1.5px] border-transparent hover:border-amber-200/50 dark:hover:border-amber-900/30 hover:bg-amber-50/30 dark:hover:bg-amber-950/20 shrink-0" title="升级会员">
             <div className="absolute inset-0 rounded-xl bg-amber-500/10 opacity-0 transition-opacity group-hover:animate-pulse group-hover:opacity-100" />
             <Crown className="h-[18px] w-[18px] stroke-[1.5] group-hover:stroke-[2]" />
           </Link>
           {renderButton('wallet')}
           {renderButton('settings')}
           <a href="https://docs.1037solo.com/#/docs/studysolo-intro" target="_blank" rel="noopener noreferrer"
-            className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl text-muted-foreground border-[1.5px] border-transparent transition-all hover:bg-muted/40 hover:text-foreground" title="使用手册">
+            className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl text-muted-foreground border-[1.5px] border-transparent transition-all hover:bg-muted/40 hover:text-foreground shrink-0" title="使用手册">
             <BookOpenText className="h-[18px] w-[18px] stroke-[1.5] hover:stroke-[2]" />
           </a>
           <button onClick={() => setShowLogoutConfirm(true)}
-            className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl text-muted-foreground border-[1.5px] border-transparent transition-all hover:bg-rose-50/50 dark:hover:bg-rose-950/20 hover:text-rose-500" title="退出登录">
+            className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl text-muted-foreground border-[1.5px] border-transparent transition-all hover:bg-rose-50/50 dark:hover:bg-rose-950/20 hover:text-rose-500 shrink-0" title="退出登录">
             <LogOut className="h-[18px] w-[18px] stroke-[1.5] hover:stroke-[2]" />
           </button>
         </div>

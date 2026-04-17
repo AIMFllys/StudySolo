@@ -97,7 +97,7 @@ function ChatModelSelectorUI({
               : 'text-muted-foreground/70 hover:text-foreground/90'
         }`}
       >
-        <span className="truncate max-w-[120px]">
+        <span className="truncate max-w-[60px] sm:max-w-[100px] md:max-w-[120px]">
           {isError ? '加载失败' : isLoading ? '...' : displayName}
         </span>
         <ChevronDown className={`h-3 w-3 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
