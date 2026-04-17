@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Home, Wrench, Bot, Library, Settings } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMobileAIStore } from '@/stores/use-mobile-ai-store';
@@ -22,6 +22,7 @@ interface NavItem {
 
 export default function MobileNav({ onNewWorkflow, creating = false }: MobileNavProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { toggleOpen, isOpen } = useMobileAIStore();
 
   const navItems: NavItem[] = [
@@ -49,13 +50,13 @@ export default function MobileNav({ onNewWorkflow, creating = false }: MobileNav
       href: '/settings?tab=knowledge',
       icon: Library,
       label: '库集',
-      isActive: pathname === '/settings' && typeof window !== 'undefined' && window.location.search.includes('tab=knowledge'),
+      isActive: pathname === '/settings' && searchParams.get('tab') === 'knowledge',
     },
     {
       href: '/settings',
       icon: Settings,
       label: '设置',
-      isActive: pathname === '/settings' && (typeof window === 'undefined' || !window.location.search.includes('tab=knowledge')),
+      isActive: pathname === '/settings' && searchParams.get('tab') !== 'knowledge',
     },
   ];
 

@@ -16,7 +16,7 @@ interface MobileAIState {
   resetPosition: () => void;
 }
 
-const defaultPosition = { x: 20, y: window?.innerHeight ? window.innerHeight - 300 : 400 };
+const defaultPosition = { x: 20, y: typeof window !== 'undefined' ? window.innerHeight - 300 : 400 };
 
 export const useMobileAIStore = create<MobileAIState>()(
   persist(
