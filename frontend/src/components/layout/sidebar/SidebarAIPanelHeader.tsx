@@ -12,8 +12,8 @@ interface Props {
   deleteConversation: (id: string) => void;
   onNewConversation: () => void;
   onClearAll: () => void;
-  historyDropdownRef: React.RefObject<HTMLDivElement>;
-  moreMenuRef: React.RefObject<HTMLDivElement>;
+  historyDropdownRef: React.RefObject<HTMLDivElement | null>;
+  moreMenuRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function SidebarAIPanelHeader({

@@ -63,7 +63,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Get the freshly-exchanged session.
-  const { data: { session, user } } = await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user ?? null
 
   if (!session || !user) {
     return NextResponse.redirect(

@@ -32,7 +32,7 @@ from app.api.tokens import router as tokens_router
 router = APIRouter()
 
 router.include_router(auth_router, prefix="/auth", tags=["auth"])
-router.include_router(workflow_router, prefix="/workflow", tags=["workflow"])
+router.include_router(workflow_router, prefix="", tags=["workflow"])
 router.include_router(ai_router, prefix="/ai", tags=["ai"])
 router.include_router(nodes_router, prefix="/nodes", tags=["nodes"])
 router.include_router(knowledge_router, prefix="/knowledge", tags=["knowledge"])

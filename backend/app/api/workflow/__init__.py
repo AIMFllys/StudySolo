@@ -17,8 +17,12 @@ from app.api.workflow.canvas import router as canvas_router
 from app.api.workflow.collaboration import router as collaboration_router
 
 router = APIRouter()
-router.include_router(crud_router, prefix="", tags=["workflow"])
-router.include_router(execute_router, prefix="", tags=["workflow-execute"])
-router.include_router(canvas_router, prefix="", tags=["workflow-canvas"])
-router.include_router(social_router, prefix="", tags=["workflow-social"])
-router.include_router(collaboration_router, prefix="", tags=["workflow-collaboration"])
+# NOTE: crud_router defines root-path routes (path == ""). FastAPI forbids
+# `prefix="" + path=""` when include_router is invoked, so we attach the
+# /workflow prefix here instead of on the outer aggregator's include call.
+# The outer router mounts this package at prefix="" (see app/api/router.py).
+router.include_router(crud_router, prefix="/workflow", tags=["workflow"])
+router.include_router(execute_router, prefix="/workflow", tags=["workflow-execute"])
+router.include_router(canvas_router, prefix="/workflow", tags=["workflow-canvas"])
+router.include_router(social_router, prefix="/workflow", tags=["workflow-social"])
+router.include_router(collaboration_router, prefix="/workflow", tags=["workflow-collaboration"])
