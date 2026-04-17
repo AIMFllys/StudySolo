@@ -16,12 +16,12 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">{title}</h1>
-        {description && <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed max-w-xl">{description}</p>}
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground scholarly-title">{title}</h1>
+        {description && <p className="text-[13px] text-muted-foreground leading-relaxed max-w-2xl">{description}</p>}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="flex shrink-0 items-center gap-3">{action}</div>}
     </div>
   );
 }
@@ -30,10 +30,13 @@ interface KpiCardProps { label: string; value: string; sub?: string }
 
 export function KpiCard({ label, value, sub }: KpiCardProps) {
   return (
-    <div className="rounded-md border border-border bg-card p-4">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
-      {sub && <p className="mt-1 text-[11px] text-muted-foreground/60">{sub}</p>}
+    <div className="group relative overflow-hidden rounded-xl border border-border/50 bg-card p-5 transition-all hover:border-primary/20 hover:shadow-md">
+      <div className="absolute right-0 top-0 -mr-4 -mt-4 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-all group-hover:bg-primary/10" />
+      <p className="scholarly-label">{label}</p>
+      <div className="mt-3 flex items-baseline gap-2">
+        <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
+        {sub && <span className="text-[11px] font-medium text-muted-foreground/60">{sub}</span>}
+      </div>
     </div>
   );
 }
@@ -47,22 +50,23 @@ interface AdminSelectProps {
 
 export function AdminSelect({ value, options, onChange, className = '' }: AdminSelectProps) {
   return (
-    <label className={`relative block min-w-[160px] ${className}`}>
+    <div className={`relative inline-block min-w-[180px] ${className}`}>
       <select
         value={value}
         onChange={onChange}
-        className="peer w-full appearance-none rounded-md border border-border bg-card px-3 py-2 pr-9 text-[13px] font-medium text-foreground outline-none transition-colors hover:border-muted-foreground/30 focus:border-primary focus:ring-1 focus:ring-ring"
+        className="peer w-full cursor-pointer appearance-none rounded-lg border border-border/60 bg-card px-4 py-2.5 pr-10 text-[13px] font-medium text-foreground transition-all hover:border-primary/30 hover:bg-accent/5 focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
       >
         {options.map((opt) => (
-          <option key={`${opt.value || 'empty'}-${opt.label}`} value={opt.value}>{opt.label}</option>
+          <option key={`${opt.value || 'empty'}-${opt.label}`} value={opt.value} className="bg-card py-2">{opt.label}</option>
         ))}
       </select>
-      <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[16px] text-muted-foreground peer-focus:text-primary">
-        expand_more
-      </span>
-    </label>
+      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-muted-foreground transition-colors peer-focus:text-primary">
+        <span className="material-symbols-outlined text-[18px]">unfold_more</span>
+      </div>
+    </div>
   );
 }
+
 
 interface TableSkeletonRowsProps { rows: number; cols: number }
 

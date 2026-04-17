@@ -130,11 +130,11 @@ export function AdminSidebar() {
                 {/* Group label — only visible when expanded */}
                 <div
                   className={[
-                    'h-6 overflow-hidden px-2 transition-[opacity,height] duration-150',
+                    'h-8 flex items-end overflow-hidden px-4 pb-1.5 transition-[opacity,height] duration-150',
                     expanded ? 'opacity-100' : 'h-0 opacity-0',
                   ].join(' ')}
                 >
-                  <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60">
+                  <span className="scholarly-label">
                     {GROUP_LABELS[groupKey]}
                   </span>
                 </div>
@@ -150,23 +150,18 @@ export function AdminSidebar() {
                         onClick={closeSidebarOnMobileNavigate}
                         title={expanded ? undefined : item.label}
                         className={[
-                          'group relative flex h-8 shrink-0 items-center gap-2.5 rounded-md transition-colors duration-75',
-                          expanded ? 'px-2' : 'justify-center px-0',
+                          'group relative flex h-10 shrink-0 items-center gap-3 transition-all duration-200',
+                          expanded ? 'px-4' : 'justify-center px-0',
                           active
-                            ? 'bg-secondary text-foreground'
-                            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                            ? 'admin-nav-item-active'
+                            : 'text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground',
                         ].join(' ')}
                       >
-                        {/* Active indicator */}
-                        {active && (
-                          <div className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-primary" />
-                        )}
-
                         {/* Icon */}
                         <span
                           className={[
-                            'material-symbols-outlined shrink-0 text-[17px]',
-                            active ? 'text-primary' : '',
+                            'material-symbols-outlined shrink-0 text-[20px] transition-transform group-hover:scale-110',
+                            active ? 'text-primary' : 'opacity-70',
                           ].join(' ')}
                         >
                           {item.icon}
@@ -175,7 +170,7 @@ export function AdminSidebar() {
                         {/* Label */}
                         <span
                           className={[
-                            'whitespace-nowrap text-[13px] font-medium',
+                            'whitespace-nowrap text-[13.5px] font-medium tracking-tight',
                             'transition-[opacity,max-width] duration-150',
                             expanded ? 'max-w-[160px] opacity-100' : 'max-w-0 opacity-0',
                           ].join(' ')}

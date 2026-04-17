@@ -68,3 +68,90 @@
   background-color: #1A365D;
   color: white;
 }
+
+/* ── High-End Admin Variables ── */
+:root {
+  --admin-primary: #002045;
+  --admin-primary-light: rgba(0, 32, 69, 0.05);
+  --admin-accent: #4f46e5;
+  --admin-bg-ivory: #FAF9F5;
+  --admin-border: rgba(0, 32, 69, 0.1);
+  --admin-text-main: #002045;
+  --admin-text-muted: #64748b;
+}
+
+/* ── Refined Sidebar Item ── */
+.admin-nav-item-active {
+  background: linear-gradient(to right, var(--admin-primary-light), transparent);
+  border-left: 3px solid var(--admin-accent);
+  color: var(--admin-text-main) !important;
+  font-weight: 600;
+}
+
+.admin-nav-item-hover:hover {
+  background: var(--admin-primary-light);
+  color: var(--admin-text-main);
+}
+
+/* ── Scholarly Typography ── */
+.scholarly-title {
+  font-family: var(--font-serif);
+  letter-spacing: -0.02em;
+  color: var(--admin-text-main);
+}
+
+.scholarly-label {
+  font-family: var(--font-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.65rem;
+  color: var(--admin-text-muted);
+}
+
+/* ── Admin Form Inputs ── */
+.admin-input {
+  @apply w-full rounded-lg border border-border/60 bg-card px-4 py-2.5 text-[13px] text-foreground transition-all placeholder:text-muted-foreground/40 outline-none;
+}
+
+.admin-input:focus {
+  @apply border-primary ring-4 ring-primary/10 bg-card;
+}
+
+.admin-input-sm {
+  @apply px-3 py-1.5 text-[12px];
+}
+
+/* ── Admin Table Styles ── */
+.admin-table-container {
+  @apply overflow-hidden rounded-xl border border-border/40 bg-card shadow-sm;
+}
+
+.admin-table-header {
+  @apply border-b border-border/40 bg-muted/30 px-5 py-3;
+}
+
+.admin-table th {
+  @apply px-5 py-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 border-b border-border/30;
+}
+
+.admin-table td {
+  @apply px-5 py-4 text-[13px] border-b border-border/20 transition-colors;
+}
+
+.admin-table tr:last-child td {
+  @apply border-b-0;
+}
+
+.admin-table tr:hover td {
+  @apply bg-muted/20;
+}
+
+/* ── Admin Button ── */
+.admin-btn-primary {
+  @apply flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-[13px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+}
+
+.admin-btn-secondary {
+  @apply flex items-center justify-center gap-2 rounded-lg border border-border/60 bg-card px-6 py-2.5 text-[13px] font-semibold text-foreground transition-all hover:bg-muted hover:border-border active:scale-[0.98] disabled:opacity-50;
+}
+
