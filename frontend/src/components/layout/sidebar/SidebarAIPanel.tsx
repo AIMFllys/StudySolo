@@ -13,6 +13,7 @@ import { getChatModelList, type ChatModelOption } from '@/services/ai-catalog.se
 import { getUser, type TierType } from '@/services/auth.service';
 import { useAIChatStore } from '@/stores/chat/use-ai-chat-store';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
+import { usePanelStore } from '@/stores/ui/use-panel-store';
 
 export type AIMode = 'plan' | 'chat' | 'create';
 export type ThinkingDepth = 'fast' | 'balanced' | 'deep';
@@ -51,6 +52,7 @@ export function SidebarAIPanel() {
   const historyDropdownRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
+  const leftPanelWidth = usePanelStore((s) => s.leftPanelWidth);
   const { lastPrompt, undo } = useWorkflowStore();
   const { start: startExecution } = useWorkflowExecution();
   const { serialize } = useCanvasContext();
@@ -228,6 +230,7 @@ export function SidebarAIPanel() {
         isModelsLoading={isModelsLoading}
         modelsError={modelsError}
         onModelsRetry={fetchChatModels}
+        panelWidthHint={leftPanelWidth}
       />
     </div>
   );
