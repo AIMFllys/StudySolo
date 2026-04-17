@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
 
   if (isProtected && !token) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
+    loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
 

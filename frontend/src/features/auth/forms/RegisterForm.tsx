@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { sendVerificationCode, register } from '@/services/auth.service';
+import { sendVerificationCode, register, login } from '@/services/auth.service';
 import { useVerificationCountdown } from '@/hooks/use-verification-countdown';
 import { AuthShell, SliderCaptcha } from '@/features/auth/components';
 import { RegisterStepOne, RegisterStepTwo } from './RegisterFormSteps';
@@ -119,7 +119,11 @@ export function RegisterForm() {
         agreedToTerms,
         agreedToPrivacy,
       });
-      router.push('/login?registered=true&confirmed=true');
+      // Auto-login after successful registration so the user lands directly
+      // on /workspace without having to re-enter credentials.
+      await login(email, password, true);
+      router.push('/workspace');
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : '注册遇到了问题，请检查填写内容');
     } finally {
