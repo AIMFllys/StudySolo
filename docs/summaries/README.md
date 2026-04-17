@@ -2,7 +2,7 @@
 
 # StudySolo 总结文档
 
-> 最后更新：2026-04-16
+> 最后更新：2026-04-17
 
 本目录存放两类内容：
 
@@ -11,6 +11,7 @@
 
 ## 最新总结
 
+- [2026-04-17 AI Agent Loop P1 与消息渲染统一](2026-04-17-ai-agent-loop-p1-and-wiki-summary.md)
 - [2026-04-16 Agent 节点专区与子后端对接落地](2026-04-16-agent-node-zone-and-sub-backend-integration-summary.md)
 
 ## 使用规则
