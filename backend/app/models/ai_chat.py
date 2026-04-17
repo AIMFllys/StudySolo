@@ -53,7 +53,7 @@ class AIChatRequest(BaseModel):
     selected_model_key: str | None = None
     selected_model: str | None = None
     selected_platform: str | None = None
-    thinking_level: Literal["fast", "balanced", "deep"] = "balanced"
+    thinking_level: Literal["fast", "balanced", "deep"] = "fast"
     mode: Literal["plan", "chat", "create"] = "chat"
 
 

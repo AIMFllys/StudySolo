@@ -12,6 +12,7 @@ import { useWorkflowExecution } from '@/features/workflow/hooks/use-workflow-exe
 import {
   chooseDefaultChatModel,
   getChatModelList,
+  resolveEffectiveThinkingDepth,
   type ChatModelOption,
 } from '@/services/ai-catalog.service';
 import { getUser, type TierType } from '@/services/auth.service';
@@ -99,7 +100,17 @@ export function SidebarAIPanel() {
     getChatModelList()
       .then((models) => {
         setChatModels(models);
-        setSelectedChatModel((prev) => chooseDefaultChatModel(models, prev));
+        setSelectedChatModel((prev) => {
+          const next = chooseDefaultChatModel(models, prev);
+          if (next) {
+            const currentDepth = useAIChatStore.getState().thinkingDepth;
+            const effectiveDepth = resolveEffectiveThinkingDepth(currentDepth, next);
+            if (effectiveDepth !== currentDepth) {
+              setThinkingDepth(effectiveDepth);
+            }
+          }
+          return next;
+        });
       })
       .catch(() => {
         setModelsError(true);
@@ -107,7 +118,7 @@ export function SidebarAIPanel() {
       .finally(() => {
         setIsModelsLoading(false);
       });
-  }, []);
+  }, [setThinkingDepth]);
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -151,6 +162,17 @@ export function SidebarAIPanel() {
     return false;
   }, [appendChatMessage, startExecution, undo]);
 
+  const handleChatModelChange = useCallback((nextModel: ChatModelOption) => {
+    setSelectedChatModel(nextModel);
+    const effectiveDepth = resolveEffectiveThinkingDepth(
+      useAIChatStore.getState().thinkingDepth,
+      nextModel,
+    );
+    if (effectiveDepth !== useAIChatStore.getState().thinkingDepth) {
+      setThinkingDepth(effectiveDepth);
+    }
+  }, [setThinkingDepth]);
+
   const handleSend = async () => {
     if ((!input.trim() && !streaming) || loading) {
       return;
@@ -181,8 +203,11 @@ export function SidebarAIPanel() {
       intentHint: mode === 'chat' ? 'CHAT' : undefined,
       mode,
       // Track A: pass chat panel model's skuId to backend
-      selectedModel: { skuId: selectedChatModel?.skuId ?? null },
-      thinkingDepth,
+      selectedModel: {
+        skuId: selectedChatModel?.skuId ?? null,
+        supportsThinking: selectedChatModel?.supportsThinking ?? null,
+      },
+      thinkingDepth: resolveEffectiveThinkingDepth(thinkingDepth, selectedChatModel),
     });
 
   };
@@ -228,7 +253,7 @@ export function SidebarAIPanel() {
         onSend={() => void handleSend()}
         chatModel={selectedChatModel}
         chatModels={chatModels}
-        onModelChange={setSelectedChatModel}
+        onModelChange={handleChatModelChange}
         userTier={userTier}
         isModelsLoading={isModelsLoading}
         modelsError={modelsError}

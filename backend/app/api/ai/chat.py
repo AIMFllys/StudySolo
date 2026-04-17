@@ -28,6 +28,10 @@ from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed, reso
 from app.services.ai_chat.agent_loop import run_agent_loop
 from app.services.ai_chat.helpers import build_canvas_summary, extract_json_obj
 from app.services.ai_chat.model_caller import call_with_model
+from app.services.ai_chat.thinking import (
+    resolve_effective_thinking_level,
+    should_force_reasoning_model,
+)
 from app.services.ai_chat.validators import resolve_assistant_subtype, resolve_source_subtype
 from app.services.llm.router import (
     AIRouterError,
@@ -168,6 +172,10 @@ async def _ai_chat_impl(
     canvas_summary = build_canvas_summary(body.canvas_context)
     has_canvas = bool(body.canvas_context and body.canvas_context.nodes)
     model_identity = selected_sku.display_name if selected_sku else "StudySolo 默认模型"
+    effective_thinking_level = resolve_effective_thinking_level(
+        body.thinking_level,
+        selected_sku,
+    )
 
     if body.intent_hint == "ACTION":
         return AIChatResponse(
@@ -252,7 +260,14 @@ async def _ai_chat_impl(
         )
 
     chat_msgs = [
-        {"role": "system", "content": get_chat_system_prompt(canvas_summary, model_identity=model_identity)},
+        {
+            "role": "system",
+            "content": get_chat_system_prompt(
+                canvas_summary,
+                effective_thinking_level,
+                model_identity=model_identity,
+            ),
+        },
         *history_msgs,
         {"role": "user", "content": body.user_input},
     ]
@@ -372,6 +387,10 @@ async def _chat_stream_generator(
             canvas_summary = build_canvas_summary(body.canvas_context)
             has_canvas = bool(body.canvas_context and body.canvas_context.nodes)
             model_identity = selected_sku.display_name if selected_sku else "StudySolo 默认模型"
+            effective_thinking_level = resolve_effective_thinking_level(
+                body.thinking_level,
+                selected_sku,
+            )
             history_msgs = [
                 {"role": message.role, "content": message.content}
                 for message in (body.conversation_history or [])[-10:]
@@ -409,7 +428,11 @@ async def _chat_stream_generator(
                     }
                     return
 
-                system_content = get_create_prompt(canvas_summary, body.thinking_level, model_identity=model_identity)
+                system_content = get_create_prompt(
+                    canvas_summary,
+                    effective_thinking_level,
+                    model_identity=model_identity,
+                )
                 create_msgs = [
                     {"role": "system", "content": system_content},
                     *history_msgs,
@@ -459,10 +482,18 @@ async def _chat_stream_generator(
 
             if mode == "plan":
                 intent = "PLAN"
-                system_content = get_plan_prompt(canvas_summary, body.thinking_level, model_identity=model_identity)
+                system_content = get_plan_prompt(
+                    canvas_summary,
+                    effective_thinking_level,
+                    model_identity=model_identity,
+                )
             else:
                 intent = "CHAT"
-                system_content = get_chat_prompt(canvas_summary, body.thinking_level, model_identity=model_identity)
+                system_content = get_chat_prompt(
+                    canvas_summary,
+                    effective_thinking_level,
+                    model_identity=model_identity,
+                )
 
             stream_msgs = [
                 {"role": "system", "content": system_content},
@@ -470,8 +501,7 @@ async def _chat_stream_generator(
                 {"role": "user", "content": body.user_input},
             ]
 
-            force_thinking = body.thinking_level == "deep"
-            _ = _DEPTH_INSTRUCTIONS.get(body.thinking_level, "")
+            _ = _DEPTH_INSTRUCTIONS.get(effective_thinking_level, "")
 
             yield {"data": json.dumps({"intent": intent}, ensure_ascii=False)}
 
@@ -482,7 +512,7 @@ async def _chat_stream_generator(
                     stream_msgs,
                     stream=True,
                 )
-            elif force_thinking:
+            elif should_force_reasoning_model(selected_sku, effective_thinking_level):
                 token_iter = await call_llm_direct(
                     "deepseek",
                     "deepseek-reasoner",

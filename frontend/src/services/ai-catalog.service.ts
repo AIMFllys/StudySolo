@@ -25,6 +25,8 @@ export interface ChatModelOption {
   supportsThinking: boolean;
 }
 
+export type ChatThinkingDepth = 'fast' | 'balanced' | 'deep';
+
 // Track A: Fetch curated chat panel model list from dedicated endpoint
 export async function getChatModelList(): Promise<ChatModelOption[]> {
   const response = await authedFetch('/api/ai/chat/models');
@@ -48,6 +50,16 @@ export function chooseDefaultChatModel(
     sorted[0] ??
     null
   );
+}
+
+export function resolveEffectiveThinkingDepth(
+  requested: ChatThinkingDepth,
+  selectedModel: Pick<ChatModelOption, 'skuId' | 'supportsThinking'> | null,
+): ChatThinkingDepth {
+  if (selectedModel?.skuId && !selectedModel.supportsThinking) {
+    return 'fast';
+  }
+  return requested;
 }
 
 export async function getUserAiModelCatalog(): Promise<AIModelOption[]> {

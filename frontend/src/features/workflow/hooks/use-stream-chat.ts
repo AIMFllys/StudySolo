@@ -24,6 +24,7 @@ import { authedStreamFetch } from '@/services/api-client';
 import { parseSSEStream, type AgentStreamEvent } from './stream-chat-sse';
 import { handleBuildIntent, handleModifyIntent } from './stream-chat-intents';
 import { nodeTypes as KNOWN_NODE_TYPES } from '@/features/workflow/components/canvas/canvas-constants';
+import { resolveEffectiveThinkingDepth } from '@/services/ai-catalog.service';
 
 export interface StreamChatOptions {
   userInput: string;
@@ -31,7 +32,7 @@ export interface StreamChatOptions {
   history: ChatEntry[];
   intentHint?: string | null;
   mode?: 'plan' | 'chat' | 'create';
-  selectedModel: { skuId: string | null };
+  selectedModel: { skuId: string | null; supportsThinking: boolean | null };
   thinkingDepth?: ThinkingDepth;
 }
 
@@ -50,6 +51,12 @@ export function useStreamChat() {
 
   const send = useCallback(async (opts: StreamChatOptions) => {
     const { userInput, canvasContext, history, intentHint, mode, selectedModel, thinkingDepth = 'fast' } = opts;
+    const effectiveThinkingDepth = resolveEffectiveThinkingDepth(
+      thinkingDepth,
+      selectedModel.skuId && selectedModel.supportsThinking !== null
+        ? { skuId: selectedModel.skuId, supportsThinking: selectedModel.supportsThinking }
+        : null,
+    );
 
     abortAIChatStream();
 
@@ -99,7 +106,7 @@ export function useStreamChat() {
       intent_hint: intentHint,
       mode: mode ?? 'chat',
       selected_model_key: selectedModel.skuId,
-      thinking_level: thinkingDepth,
+      thinking_level: effectiveThinkingDepth,
     };
 
     let finalText = '';
@@ -152,7 +159,7 @@ export function useStreamChat() {
 
       if (intent === 'BUILD') {
         try {
-          displayText = await handleBuildIntent(userInput, thinkingDepth);
+          displayText = await handleBuildIntent(userInput, effectiveThinkingDepth);
         } catch (e) {
           displayText = `❌ ${e instanceof Error ? e.message : '生成失败'}`;
         }

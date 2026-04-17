@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   chooseDefaultChatModel,
+  resolveEffectiveThinkingDepth,
   type ChatModelOption,
 } from '@/services/ai-catalog.service';
 
@@ -54,5 +55,23 @@ describe('chat model default selection', () => {
     ], previous);
 
     expect(picked).toBe(previous);
+  });
+
+  it('sends fast depth for selected non-thinking models', () => {
+    expect(resolveEffectiveThinkingDepth('deep', model('qwen-fast'))).toBe('fast');
+    expect(resolveEffectiveThinkingDepth('balanced', model('qwen-fast'))).toBe('fast');
+  });
+
+  it('preserves requested depth for thinking models and no explicit model', () => {
+    expect(resolveEffectiveThinkingDepth('deep', model('r1', { supportsThinking: true }))).toBe('deep');
+    expect(resolveEffectiveThinkingDepth('balanced', model('r1', { supportsThinking: true }))).toBe('balanced');
+    expect(resolveEffectiveThinkingDepth('deep', null)).toBe('deep');
+  });
+
+  it('keeps Chinese labels outside the depth helper untouched by model choice', () => {
+    const text = '工作流 / 节点 / 本轮变更';
+
+    expect(text).toBe('工作流 / 节点 / 本轮变更');
+    expect(resolveEffectiveThinkingDepth('deep', model('普通聊天模型'))).toBe('fast');
   });
 });

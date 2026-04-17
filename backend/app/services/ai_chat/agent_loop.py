@@ -27,6 +27,11 @@ from app.models.ai_chat import AIChatRequest
 from app.prompts import get_agent_xml_prompt
 from app.services.ai_catalog_service import resolve_selected_sku
 from app.services.ai_chat.helpers import build_canvas_summary
+from app.services.ai_chat.thinking import (
+    ThinkingLevel,
+    resolve_effective_thinking_level,
+    should_force_reasoning_model,
+)
 from app.services.ai_chat.tools import (
     CanvasMutation,
     ToolContext,
@@ -118,7 +123,7 @@ def _strip_reasoning_blocks(text: str) -> str:
 async def _get_token_iter(
     selected_sku,
     stream_msgs: list[dict[str, str]],
-    force_thinking: bool,
+    effective_thinking_level: ThinkingLevel,
 ) -> AsyncIterator[str]:
     if selected_sku:
         return await call_llm_direct(
@@ -127,7 +132,7 @@ async def _get_token_iter(
             stream_msgs,
             stream=True,
         )
-    if force_thinking:
+    if should_force_reasoning_model(selected_sku, effective_thinking_level):
         return await call_llm_direct(
             "deepseek",
             "deepseek-reasoner",
@@ -183,7 +188,10 @@ async def run_agent_loop(
         {"role": "user", "content": body.user_input},
     ]
 
-    force_thinking = body.thinking_level == "deep"
+    effective_thinking_level = resolve_effective_thinking_level(
+        body.thinking_level,
+        selected_sku,
+    )
 
     # Emit initial intent event so frontend can mark message as "agent".
     yield _sse({"event": "agent_start", "intent": "AGENT", "mode": body.mode})
@@ -199,7 +207,7 @@ async def run_agent_loop(
         pending_tool_calls: list[dict[str, Any]] = []
 
         try:
-            token_iter = await _get_token_iter(selected_sku, messages, force_thinking)
+            token_iter = await _get_token_iter(selected_sku, messages, effective_thinking_level)
         except AIRouterError as exc:
             logger.warning("agent loop: LLM router error: %s", exc)
             yield _sse({"event": "error", "error": "AI 模型调用失败，请稍后重试", "done": True})
