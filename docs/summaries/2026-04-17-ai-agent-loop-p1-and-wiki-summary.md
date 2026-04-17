@@ -2,7 +2,7 @@
 
 **日期**：2026-04-17  
 **完成状态**：已完成  
-**相关更新**：`docs/updates/2026-04-17-ai-agent-loop-p1-and-wiki.md`
+**相关更新**：`docs/Updates/2026-04-17-ai-agent-loop-p1-and-wiki.md`
 
 ---
 
@@ -42,7 +42,17 @@ Agent Loop 启用边界收紧：
 
 结果：多轮 ReAct 上下文不再被 R1 reasoning 滚雪球式放大，同时保留前端可见的思考折叠体验。
 
-### 4. AIMessage 渲染统一
+### 4. Selected SKU reasoning 语义收口
+
+- 后端 `AIChatRequest.thinking_level` 默认改为 `fast`。
+- no SKU + `deep` 仍会自动使用 DeepSeek R1。
+- selected thinking SKU + `deep` 会直调该 SKU，不切默认 R1。
+- selected non-thinking SKU + `deep` 后端降级为 `balanced`，前端发送前降为 `fast`。
+- prompt 文案不再要求输出完整推理链或长思考过程。
+
+结果：用户显式选模型时选择权保持稳定，非 reasoning 模型不会收到 deep CoT 指令，也不会被隐藏切到 R1。
+
+### 5. AIMessage 渲染统一
 
 新增 `chat-message-adapter.ts`，把两类输入收敛为统一 render model：
 
@@ -60,7 +70,7 @@ Agent Loop 启用边界收紧：
 
 结果：普通聊天、R1 thinking、Agent ToolCall、PlanCard、Summary 和建议模式 chip 不再像两套产品。
 
-### 5. 画布 Agent 兼容性继续补齐
+### 6. 画布 Agent 兼容性继续补齐
 
 - 未知节点类型兜底到可渲染类型。
 - `UPDATE_NODE` 只合并白名单字段，避免整节点覆盖。
@@ -68,7 +78,7 @@ Agent Loop 启用边界收紧：
 
 结果：降低“节点变文字块”“UPDATE 误覆盖”“PlanCard 用 label 当 node id”等旧问题复发概率。
 
-### 6. 开发者入口与 Wiki 同步
+### 7. 开发者入口与 Wiki 同步
 
 - 侧栏 WalletPanel 中加入开发者 Token 管理与 MCP 配置示例。
 - `DeveloperTokens` 支持 `compact` 模式，适配窄侧栏。
@@ -85,11 +95,14 @@ Agent Loop 启用边界收紧：
 - `plan/create`、画布上下文和工具关键词 chat 走 Agent Loop。
 - reasoning 可流式展示，但不进入结果 content。
 - Agent history append 前会剥离 reasoning，保留 answer/tool/summary XML。
+- no SKU / thinking SKU / non-thinking SKU 的 effective thinking 语义都有测试。
+- Agent 工具注册表确认 12 个工具完整存在。
 
 前端：
 
 - 默认聊天状态为 `fast`。
 - 默认模型选择优先非 thinking 模型。
+- 非 thinking 模型发送前会把 thinking depth 归一到 `fast`。
 - legacy content 与 segments 都能提取 `[SUGGEST_MODE]`。
 - 中文样例“工作流 / 节点 / 本轮变更”在 adapter 测试中保持原样。
 
@@ -102,12 +115,13 @@ Agent Loop 启用边界收紧：
 - `8f51153 feat: surface developer token setup`
 - `80fdfeb feat: add API wiki documentation`
 - `2bc9bdc test: tighten frontend type coverage`
+- `54691c7 fix: align AI thinking capability routing`
 
 ---
 
 ## 后续建议
 
-1. 做 P1-E：selected SKU 与 reasoning capability 的语义收口。
-2. 补一轮 Agent 工具手工回归：工作流列表、打开、重命名、画布 CRUD、后台运行、状态查询。
-3. 为 API Wiki 增加错误码、截图和最小可运行示例。
-4. MCP / CLI 下一阶段推进 HTTP / SSE transport、细粒度 scopes、run pause / resume / cancel。
+1. 补一轮 Agent 工具手工回归：工作流列表、打开、重命名、画布 CRUD、后台运行、状态查询。
+2. 为 API Wiki 增加错误码、截图和最小可运行示例。
+3. MCP / CLI 下一阶段推进 HTTP / SSE transport、细粒度 scopes、run pause / resume / cancel。
+4. 独立批次处理 `workflow sync Failed to fetch` 与 `/api/debug/log 500`。

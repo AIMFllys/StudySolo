@@ -14,7 +14,9 @@
 | `backend/app/services/llm/router.py` | 增加轻量 `chat_response` 路由选择，优先选择已配置且不支持 thinking 的聊天模型。 |
 | `backend/app/services/llm/caller.py` | R1 reasoning 仍流式输出给前端，但不再写入 `LLMStreamResult.content`，避免历史上下文膨胀。 |
 | `backend/app/services/ai_chat/agent_loop.py` | 多轮 Agent history append 前剥离 `<think>` / `<thinking>` / `<reasoning>` reasoning 块，保留 `<answer>`、`<tool_use>`、`<summary>` 等可见协议内容。 |
+| `backend/app/services/ai_chat/thinking.py` | 新增 selected SKU 与 thinking depth 的统一语义 helper。 |
 | `backend/app/services/ai_chat/xml_stream_parser.py` | 维持 `<think>` / `<reasoning>` 到 `<thinking>` 的别名兼容，继续支撑 R1 reasoning 折叠渲染。 |
+| `backend/app/prompts/prompt_loader.py` | 收口 `balanced/deep` 文案，不再要求模型展示完整推理链或长思考过程。 |
 
 ### Agent Loop 启用边界
 
@@ -31,13 +33,23 @@
 
 这样普通“你是谁 / 帮我解释一下”类对话不再被大 prompt 和工具 schema 拖慢。
 
+### Selected SKU 与 thinking depth 收口
+
+P1-E 已落地，规则如下：
+
+- `AIChatRequest.thinking_level` 后端默认值改为 `fast`，与前端默认一致。
+- 未显式选择 SKU 时，只有 `deep` 会强制使用 DeepSeek R1；`fast/balanced` 走轻量 `chat_response` 路由。
+- 显式选择支持 thinking 的 SKU 时，保留用户选择的 `fast/balanced/deep`，并直调该 SKU。
+- 显式选择不支持 thinking 的 SKU 时，显式选择仍优先，不切到 R1；后端把 `deep` 降级为 `balanced`，前端发送前统一降为 `fast`。
+- 所有 SSE JSON 继续使用 `ensure_ascii=False`，中文不会被转义。
+
 ## 3. 前端 AI 对话
 
 | 模块 | 变更 |
 | --- | --- |
 | `frontend/src/stores/chat/use-conversation-store.ts` | `thinkingDepth` 默认改为 `fast`，保留 `segments` / `summary` / `isStreaming` 字段。 |
 | `frontend/src/features/workflow/hooks/use-stream-chat.ts` | 发送请求时默认轻量思考深度；继续接收 `segment_*`、`tool_call`、`tool_result`、`canvas_mutation`、`ui_effect` 等 Agent SSE 事件。 |
-| `frontend/src/services/ai-catalog.service.ts` | 默认模型选择优先取可访问、非 thinking 的聊天模型；没有候选时再回退到可访问模型或首个模型。 |
+| `frontend/src/services/ai-catalog.service.ts` | 默认模型选择优先取可访问、非 thinking 的聊天模型；新增发送前 effective thinking depth helper。 |
 | `frontend/src/components/layout/sidebar/chat-message-adapter.ts` | 新增纯适配层，把 legacy `content` 和 agent `segments` 统一成 render model，并集中处理 `[SUGGEST_MODE:xxx]`。 |
 | `frontend/src/components/layout/sidebar/AIMessage.tsx` | 重构为单一 AI 消息外壳：统一 header、loading、PlanCard、AgentSegments 和建议模式 chip。 |
 | `frontend/src/components/layout/sidebar/agent-segments/AnswerSegment.tsx` | Markdown 渲染前统一清理 suggest marker，避免标记泄漏到正文。 |
@@ -106,6 +118,8 @@
 - XML parser：`<think>` / `<thinking>` 别名场景继续通过。
 - `chat-message-adapter`：legacy content、segments、plan、中文样例和 `[SUGGEST_MODE]` 解析。
 - `ai-catalog.service`：默认模型优先选择非 thinking 聊天模型。
+- selected SKU thinking：no SKU deep 仍走 R1；thinking SKU 保留 deep；非 thinking SKU 不触发 R1。
+- Agent 工具注册表：确认 12 个工具仍完整注册。
 - 前端测试类型收紧：`fetch` mock、`ApiError` 匹配、workflow event status、renderer props。
 
 回归命令：
@@ -128,10 +142,11 @@ npx tsc --noEmit
 - `8f51153 feat: surface developer token setup`
 - `80fdfeb feat: add API wiki documentation`
 - `2bc9bdc test: tighten frontend type coverage`
+- `54691c7 fix: align AI thinking capability routing`
 
 ## 9. 下一步
 
-- P1-E：明确 selected SKU 与 reasoning 能力的前后端语义，避免用户手选非 reasoning 模型时 deep thinking 体验不一致。
-- Agent Loop 工具调用 UI 手工回归：列工作流、打开工作流、重命名、画布增删改、后台运行状态查询。
+- Agent Loop 工具调用手工回归：列工作流、打开工作流、重命名、画布增删改、后台运行状态查询。
 - MCP / CLI 下一阶段：HTTP / SSE transport、细粒度 scopes、run pause / resume / cancel。
 - Wiki 文档继续补齐真实截图、错误码说明和常见问题。
+- 独立问题另开批次：`workflow sync Failed to fetch` 与 `/api/debug/log 500`。
