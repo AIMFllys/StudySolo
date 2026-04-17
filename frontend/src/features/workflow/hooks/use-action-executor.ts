@@ -9,6 +9,8 @@
 
 import type { Node, Edge } from '@xyflow/react';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
+import { createDefaultNodeData } from '@/features/workflow/components/canvas/canvas-node-factory';
+import { buildEdgeData } from '@/stores/workflow-store-helpers';
 import { NODE_TYPE_META } from '../constants/workflow-meta';
 
 export interface CanvasAction {
@@ -24,6 +26,7 @@ export interface CanvasAction {
     source_id?: string;
     target_id?: string;
     updates?: Record<string, string>;
+    data?: Record<string, unknown>;
   };
 }
 
@@ -77,20 +80,17 @@ export async function executeCanvasActions(actions: CanvasAction[]): Promise<Exe
                 ? { x: position.x, y: position.y }
                 : { x: calcSafeX(nodes, anchorX), y: anchorY };
 
+              const nodeData = {
+                ...createDefaultNodeData(type),
+                ...(action.payload.data ?? {}),
+                label,
+              };
               const newNode: Node = {
                 id: `ai-node-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
                 type: type,
                 position: finalPos,
-                data: {
-                  label,
-                  type,
-                  system_prompt: '',
-                  model_route: '',   // User selects model via NodeModelSelector
-                  status: 'pending',
-                  output: '',
-                  output_format: 'markdown',
-                  config: {},
-                },
+                data: nodeData,
+                ...(type === 'loop_group' ? { style: { width: 500, height: 350 } } : {}),
               };
               nodes = [...nodes, newNode];
 
@@ -103,9 +103,11 @@ export async function executeCanvasActions(actions: CanvasAction[]): Promise<Exe
                     id: edgeId,
                     source: anchor.id,
                     target: newNode.id,
+                    sourceHandle: 'source-right',
+                    targetHandle: 'target-left',
                     type: 'sequential',
                     animated: false,
-                    data: {},
+                    data: buildEdgeData(anchor.id, nodes, edges),
                   } as Edge,
                 ];
               }
@@ -191,9 +193,11 @@ export async function executeCanvasActions(actions: CanvasAction[]): Promise<Exe
                     id: `edge-ai-${source_id}-${target_id}-${Date.now().toString(36)}`,
                     source: source_id,
                     target: target_id,
+                    sourceHandle: 'source-right',
+                    targetHandle: 'target-left',
                     type: 'sequential',
                     animated: false,
-                    data: {},
+                    data: buildEdgeData(source_id, nodes, edges),
                   } as Edge,
                 ];
               }

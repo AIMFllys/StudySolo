@@ -404,7 +404,7 @@ async def start_workflow_run(
         )
 
     run_id = str(uuid.uuid4())
-    workflow_input = None  # Filled in by run_worker from trigger_input; kept null here.
+    workflow_input = None  # run_worker fills this after loading trigger_input.
     started_at = datetime.now(timezone.utc).isoformat()
     try:
         await (

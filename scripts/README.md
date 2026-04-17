@@ -2,7 +2,7 @@
 
 # scripts/ — StudySolo 自动化脚本中心
 
-> 最后更新：2026-03-29
+> 最后更新：2026-04-17
 
 本目录是 StudySolo 项目的自动化枢纽，涵盖本地开发启动、生产部署、Git 同步，以及日志/临时文件的统一存放。
 
@@ -11,8 +11,10 @@
 ```text
 scripts/
 ├── start-studysolo.ps1       # ⭐ Windows 一键全栈启动（常用，留在根目录）
+├── start-studysolo           # ⭐ 跨平台启动入口（自动检测系统）
 │
 ├── startup/                  # 启动脚本
+│   ├── start-studysolo.ps1   # Windows 全栈启动（与根目录版本同步）
 │   └── start-studysolo.sh    # Linux/macOS 一键全栈启动
 │
 ├── deploy/                   # 部署脚本 & 生产配置
@@ -20,14 +22,17 @@ scripts/
 │   ├── deploy-frontend.sh    # 前端部署 (PM2 + Next.js)
 │   └── nginx.conf            # Nginx 反向代理 & SSL 配置
 │
-├── git/                      # Git 仓库同步脚本
-│   ├── sync-and-push.ps1     # ⭐ 一键同步 + 提交 + 推送
+├── git/                      # Git 仓库同步脚本（跨平台）
+│   ├── sync-and-push.ps1     # ⭐ Windows: 一键同步 + 提交 + 推送
+│   ├── sync-and-push.sh      # ⭐ Linux/macOS: 一键同步 + 提交 + 推送
 │   ├── sync-to-independent.ps1
+│   ├── sync-to-independent.sh
 │   ├── sync-from-independent.ps1
+│   ├── sync-from-independent.sh
 │   ├── 一键git.ps1
 │   └── README.md
 │
-├── diagnostics/              # ⭐ 系统一键诊断脚本
+├── diagnostics/              # ⭐ 系统一键诊断脚本（跨平台）
 │   ├── run-diagnostics.ps1   # Windows（UTF-8 with BOM）
 │   ├── run-diagnostics.sh    # Linux/macOS
 │   ├── run_diagnostics.py    # 跨平台 CLI fallback
@@ -43,19 +48,23 @@ scripts/
 
 ### 本地开发启动
 
-| 脚本 | 平台 | 位置 |
-|------|------|------|
-| `start-studysolo.ps1` | Windows | `scripts/`（根目录，常用快捷入口） |
-| `start-studysolo.sh` | Linux/macOS | `scripts/startup/` |
+| 脚本 | 平台 | 位置 | 说明 |
+|------|------|------|------|
+| `start-studysolo.ps1` | Windows | `scripts/` | 原生 PowerShell 脚本 |
+| `start-studysolo` | 跨平台 | `scripts/` | ⭐ 自动检测系统，推荐入口 |
+| `start-studysolo.sh` | Linux/macOS | `scripts/startup/` | 原生 Bash 脚本 |
 
-两个脚本功能一致：自动检测端口占用 → 启动后端 Uvicorn (2038) + 前端 Next.js (2037)。
+三个脚本功能一致：自动检测端口占用 → 启动后端 Uvicorn (2038) + 前端 Next.js (2037)。
 
 ```powershell
-# Windows（最常用）
+# Windows（PowerShell）
 .\scripts\start-studysolo.ps1
 
-# Linux/macOS
+# Linux/macOS（Bash）
 bash scripts/startup/start-studysolo.sh
+
+# 跨平台通用入口（推荐）
+./scripts/start-studysolo        # 自动检测系统
 ```
 
 ### 生产部署（scripts/deploy/）
@@ -70,9 +79,19 @@ bash scripts/startup/start-studysolo.sh
 
 详见 [git/README.md](git/README.md)。用于 Monorepo ↔ StudySolo 独立仓库之间的代码同步。
 
+**Windows:**
 ```powershell
-# 最常用：一键同步 + 推送
+# 一键同步 + 推送
 powershell -ExecutionPolicy Bypass -File "scripts\git\sync-and-push.ps1"
+```
+
+**Linux/macOS:**
+```bash
+# 一键同步 + 推送
+bash scripts/git/sync-and-push.sh
+
+# 自定义路径
+STUDYSOLO_SOURCE=/path/to/source STUDYSOLO_TARGET=/path/to/target bash scripts/git/sync-and-push.sh
 ```
 
 ### 系统诊断（scripts/diagnostics/）

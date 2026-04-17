@@ -23,6 +23,7 @@ from studysolo_mcp import __version__
 from studysolo_mcp.client import ApiClient, ApiError
 from studysolo_mcp.config import load_config
 from studysolo_mcp.tools import (
+    canvas,
     profile,
     runs,
     usage,
@@ -57,6 +58,7 @@ async def serve() -> None:
             *profile.TOOLS,
             *usage.TOOLS,
             *workflows.TOOLS,
+            *canvas.TOOLS,
             *runs.TOOLS,
         ]
 
@@ -101,6 +103,12 @@ _HANDLERS = {
     "list_workflows": workflows.list_workflows,
     "get_workflow": workflows.get_workflow,
     "get_nodes_manifest": workflows.get_nodes_manifest,
+    "create_workflow": canvas.create_workflow,
+    "get_workflow_canvas": canvas.get_workflow_canvas,
+    "get_workflow_node": canvas.get_workflow_node,
+    "apply_workflow_canvas_patch": canvas.apply_workflow_canvas_patch,
+    "validate_workflow_canvas": canvas.validate_workflow_canvas,
+    "get_node_config_options": canvas.get_node_config_options,
     # runs
     "start_workflow_run": runs.start_workflow_run,
     "get_run_progress": runs.get_run_progress,

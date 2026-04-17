@@ -16,7 +16,6 @@ from app.models.ai import (
     GenerateWorkflowRequest,
     GenerateWorkflowResponse,
     ImplicitContext,
-    NodeData,
     NodePosition,
     NodeType,
     PlannerOutput,
@@ -24,6 +23,7 @@ from app.models.ai import (
     WorkflowNodeSchema,
 )
 from app.nodes._base import BaseNode
+from app.services.workflow_canvas_service import create_workflow_edge_instance, create_workflow_node_instance
 from app.services.llm.router import AIRouterError, call_llm
 
 logger = logging.getLogger(__name__)
@@ -64,6 +64,42 @@ AGENT_NODE_TYPES = {
     NodeType.agent_study_tutor,
     NodeType.agent_visual_site,
 }
+
+
+def _node_schema(
+    node_type: str,
+    *,
+    label: str,
+    position: NodePosition | None,
+    data_patch: dict | None = None,
+    node_id: str | None = None,
+) -> WorkflowNodeSchema:
+    node = create_workflow_node_instance(
+        node_type,
+        label=label,
+        position=position.model_dump() if position else {"x": 0, "y": 0},
+        data_patch=data_patch or {},
+        node_id=node_id,
+    )
+    return WorkflowNodeSchema.model_validate(node)
+
+
+def _edge_schemas(edges: list[WorkflowEdgeSchema], nodes: list[WorkflowNodeSchema]) -> list[WorkflowEdgeSchema]:
+    node_dicts = [node.model_dump(exclude_none=True) for node in nodes]
+    edge_dicts: list[dict] = []
+    result: list[WorkflowEdgeSchema] = []
+    for edge in edges:
+        edge_obj = create_workflow_edge_instance(
+            edge.source,
+            edge.target,
+            edge_id=edge.id,
+            data_patch=edge.data,
+            existing_edges=edge_dicts,
+            nodes=node_dicts,
+        )
+        edge_dicts.append(edge_obj)
+        result.append(WorkflowEdgeSchema.model_validate(edge_obj))
+    return result
 
 
 # ── JSON extraction ──────────────────────────────────────────────────────────
@@ -161,11 +197,9 @@ def auto_layout_nodes(nodes: list[WorkflowNodeSchema], edges: list[WorkflowEdgeS
         col = sorted(columns[lv], key=lambda c: (round(c.position.y / 20) if c.position else 0, node_order[c.id]))
         offset = 36 if len(col) > 1 and lv % 2 else 0
         for row, n in enumerate(col):
-            laid_out.append(WorkflowNodeSchema(
-                id=n.id, type=n.type,
-                position=NodePosition(x=120 + lv * 340, y=120 + row * 220 + offset),
-                data=n.data,
-            ))
+            node_payload = n.model_dump(exclude_none=True)
+            node_payload["position"] = {"x": 120 + lv * 340, "y": 120 + row * 220 + offset}
+            laid_out.append(WorkflowNodeSchema.model_validate(node_payload))
     return sorted(laid_out, key=lambda n: node_order[n.id])
 
 
@@ -231,15 +265,18 @@ async def generate_workflow_core(body: GenerateWorkflowRequest, safe_input: str)
             nt = NodeType(node.type)
         except ValueError:
             nt = NodeType.chat_response
-        enriched_nodes.append(WorkflowNodeSchema(
-            id=node.id, type=node.type,
+        model_route = node.data.model_route if nt in AGENT_NODE_TYPES else (node.data.model_route or f"{nt.value}/default")
+        enriched_nodes.append(_node_schema(
+            nt.value,
+            label=node.data.label,
             position=node.position or NodePosition(x=0, y=0),
-            data=NodeData(
-                label=node.data.label, type=node.type,
-                system_prompt=BaseNode.get_system_prompt_for_type(nt.value),
-                model_route=node.data.model_route if nt in AGENT_NODE_TYPES else (node.data.model_route or f"{nt.value}/default"),
-                status="pending", output="",
-            ),
+            node_id=node.id,
+            data_patch={
+                "system_prompt": BaseNode.get_system_prompt_for_type(nt.value),
+                "model_route": model_route,
+                "status": "pending",
+                "output": "",
+            },
         ))
     # #region agent log
     _debug_log(
@@ -262,25 +299,34 @@ async def generate_workflow_core(body: GenerateWorkflowRequest, safe_input: str)
 
     if "trigger_input" not in existing_types:
         tid = "trigger-input-0"
-        enriched_nodes.insert(0, WorkflowNodeSchema(
-            id=tid, type="trigger_input", position=NodePosition(x=0, y=0),
-            data=NodeData(label=body.user_input.strip().replace("\n", " ")[:80], type="trigger_input", user_content=body.user_input),
+        enriched_nodes.insert(0, _node_schema(
+            "trigger_input",
+            label=body.user_input.strip().replace("\n", " ")[:80],
+            position=NodePosition(x=0, y=0),
+            node_id=tid,
+            data_patch={"user_content": body.user_input},
         ))
         injected_ids.append(tid)
 
     if analyzer_output.input_sources.need_knowledge_base and "knowledge_base" not in existing_types:
         kid = "kb-input-0"
-        enriched_nodes.insert(1, WorkflowNodeSchema(
-            id=kid, type="knowledge_base", position=NodePosition(x=0, y=0),
-            data=NodeData(label="📚 知识库检索", type="knowledge_base", config={"top_k": 5, "threshold": 0.7}),
+        enriched_nodes.insert(1, _node_schema(
+            "knowledge_base",
+            label="\U0001f4da \u77e5\u8bc6\u5e93\u68c0\u7d22",
+            position=NodePosition(x=0, y=0),
+            node_id=kid,
+            data_patch={"config": {"top_k": 5, "threshold": 0.7}},
         ))
         injected_ids.append(kid)
 
     if analyzer_output.input_sources.need_web_search and "web_search" not in existing_types:
         wid = "ws-input-0"
-        enriched_nodes.insert(min(2, len(enriched_nodes)), WorkflowNodeSchema(
-            id=wid, type="web_search", position=NodePosition(x=0, y=0),
-            data=NodeData(label="🌐 联网搜索", type="web_search", config={"max_results": 5, "search_depth": "advanced"}),
+        enriched_nodes.insert(min(2, len(enriched_nodes)), _node_schema(
+            "web_search",
+            label="\U0001f310 \u8054\u7f51\u641c\u7d22",
+            position=NodePosition(x=0, y=0),
+            node_id=wid,
+            data_patch={"config": {"max_results": 5, "search_depth": "advanced"}},
         ))
         injected_ids.append(wid)
 
@@ -304,4 +350,5 @@ async def generate_workflow_core(body: GenerateWorkflowRequest, safe_input: str)
         },
     )
     # #endregion
-    return GenerateWorkflowResponse(nodes=final_nodes, edges=normalized_edges, implicit_context=implicit_context)
+    final_edges = _edge_schemas(normalized_edges, final_nodes)
+    return GenerateWorkflowResponse(nodes=final_nodes, edges=final_edges, implicit_context=implicit_context)

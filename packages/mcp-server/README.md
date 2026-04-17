@@ -2,6 +2,8 @@
 
 StudySolo 官方 [Model Context Protocol](https://modelcontextprotocol.io/) 服务器。让 Claude Desktop / Cursor 等 MCP Host 通过标准工具调用查询 StudySolo 账户、AI 使用数据，以及触发 / 监控工作流。
 
+It also exposes canvas editing tools for creating and updating real workflow node and edge instances.
+
 本服务只实现 **stdio transport**，无 HTTP/SSE；本地进程由 MCP Host 启动，进程间以 JSON-RPC 通信。
 
 ## 安装
@@ -66,10 +68,20 @@ pip install studysolo-mcp            # 发布后（暂未上架）
 | `list_workflows` | GET `/api/workflow` | 工作流列表 |
 | `get_workflow` | GET `/api/workflow/{id}/content` | 画布节点 / 边元信息 |
 | `get_nodes_manifest` | GET `/api/nodes/manifest` | 节点类型清单 |
+| `create_workflow` | POST `/api/workflow` | Create an empty workflow |
+| `get_workflow_canvas` | GET `/api/workflow/{id}/canvas` | Read real canvas JSON and updated_at |
+| `get_workflow_node` | GET `/api/workflow/{id}/canvas` + local filter | Read one real node plus incoming/outgoing edges |
+| `apply_workflow_canvas_patch` | POST `/api/workflow/{id}/canvas/apply` | Batch create/update/delete real nodes and edges |
+| `validate_workflow_canvas` | POST `/api/workflow/{id}/canvas/validate` | Validate canvas or proposed ops |
+| `get_node_config_options` | GET `/api/nodes/config-options/{type}/{field}` | Read dynamic config options |
 | `start_workflow_run` | POST `/api/workflow/{id}/runs` | 异步启动一个 run，返回 run_id |
 | `get_run_progress` | GET `/api/workflow-runs/{id}/progress` | 聚合进度快照 |
 | `get_run_events` | GET `/api/workflow-runs/{id}/events` | 节点级事件增量 |
 | `run_workflow_and_wait` | 上述组合 | 端到端「启动 + 轮询 + 终态返回」单工具 |
+
+## Real Canvas Editing
+
+MCP creates real React Flow node instances in `nodes_json`, not labels or names. Use `apply_workflow_canvas_patch` with `op=create_node` and `node_type`; `label` is display text only. For complex edits, run with `dry_run=true` first, then apply the same ops with `dry_run=false`. JSON strings, including non-English labels and prompts, are sent as UTF-8.
 
 ## 错误语义
 

@@ -1,516 +1,336 @@
 #!/usr/bin/env bash
-
-# ======================================================
-# FlankerStudySolo 全栈本地开发启动脚本 (Linux)
-# ======================================================
-# 1. 自动检测并清理后端(2038)和前端(2037)端口占用。
-# 2. 自动选择可用的 Python 3 创建虚拟环境并启动 Uvicorn。
-# 3. 自动清理前端 .next 缓存并启动 Next.js dev 服务。
-# 4. 使用项目专属锁文件和日志文件，避免与其他 StudySolo 项目互相影响。
+# StudySolo 全栈本地开发启动神器 (Linux/macOS)
+# 镜像 start-studysolo.ps1 的行为
 #
 # 用法:
-#   ./scripts/startup/start-studysolo.sh [BackendPort] [FrontendPort]
+#   ./scripts/startup/start-studysolo.sh
+#   ./scripts/startup/start-studysolo.sh --no-agents
+#   ./scripts/startup/start-studysolo.sh --backend-port 2038 --frontend-port 2037
 
-set +e
+set -euo pipefail
 
-BackendPort="${1:-2038}"
-FrontendPort="${2:-2037}"
+# 默认配置
+BACKEND_PORT=2038
+FRONTEND_PORT=2037
+START_AGENTS=true
+AUTO_INSTALL_DEPS=true
 
+# 颜色定义
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+MAGENTA='\033[0;35m'
+DARK_GRAY='\033[1;30m'
+NC='\033[0m'
+
+# 解析参数
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --backend-port) BACKEND_PORT="$2"; shift 2 ;;
+        --frontend-port) FRONTEND_PORT="$2"; shift 2 ;;
+        --no-agents) START_AGENTS=false; shift ;;
+        --no-auto-install) AUTO_INSTALL_DEPS=false; shift ;;
+        -h|--help)
+            echo "StudySolo 全栈启动脚本 (Linux/macOS)"
+            echo ""
+            echo "用法: $0 [选项]"
+            echo ""
+            echo "选项:"
+            echo "  --backend-port PORT     后端端口 (默认: 2038)"
+            echo "  --frontend-port PORT    前端端口 (默认: 2037)"
+            echo "  --no-agents             跳过启动 Agents"
+            echo "  --no-auto-install       禁用自动安装依赖"
+            echo "  -h, --help              显示帮助"
+            exit 0
+            ;;
+        *) echo "未知参数: $1" >&2; exit 1 ;;
+    esac
+done
+
+# 获取项目根目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ProjectDir="$(cd "$SCRIPT_DIR/../.." && pwd)"
-BACKEND_DIR="$ProjectDir/backend"
-FRONTEND_DIR="$ProjectDir/frontend"
-PROJECT_SLUG="flankerstudysolo"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-C_RESET='\033[0m'
-C_CYAN='\033[36m'
-C_GREEN='\033[32m'
-C_YELLOW='\033[33m'
-C_RED='\033[31m'
-C_GRAY='\033[90m'
-C_MAGENTA='\033[35m'
-
-BACKGROUND_BACKEND_LOG="/tmp/${PROJECT_SLUG}-backend.log"
-BACKGROUND_FRONTEND_LOG="/tmp/${PROJECT_SLUG}-frontend.log"
-LOCK_DIR="/tmp/${PROJECT_SLUG}-start.lock"
-STARTED_BACKEND=0
-STARTED_FRONTEND=0
-BOOTSTRAPPED_BACKEND_ONLY=0
-
-detect_python_for_backend() {
-  if command -v python3 >/dev/null 2>&1; then
-    printf '%s\n' "python3"
-    return 0
-  fi
-
-  if command -v python >/dev/null 2>&1; then
-    local major_version
-    major_version="$(python -c 'import sys; print(sys.version_info[0])' 2>/dev/null)"
-    if [ "$major_version" = "3" ]; then
-      printf '%s\n' "python"
-      return 0
-    fi
-  fi
-
-  return 1
-}
-
-python_supports_venv() {
-  local python_cmd="$1"
-  [ -n "$python_cmd" ] || return 1
-  "$python_cmd" -m venv --help >/dev/null 2>&1
-}
+# ==========================================
+# 🎨 界面渲染函数
+# ==========================================
 
 show_banner() {
-  clear
-  cat <<'BANNER'
-
-    ███████╗██╗      █████╗ ███╗   ██╗██╗  ██╗███████╗██████╗
-    ██╔════╝██║     ██╔══██╗████╗  ██║██║ ██╔╝██╔════╝██╔══██╗
-    █████╗  ██║     ███████║██╔██╗ ██║█████╔╝ █████╗  ██████╔╝
-    ██╔══╝  ██║     ██╔══██║██║╚██╗██║██╔═██╗ ██╔══╝  ██╔══██╗
-    ██║     ███████╗██║  ██║██║ ╚████║██║  ██╗███████╗██║  ██║
-    ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-
-     ███████╗████████╗██╗   ██╗██████╗ ██╗   ██╗███████╗ ██████╗ ██╗      ██████╗
-     ██╔════╝╚══██╔══╝██║   ██║██╔══██╗╚██╗ ██╔╝██╔════╝██╔═══██╗██║     ██╔═══██╗
-     ███████╗   ██║   ██║   ██║██║  ██║ ╚████╔╝ ███████╗██║   ██║██║     ██║   ██║
-     ╚════██║   ██║   ██║   ██║██║  ██║  ╚██╔╝  ╚════██║██║   ██║██║     ██║   ██║
-     ███████║   ██║   ╚██████╔╝██████╔╝   ██║   ███████║╚██████╔╝███████╗╚██████╔╝
-     ╚══════╝   ╚═╝    ╚═════╝ ╚═════╝    ╚═╝   ╚══════╝ ╚═════╝ ╚══════╝ ╚═════╝
-
-BANNER
-  printf "${C_GRAY}    [ FlankerStudySolo Linux 启动器 v1.0 ]${C_RESET}\n"
-  printf "${C_GRAY}    ---------------------------------------------------------------${C_RESET}\n\n"
+    clear 2>/dev/null || true
+    echo -e "${CYAN}"
+    cat << 'EOF'
+                                                                            
+    ███████╗████████╗██╗   ██╗██████╗ ██╗   ██╗███████╗ ██████╗ ██╗      ██████╗ 
+    ██╔════╝╚══██╔══╝██║   ██║██╔══██╗╚██╗ ██╔╝██╔════╝██╔═══██╗██║     ██╔═══██╗
+    ███████╗   ██║   ██║   ██║██║  ██║ ╚████╔╝ ███████╗██║   ██║██║     ██║   ██║
+    ╚════██║   ██║   ██║   ██║██║  ██║  ╚██╔╝  ╚════██║██║   ██║██║     ██║   ██║
+    ███████║   ██║   ╚██████╔╝██████╔╝   ██║   ███████║╚██████╔╝███████╗╚██████╔╝
+    ╚══════╝   ╚═╝    ╚═════╝ ╚═════╝    ╚═╝   ╚══════╝ ╚═════╝ ╚══════╝ ╚═════╝ 
+                                                                            
+EOF
+    echo -e "${NC}"
+    echo -e "${DARK_GRAY}    [ 宇宙级自动化全栈启动引擎 v1.0 - Linux/macOS ]${NC}"
+    echo -e "${DARK_GRAY}    -----------------------------------------------------------------------${NC}"
+    echo ""
 }
 
-write_info() {
-  printf "${C_CYAN}[ INFO ] %s${C_RESET}\n" "$1"
-}
-
-write_success() {
-  printf "${C_GREEN}[ OK ] %s${C_RESET}\n" "$1"
-}
-
-write_warning() {
-  printf "${C_YELLOW}[ WARN ] %s${C_RESET}\n" "$1"
-}
-
-write_error_msg() {
-  printf "${C_RED}[ ERR ] %s${C_RESET}\n" "$1"
-}
-
-acquire_lock() {
-  if mkdir "$LOCK_DIR" >/dev/null 2>&1; then
-    printf '%s\n' "$$" >"$LOCK_DIR/pid"
-    trap cleanup_on_exit EXIT INT TERM
-    return 0
-  fi
-
-  local existing_pid=""
-  if [ -f "$LOCK_DIR/pid" ]; then
-    existing_pid="$(cat "$LOCK_DIR/pid" 2>/dev/null)"
-  fi
-
-  if [ -n "$existing_pid" ] && kill -0 "$existing_pid" >/dev/null 2>&1; then
-    write_error_msg "已有 FlankerStudySolo 启动脚本正在运行 (PID: $existing_pid)。"
-    return 1
-  fi
-
-  rm -rf "$LOCK_DIR" >/dev/null 2>&1
-  if mkdir "$LOCK_DIR" >/dev/null 2>&1; then
-    printf '%s\n' "$$" >"$LOCK_DIR/pid"
-    trap cleanup_on_exit EXIT INT TERM
-    return 0
-  fi
-
-  write_error_msg "无法获取 FlankerStudySolo 启动锁，请稍后重试。"
-  return 1
-}
-
-release_lock() {
-  if [ -d "$LOCK_DIR" ] && [ "$(cat "$LOCK_DIR/pid" 2>/dev/null)" = "$$" ]; then
-    rm -rf "$LOCK_DIR" >/dev/null 2>&1
-  fi
-}
-
-cleanup_on_exit() {
-  if [ "$STARTED_FRONTEND" -eq 1 ]; then
-    write_info "正在关闭前端服务..."
-    test_and_kill_port "$FrontendPort" "Frontend" >/dev/null 2>&1
-    cleanup_stale_frontend_processes >/dev/null 2>&1
-  fi
-
-  if [ "$STARTED_BACKEND" -eq 1 ]; then
-    write_info "正在关闭后端服务..."
-    test_and_kill_port "$BackendPort" "Backend" >/dev/null 2>&1
-    kill_matching_processes "$BACKEND_DIR/.*/uvicorn app.main:app" "后端 Uvicorn 进程" >/dev/null 2>&1
-  fi
-
-  release_lock
-}
+write_info() { echo -e "${CYAN}[ ℹ ] $1${NC}"; }
+write_success() { echo -e "${GREEN}[ ✔ ] $1${NC}"; }
+write_warning() { echo -e "${YELLOW}[ ⚠ ] $1${NC}"; }
+write_error() { echo -e "${RED}[ ✖ ] $1${NC}"; }
 
 show_spinner() {
-  local duration="$1"
-  local message="$2"
-  local spinner='|/-\'
-  local i=0
-  local end_time=$((SECONDS + duration))
-
-  while [ "$SECONDS" -lt "$end_time" ]; do
-    local c="${spinner:i%4:1}"
-    printf "\r${C_CYAN}[ %s ] %s... ${C_RESET}" "$c" "$message"
-    sleep 0.1
-    i=$((i + 1))
-  done
-  printf "\r${C_GREEN}[ OK ] %s... 完成！    ${C_RESET}\n" "$message"
+    local duration=$1
+    local message=$2
+    local spinner=('|' '/' '-' '\')
+    local end_time=$(($(date +%s) + duration))
+    local i=0
+    while [[ $(date +%s) -lt $end_time ]]; do
+        printf "\r${CYAN}[ %s ] %s... ${NC}" "${spinner[$i]}" "$message"
+        i=$(( (i + 1) % 4 ))
+        sleep 0.1
+    done
+    printf "\r${GREEN}[ ✔ ] %s... 完成！    ${NC}\n" "$message"
 }
 
-open_in_new_terminal() {
-  local cmd="$1"
+# ==========================================
+# 🛠️ 核心逻辑函数
+# ==========================================
 
-  if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
-    return 1
-  fi
-
-  if command -v gnome-terminal >/dev/null 2>&1; then
-    gnome-terminal -- bash -lc "$cmd; exec bash" >/dev/null 2>&1 && return 0
-  fi
-  if command -v x-terminal-emulator >/dev/null 2>&1; then
-    x-terminal-emulator -e bash -lc "$cmd; exec bash" >/dev/null 2>&1 && return 0
-  fi
-  if command -v konsole >/dev/null 2>&1; then
-    konsole --noclose -e bash -lc "$cmd" >/dev/null 2>&1 && return 0
-  fi
-  if command -v xfce4-terminal >/dev/null 2>&1; then
-    xfce4-terminal --hold -e "bash -lc '$cmd'" >/dev/null 2>&1 && return 0
-  fi
-  if command -v alacritty >/dev/null 2>&1; then
-    alacritty -e bash -lc "$cmd" >/dev/null 2>&1 && return 0
-  fi
-  if command -v xterm >/dev/null 2>&1; then
-    xterm -hold -e "bash -lc '$cmd'" >/dev/null 2>&1 && return 0
-  fi
-
-  return 1
-}
-
-is_port_listening() {
-  local port="$1"
-
-  if command -v ss >/dev/null 2>&1; then
-    ss -ltn 2>/dev/null | awk -v p=":$port" '$4 ~ p {found=1} END {exit(found ? 0 : 1)}'
-    return $?
-  fi
-
-  if command -v lsof >/dev/null 2>&1; then
-    lsof -tiTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1
-    return $?
-  fi
-
-  return 1
-}
-
-wait_for_port() {
-  local port="$1"
-  local retries="${2:-30}"
-  local interval="${3:-0.2}"
-  local i
-
-  for ((i = 1; i <= retries; i++)); do
-    if is_port_listening "$port"; then
-      return 0
-    fi
-    sleep "$interval"
-  done
-
-  return 1
-}
-
-is_process_alive() {
-  local pid="$1"
-  [ -n "$pid" ] && kill -0 "$pid" >/dev/null 2>&1
-}
-
-wait_for_process_alive() {
-  local pid="$1"
-  local retries="${2:-10}"
-  local interval="${3:-0.2}"
-  local i
-
-  for ((i = 1; i <= retries; i++)); do
-    if is_process_alive "$pid"; then
-      return 0
-    fi
-    sleep "$interval"
-  done
-
-  return 1
-}
-
-kill_pid_gracefully() {
-  local pid="$1"
-  local name
-  name="$(ps -p "$pid" -o comm= 2>/dev/null)"
-  if [ -n "$name" ]; then
-    printf "${C_GRAY}      -> 终止占用进程: %s (PID: %s)${C_RESET}\n" "$name" "$pid"
-  fi
-  kill -9 "$pid" >/dev/null 2>&1
-  write_success "已释放 PID: $pid"
-}
-
-list_port_owners() {
-  local port="$1"
-
-  if command -v lsof >/dev/null 2>&1; then
-    lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null
-    return
-  fi
-
-  if command -v ss >/dev/null 2>&1; then
-    ss -ltnp 2>/dev/null | awk -v p=":$port" '$4 ~ p'
-  fi
+get_env_value() {
+    local env_file=$1
+    local key=$2
+    [[ -f "$env_file" ]] && grep -E "^\s*$key\s*=" "$env_file" 2>/dev/null | head -1 | sed -E "s/^\s*$key\s*=\s*//" | tr -d '"' || echo ""
 }
 
 test_and_kill_port() {
-  local port="$1"
-  local service_name="$2"
-
-  write_info "正在检查 $service_name 端口 ($port)..."
-
-  local pids=""
-  if command -v lsof >/dev/null 2>&1; then
-    pids="$(lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | sort -u)"
-  elif command -v ss >/dev/null 2>&1; then
-    pids="$(ss -ltnp 2>/dev/null | awk -v p=":$port" '$4 ~ p {print $NF}' | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | sort -u)"
-  elif command -v fuser >/dev/null 2>&1; then
-    pids="$(fuser -n tcp "$port" 2>/dev/null | tr ' ' '\n' | sed '/^$/d' | sort -u)"
-  fi
-
-  if [ -n "$pids" ]; then
-    write_warning "发现 $service_name 端口 ($port) 被占用。"
-    list_port_owners "$port" | sed 's/^/      /'
-
-    while IFS= read -r pid; do
-      [ -z "$pid" ] && continue
-      kill_pid_gracefully "$pid"
-    done <<< "$pids"
-    sleep 1
-  fi
-
-  if is_port_listening "$port"; then
-    write_error_msg "$service_name 端口 ($port) 清理失败，仍被占用。"
-    list_port_owners "$port" | sed 's/^/      /'
-    return 1
-  fi
-
-  write_success "$service_name 端口 ($port) 已可用。"
-  return 0
-}
-
-kill_matching_processes() {
-  local pattern="$1"
-  local description="$2"
-  local pids=""
-
-  if command -v pgrep >/dev/null 2>&1; then
-    pids="$(pgrep -f "$pattern" 2>/dev/null | sort -u)"
-  else
-    pids="$(ps -ef | grep -E "$pattern" | grep -v grep | awk '{print $2}' | sort -u)"
-  fi
-
-  if [ -z "$pids" ]; then
-    write_success "未发现残留$description。"
-    return
-  fi
-
-  write_warning "发现残留$description，开始清理..."
-  while IFS= read -r pid; do
-    [ -z "$pid" ] && continue
-    kill_pid_gracefully "$pid"
-  done <<< "$pids"
-  sleep 1
-}
-
-cleanup_stale_frontend_processes() {
-  write_info "正在清理残留前端开发进程..."
-  kill_matching_processes "$FRONTEND_DIR/.*/next dev" " Next.js dev 进程"
-  kill_matching_processes "$FRONTEND_DIR/node_modules/.*/next/dist/bin/next dev" " Next.js CLI 进程"
-  kill_matching_processes "next-server \\(v[0-9]" " Next.js 服务进程"
-  kill_matching_processes "$FRONTEND_DIR.*pnpm dev" " pnpm 前端包装进程"
-  kill_matching_processes "$FRONTEND_DIR.*pnpm exec next dev" " pnpm exec 前端包装进程"
-}
-
-start_backend() {
-  if [ ! -d "$BACKEND_DIR" ]; then
-    write_error_msg "找不到后端目录: $BACKEND_DIR"
-    return 1
-  fi
-
-  if [ ! -f "$BACKEND_DIR/requirements.txt" ]; then
-    write_error_msg "找不到后端依赖文件: $BACKEND_DIR/requirements.txt"
-    return 1
-  fi
-
-  write_info "正在启动 FlankerStudySolo 后端服务 (FastAPI)..."
-
-  local venv_path="$BACKEND_DIR/.venv"
-  local python_cmd=""
-  python_cmd="$(detect_python_for_backend)"
-
-  if [ -z "$python_cmd" ]; then
-    write_error_msg "未找到可用的 Python 3 解释器。"
-    write_warning "请先安装 python3，然后重新运行脚本。"
-    return 1
-  fi
-
-  if ! python_supports_venv "$python_cmd"; then
-    write_error_msg "$python_cmd 不支持 venv 模块。"
-    write_warning "请安装 python3-venv（Debian/Ubuntu）或对应发行版的 venv 包后重试。"
-    return 1
-  fi
-
-  if [ ! -d "$venv_path" ]; then
-    write_warning "未检测到后端虚拟环境，准备使用 $python_cmd 创建 .venv ..."
-
-    local setup_cmd="cd '$BACKEND_DIR'"
-    setup_cmd+=" && $python_cmd -m venv .venv"
-    setup_cmd+=" && source .venv/bin/activate"
-    setup_cmd+=" && python -m pip install --upgrade pip"
-    setup_cmd+=" && pip install -r requirements.txt"
-    setup_cmd+="; echo ''"
-    setup_cmd+="; echo '=============================='"
-    setup_cmd+="; echo '  FlankerStudySolo 虚拟环境创建完成，依赖已安装'"
-    setup_cmd+="; echo '  请重新运行 scripts/start-studysolo.sh'"
-    setup_cmd+="; echo '=============================='"
-    setup_cmd+="; read -rp '按回车键关闭此窗口' _"
-
-    if ! open_in_new_terminal "$setup_cmd"; then
-      write_warning "未检测到图形终端，改为当前终端直接创建虚拟环境..."
-      (cd "$BACKEND_DIR" && "$python_cmd" -m venv .venv && source .venv/bin/activate && python -m pip install --upgrade pip && pip install -r requirements.txt)
-      if [ $? -eq 0 ]; then
-        write_success "虚拟环境创建完成，依赖已安装。"
-        write_warning "请重新运行脚本以启动全部服务。"
-        BOOTSTRAPPED_BACKEND_ONLY=1
-      else
-        write_error_msg "虚拟环境创建或依赖安装失败，请检查输出。"
-        return 1
-      fi
-    else
-      write_warning "后端环境正在准备中，完成后请重新运行脚本。"
-      BOOTSTRAPPED_BACKEND_ONLY=1
+    local port=$1
+    local service_name=$2
+    write_info "正在侦测 $service_name 端口 ($port)..."
+    
+    local pid=""
+    if command -v lsof >/dev/null 2>&1; then
+        pid=$(lsof -t -i:$port 2>/dev/null || true)
+    elif command -v ss >/dev/null 2>&1; then
+        pid=$(ss -tlnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+' | head -1 || true)
+    elif command -v netstat >/dev/null 2>&1; then
+        pid=$(netstat -tlnp 2>/dev/null | grep ":$port " | awk '{print $7}' | cut -d'/' -f1 | head -1 || true)
     fi
+    
+    if [[ -n "$pid" ]]; then
+        write_warning "发现 $service_name 端口 ($port) 正被占用！"
+        local process_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "unknown")
+        echo "      -> 准备消灭占用进程: $process_name (PID: $pid)"
+        kill -9 "$pid" 2>/dev/null || true
+        write_success "已成功解除封印！(终止了 PID: $pid)"
+        sleep 1
+    else
+        write_success "$service_name 端口 ($port) 畅通无阻。"
+    fi
+}
 
+ensure_venv_and_deps() {
+    local service_dir=$1
+    local service_name=$2
+    local venv_python="$service_dir/.venv/bin/python"
+    local requirements_path="$service_dir/requirements.txt"
+    
+    if [[ ! -f "$venv_python" ]]; then
+        write_warning "$service_name 未检测到 .venv，正在自动创建 ..."
+        python3 -m venv "$service_dir/.venv"
+        if [[ ! -f "$venv_python" ]]; then
+            write_error "$service_name 创建虚拟环境失败。"
+            return 1
+        fi
+    fi
+    
+    [[ "$AUTO_INSTALL_DEPS" == "false" ]] && return 0
+    
+    if [[ -f "$requirements_path" ]]; then
+        "$venv_python" -m pip install --upgrade pip -q
+        "$venv_python" -m pip install -r "$requirements_path" -q
+        if [[ $? -ne 0 ]]; then
+            write_error "$service_name 依赖安装失败。"
+            return 1
+        fi
+    else
+        write_warning "$service_name 未找到 requirements.txt，跳过依赖安装。"
+    fi
     return 0
-  fi
+}
 
-  local cmd="cd '$BACKEND_DIR' && source .venv/bin/activate && uvicorn app.main:app --reload --port $BackendPort --host 0.0.0.0"
-  write_info "后台启动后端服务，日志: $BACKGROUND_BACKEND_LOG"
-  nohup bash -lc "$cmd" >"$BACKGROUND_BACKEND_LOG" 2>&1 &
-  local backend_pid=$!
-
-  if ! wait_for_process_alive "$backend_pid" 10 0.2; then
-    write_error_msg "后端启动失败：进程未能存活。"
-    write_warning "请检查日志: $BACKGROUND_BACKEND_LOG"
-    return 1
-  fi
-
-  if wait_for_port "$BackendPort" 60 0.5; then
-    STARTED_BACKEND=1
-    write_success "后端服务已启动。"
+start_python_service() {
+    local service_name=$1
+    local service_dir=$2
+    local port=$3
+    local command_body=$4
+    local required_env_keys=${5:-}
+    local blocked_env_values=${6:-"replace-with-a-strong-secret"}
+    
+    if [[ ! -d "$service_dir" ]]; then
+        write_error "找不到 $service_name 目录: $service_dir"
+        return 1
+    fi
+    
+    local env_path="$service_dir/.env"
+    for key in $required_env_keys; do
+        local value=$(get_env_value "$env_path" "$key")
+        if [[ -z "$value" ]] || [[ "$value" == "$blocked_env_values" ]]; then
+            write_error "$service_name 的 .env 缺少或未正确配置 $key。请先完善: $env_path"
+            return 1
+        fi
+    done
+    
+    ensure_venv_and_deps "$service_dir" "$service_name" || return 1
+    test_and_kill_port "$port" "$service_name"
+    
+    # 在新终端窗口启动服务
+    local cmd="cd '$service_dir' && source .venv/bin/activate && $command_body"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        osascript -e "tell application \"Terminal\" to do script \"$cmd\"" 2>/dev/null || 
+        nohup bash -c "$cmd" > /dev/null 2>&1 &
+    else
+        if command -v gnome-terminal >/dev/null 2>&1; then
+            gnome-terminal -- bash -c "$cmd; exec bash" 2>/dev/null || nohup bash -c "$cmd" > /dev/null 2>&1 &
+        elif command -v konsole >/dev/null 2>&1; then
+            konsole -e bash -c "$cmd; exec bash" 2>/dev/null || nohup bash -c "$cmd" > /dev/null 2>&1 &
+        elif command -v xterm >/dev/null 2>&1; then
+            xterm -e bash -c "$cmd; exec bash" 2>/dev/null || nohup bash -c "$cmd" > /dev/null 2>&1 &
+        else
+            nohup bash -c "$cmd" > /dev/null 2>&1 &
+        fi
+    fi
+    
+    write_success "$service_name 启动完成。"
     return 0
-  fi
-
-  write_error_msg "后端启动失败：端口 $BackendPort 未在预期时间内就绪。"
-  write_warning "请检查日志: $BACKGROUND_BACKEND_LOG"
-  return 1
 }
 
 start_frontend() {
-  if [ ! -d "$FRONTEND_DIR" ]; then
-    write_error_msg "找不到前端目录: $FRONTEND_DIR"
-    return 1
-  fi
-
-  write_info "正在启动 FlankerStudySolo 前端服务 (Next.js)..."
-
-  local next_cache_dir="$FRONTEND_DIR/.next"
-  if [ -d "$next_cache_dir" ]; then
-    write_info "清理前端 .next 缓存..."
-    rm -rf "$next_cache_dir"
-    write_success ".next 缓存已清理。"
-  fi
-
-  local cmd="cd '$FRONTEND_DIR' && pnpm exec next dev --webpack --hostname 0.0.0.0 --port $FrontendPort"
-  write_info "后台启动前端服务，日志: $BACKGROUND_FRONTEND_LOG"
-  nohup bash -lc "$cmd" >"$BACKGROUND_FRONTEND_LOG" 2>&1 &
-  local frontend_pid=$!
-
-  if ! wait_for_process_alive "$frontend_pid" 10 0.2; then
-    write_error_msg "前端启动失败：进程未能存活。"
-    write_warning "请检查日志: $BACKGROUND_FRONTEND_LOG"
-    return 1
-  fi
-
-  if wait_for_port "$FrontendPort" 60 0.5; then
-    STARTED_FRONTEND=1
-    write_success "前端服务已启动。"
-    return 0
-  fi
-
-  write_error_msg "前端启动失败：端口 $FrontendPort 未在预期时间内就绪。"
-  write_warning "请检查日志: $BACKGROUND_FRONTEND_LOG"
-  return 1
+    local frontend_dir="$PROJECT_DIR/frontend"
+    if [[ ! -d "$frontend_dir" ]]; then
+        write_error "找不到前端目录: $frontend_dir"
+        return 1
+    fi
+    
+    write_info "正在构建前端视界 (Next.js)..."
+    
+    # 清理 .next 缓存
+    if [[ -d "$frontend_dir/.next" ]]; then
+        write_info "清理 .next 缓存..."
+        rm -rf "$frontend_dir/.next"
+        write_success ".next 缓存已清理。"
+    fi
+    
+    # 选择包管理器
+    local package_manager="npm"
+    if command -v pnpm >/dev/null 2>&1; then
+        package_manager="pnpm"
+    else
+        write_warning "未检测到 pnpm，自动降级为 npm。"
+    fi
+    
+    # 检查依赖
+    if [[ ! -d "$frontend_dir/node_modules" ]]; then
+        write_warning "未检测到前端依赖，请先运行: cd $frontend_dir && $package_manager install"
+        return 1
+    fi
+    
+    # 启动前端
+    local cmd="cd '$frontend_dir' && $package_manager dev --port $FRONTEND_PORT"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        osascript -e "tell application \"Terminal\" to do script \"$cmd\"" 2>/dev/null || 
+        nohup bash -c "$cmd" > /dev/null 2>&1 &
+    else
+        if command -v gnome-terminal >/dev/null 2>&1; then
+            gnome-terminal -- bash -c "$cmd; exec bash" 2>/dev/null || nohup bash -c "$cmd" > /dev/null 2>&1 &
+        elif command -v konsole >/dev/null 2>&1; then
+            konsole -e bash -c "$cmd; exec bash" 2>/dev/null || nohup bash -c "$cmd" > /dev/null 2>&1 &
+        elif command -v xterm >/dev/null 2>&1; then
+            xterm -e bash -c "$cmd; exec bash" 2>/dev/null || nohup bash -c "$cmd" > /dev/null 2>&1 &
+        else
+            nohup bash -c "$cmd" > /dev/null 2>&1 &
+        fi
+    fi
+    
+    write_success "前端视界面板已展开！"
 }
+
+start_core_backend() {
+    local backend_dir="$PROJECT_DIR/backend"
+    write_info "正在注入主后端引擎 (FastAPI)..."
+    start_python_service "Main Backend" "$backend_dir" "$BACKEND_PORT" \
+        "python -m uvicorn app.main:app --reload --port $BACKEND_PORT --host 0.0.0.0"
+}
+
+start_agents() {
+    [[ "$START_AGENTS" == "false" ]] && {
+        write_warning "已按参数跳过 Agent 组启动。"
+        return
+    }
+    
+    echo ""
+    echo -e "${MAGENTA}=== 🤖 Agent 启动层 ===${NC}"
+    
+    local agents_root="$PROJECT_DIR/agents"
+    declare -a agents=(
+        "Code Review Agent:$agents_root/code-review-agent:8001:python -m src.main:AGENT_API_KEY"
+        "Deep Research Agent:$agents_root/deep-research-agent:8002:python -m src.main:AGENT_API_KEY"
+        "News Agent:$agents_root/news-agent:8003:python -m src.main:AGENT_API_KEY"
+        "Study Tutor Agent:$agents_root/study-tutor-agent:8004:python -m src.main:AGENT_API_KEY"
+        "Visual Site Agent:$agents_root/visual-site-agent:8005:python -m src.main:AGENT_API_KEY"
+    )
+    
+    for agent_info in "${agents[@]}"; do
+        IFS=':' read -r name dir port cmd <<< "$agent_info"
+        write_info "正在启动 $name ..."
+        start_python_service "$name" "$dir" "$port" "$cmd" "AGENT_API_KEY" &>/dev/null || true
+    done
+}
+
+# ==========================================
+# 🚀 启动序列
+# ==========================================
 
 show_banner
 
-if [ ! -d "$ProjectDir" ]; then
-  write_error_msg "项目路径不存在: $ProjectDir"
-  read -rp "按回车键退出..." _
-  exit 1
+if [[ ! -d "$PROJECT_DIR" ]]; then
+    write_error "项目路径不存在: $PROJECT_DIR"
+    exit 1
 fi
 
-if ! acquire_lock; then
-  exit 1
-fi
+show_spinner 1 "初始化全栈启动协议"
 
-show_spinner 1 "初始化 FlankerStudySolo 启动环境"
+echo ""
+echo -e "${MAGENTA}=== 🛡️ 资源接管层 ===${NC}"
+test_and_kill_port "$FRONTEND_PORT" "Frontend"
+test_and_kill_port "$BACKEND_PORT" "Backend"
 
-printf "\n"
-printf "${C_MAGENTA}=== 资源检查 ===${C_RESET}\n"
-cleanup_stale_frontend_processes
-if ! test_and_kill_port "$BackendPort" "Backend"; then
-  exit 1
-fi
-if ! test_and_kill_port "$FrontendPort" "Frontend"; then
-  exit 1
-fi
+show_spinner 1 "正在分配运行内存与通道"
 
-show_spinner 1 "准备启动前后端服务"
-
-printf "\n"
-printf "${C_MAGENTA}=== 服务启动 ===${C_RESET}\n"
-if ! start_backend; then
-  exit 1
-fi
-if [ "$BOOTSTRAPPED_BACKEND_ONLY" -eq 1 ]; then
-  printf "\n"
-  printf "${C_YELLOW}后端环境刚刚初始化完成，当前不会继续启动前端。${C_RESET}\n"
-  printf "${C_YELLOW}请重新运行一次脚本，届时会正式启动后端和前端服务。${C_RESET}\n"
-  exit 0
-fi
+echo ""
+echo -e "${MAGENTA}=== ⚙️ 核心启动层 ===${NC}"
+start_core_backend
 sleep 1
-if ! start_frontend; then
-  exit 1
+start_frontend
+sleep 1
+start_agents
+
+echo ""
+echo -e "${MAGENTA}=== 🎯 系统已就绪 ===${NC}"
+echo -e "${GREEN}  ✨ [ 前端控制台 ] -> http://127.0.0.1:$FRONTEND_PORT${NC}"
+echo -e "${GREEN}  ✨ [ 后端 API 根地址 ] -> http://127.0.0.1:$BACKEND_PORT${NC}"
+echo -e "${GREEN}  ✨ [ Swagger 接口文档 ] -> http://127.0.0.1:$BACKEND_PORT/docs${NC}"
+
+if [[ "$START_AGENTS" == "true" ]]; then
+    echo -e "${GREEN}  ✨ [ Code Review Agent ] -> http://127.0.0.1:8001/health${NC}"
+    echo -e "${GREEN}  ✨ [ Deep Research Agent ] -> http://127.0.0.1:8002/health${NC}"
+    echo -e "${GREEN}  ✨ [ News Agent ] -> http://127.0.0.1:8003/health${NC}"
+    echo -e "${GREEN}  ✨ [ Study Tutor Agent ] -> http://127.0.0.1:8004/health${NC}"
+    echo -e "${GREEN}  ✨ [ Visual Site Agent ] -> http://127.0.0.1:8005/health${NC}"
 fi
 
-printf "\n"
-printf "${C_MAGENTA}=== 启动完成 ===${C_RESET}\n"
-printf "${C_GREEN}  前端: http://127.0.0.1:%s${C_RESET}\n" "$FrontendPort"
-printf "${C_GREEN}  后端: http://127.0.0.1:%s${C_RESET}\n" "$BackendPort"
-printf "${C_GREEN}  文档: http://127.0.0.1:%s/docs${C_RESET}\n" "$BackendPort"
-printf "${C_GRAY}  后端日志: %s${C_RESET}\n" "$BACKGROUND_BACKEND_LOG"
-printf "${C_GRAY}  前端日志: %s${C_RESET}\n" "$BACKGROUND_FRONTEND_LOG"
-printf "\n"
-read -rp "按回车键退出脚本，并停止本次启动的服务..." _
+echo ""
+echo -e "${YELLOW}祝您开发愉快（代码永无 Bug）！🎉${NC}"
+echo ""
+read -p "按下回车键退出这艘母舰..."

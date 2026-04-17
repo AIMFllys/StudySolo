@@ -30,6 +30,7 @@ from studysolo_cli.commands.workflow import wf_app
 app = typer.Typer(
     name="studysolo",
     help="StudySolo command-line client.",
+    invoke_without_command=True,
     no_args_is_help=True,
     add_completion=False,
 )

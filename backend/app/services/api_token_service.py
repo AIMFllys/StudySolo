@@ -4,8 +4,8 @@ Design notes:
 - Plaintext tokens are generated as ``sk_studysolo_<32-byte token_urlsafe>``
   and are **only** returned from the creation endpoint. The database only
   stores the SHA-256 hex of the plaintext (``token_hash``).
-- ``token_prefix`` (first 12 chars) is kept for UI display so users can tell
-  tokens apart without exposing the full secret.
+- ``token_prefix`` (fixed prefix + a short random fragment) is kept for UI
+  display so users can tell tokens apart without exposing the full secret.
 - ``verify_bearer`` is the hot path called on every authenticated request
   that uses Bearer authentication. We update ``last_used_at`` on a best-effort
   basis so the hot path stays cheap and non-blocking.
@@ -25,7 +25,7 @@ from supabase import AsyncClient
 logger = logging.getLogger(__name__)
 
 TOKEN_PREFIX = "sk_studysolo_"
-TOKEN_PREFIX_DISPLAY_LEN = 12  # 12 = "sk_studyso.." visible part for UI
+TOKEN_PREFIX_DISPLAY_LEN = len(TOKEN_PREFIX) + 8  # fixed prefix + 8 random chars
 
 
 class PatVerifyResult(TypedDict):
@@ -48,7 +48,12 @@ def hash_token(plaintext: str) -> str:
 
 
 def token_display_prefix(plaintext: str) -> str:
-    """Return the short prefix shown in the UI (``sk_studyso..``)."""
+    """Return the safe display prefix shown in the UI.
+
+    The value intentionally includes only a short random fragment after
+    ``sk_studysolo_`` so users can distinguish tokens without exposing the
+    full secret.
+    """
     return plaintext[:TOKEN_PREFIX_DISPLAY_LEN]
 
 

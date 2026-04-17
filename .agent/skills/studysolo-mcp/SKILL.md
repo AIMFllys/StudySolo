@@ -89,3 +89,8 @@ priority: HIGH
 - 本 MCP Server **只读 + 只触发 run**，不支持修改工作流、删除资源、管理员操作。
 - 只有 **stdio transport**；HTTP / SSE 版在后续迭代。
 - 目前 `scopes` 固定为 `["*"]`，无细粒度授权。
+
+
+## 8. Canvas Editing Update
+
+When the user asks to create or edit real workflow nodes through MCP, use the dedicated `studysolo-workflow-canvas` skill. The workflow canvas tools create real `nodes_json` / `edges_json` instances; do not treat a label or node type string as a node.

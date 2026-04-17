@@ -46,6 +46,8 @@ Desktop.ini
 !.agent/skills/studysolo-mcp/**
 !.agent/skills/studysolo-cli/
 !.agent/skills/studysolo-cli/**
+!.agent/skills/studysolo-workflow-canvas/
+!.agent/skills/studysolo-workflow-canvas/**
 .claude/
 .kiro/
 .cursor/

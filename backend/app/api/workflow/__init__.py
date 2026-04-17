@@ -13,10 +13,12 @@ from fastapi import APIRouter
 from app.api.workflow.crud import router as crud_router
 from app.api.workflow.execute import router as execute_router
 from app.api.workflow.social import router as social_router
+from app.api.workflow.canvas import router as canvas_router
 from app.api.workflow.collaboration import router as collaboration_router
 
 router = APIRouter()
 router.include_router(crud_router, prefix="", tags=["workflow"])
 router.include_router(execute_router, prefix="", tags=["workflow-execute"])
+router.include_router(canvas_router, prefix="", tags=["workflow-canvas"])
 router.include_router(social_router, prefix="", tags=["workflow-social"])
 router.include_router(collaboration_router, prefix="", tags=["workflow-collaboration"])

@@ -106,6 +106,7 @@ class NodeData(BaseModel):
     model_route: str = ""
     status: str = "pending"
     output: str = ""
+    output_format: str = "markdown"
     user_content: str = ""  # Full user input for trigger_input; used by execution engine
     config: dict[str, Any] = Field(default_factory=dict)
 
@@ -115,12 +116,20 @@ class WorkflowNodeSchema(BaseModel):
     type: str
     position: NodePosition
     data: NodeData
+    parentId: str | None = None
+    extent: str | None = None
+    style: dict[str, Any] | None = None
 
 
 class WorkflowEdgeSchema(BaseModel):
     id: str
     source: str
     target: str
+    sourceHandle: str = "source-right"
+    targetHandle: str = "target-left"
+    type: str = "sequential"
+    animated: bool = False
+    data: dict[str, Any] = Field(default_factory=dict)
 
 
 class ImplicitContext(BaseModel):

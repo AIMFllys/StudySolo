@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# StudySolo 跨平台启动入口
+# 自动检测操作系统并调用相应的启动脚本
+#
+# 用法:
+#   ./scripts/start-studysolo [options]
+#   ./scripts/start-studysolo --help
+
+# 获取脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 检测操作系统
+detect_os() {
+    case "$(uname -s)" in
+        Linux*)     echo "linux";;
+        Darwin*)    echo "macos";;
+        CYGWIN*)    echo "windows";;
+        MINGW*)     echo "windows";;
+        MSYS*)      echo "windows";;
+        *)          echo "unknown";;
+    esac
+}
+
+OS=$(detect_os)
+
+# 根据操作系统调用相应的脚本
+case "$OS" in
+    linux|macos)
+        STARTUP_SCRIPT="$SCRIPT_DIR/startup/start-studysolo.sh"
+        if [[ -f "$STARTUP_SCRIPT" ]]; then
+            exec bash "$STARTUP_SCRIPT" "$@"
+        else
+            echo "错误: 未找到启动脚本: $STARTUP_SCRIPT" >&2
+            exit 1
+        fi
+        ;;
+    windows)
+        # Windows 环境下尝试调用 PowerShell 脚本
+        PS_SCRIPT="$SCRIPT_DIR/start-studysolo.ps1"
+        if [[ -f "$PS_SCRIPT" ]]; then
+            echo "检测到 Windows 环境，调用 PowerShell 脚本..."
+            exec powershell -ExecutionPolicy Bypass -File "$PS_SCRIPT" "$@"
+        else
+            echo "错误: 未找到 PowerShell 启动脚本: $PS_SCRIPT" >&2
+            exit 1
+        fi
+        ;;
+    *)
+        echo "错误: 不支持的操作系统: $(uname -s)" >&2
+        echo "请直接运行适合您系统的脚本：" >&2
+        echo "  - Windows: .\\scripts\\start-studysolo.ps1" >&2
+        echo "  - Linux/macOS: bash scripts/startup/start-studysolo.sh" >&2
+        exit 1
+        ;;
+esac

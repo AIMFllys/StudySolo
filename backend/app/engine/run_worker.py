@@ -182,15 +182,10 @@ async def run_to_db(
         workflow = wf_result.data
         nodes = workflow.get("nodes_json") or []
         edges = workflow.get("edges_json") or []
-        workflow_input = next(
-            (
-                (node.get("data") or {}).get("user_content")
-                or (node.get("data") or {}).get("label")
-                for node in nodes
-                if node.get("type") == "trigger_input"
-            ),
-            None,
-        )
+        workflow_input = _resolve_workflow_input(nodes)
+        if workflow_input is not None:
+            await _update_run_input(db, run_id, workflow_input)
+
         implicit_context = {
             "user_id": user_id,
             "workflow_id": workflow_id,
@@ -328,6 +323,34 @@ async def run_to_db(
 
 
 # ── Helpers (copied from api/workflow/execute.py, intentionally small) ──────
+
+
+def _resolve_workflow_input(nodes: Iterable[dict] | None) -> str | None:
+    """Resolve the run input from the first trigger_input node.
+
+    Mirrors the SSE execution path: user_content wins, label is the fallback.
+    """
+    if not nodes:
+        return None
+    for node in nodes:
+        if node.get("type") != "trigger_input":
+            continue
+        data = node.get("data") or {}
+        return data.get("user_content") or data.get("label") or None
+    return None
+
+
+async def _update_run_input(db, run_id: str, workflow_input: str) -> None:
+    """Persist trigger input for REST-created runs (best-effort)."""
+    try:
+        await (
+            db.from_("ss_workflow_runs")
+            .update({"input": workflow_input})
+            .eq("id", run_id)
+            .execute()
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to update run input for %s: %s", run_id, exc)
 
 
 def _format_error_detail(detail: Any) -> str:
@@ -528,7 +551,10 @@ async def summarise_progress(db, run_id: str) -> dict[str, Any]:
     except Exception:  # noqa: BLE001
         wf_row = None
 
-    total_nodes = _count_runnable_nodes(wf_row.get("nodes_json") if wf_row else None)
+    nodes_json = wf_row.get("nodes_json") if wf_row else None
+    node_label_map = _build_node_label_map(nodes_json)
+    runnable_node_ids = _runnable_node_ids(nodes_json)
+    total_nodes = len(runnable_node_ids)
 
     events_result = (
         await db.from_("ss_workflow_run_events")
@@ -544,25 +570,32 @@ async def summarise_progress(db, run_id: str) -> dict[str, Any]:
     current_node_id: str | None = None
     current_node_label: str | None = None
     last_event_at: str | None = None
-    done_nodes: set[str] = set()
 
-    for ev in reversed(events):  # oldest → newest for correct "current"
+    for ev in reversed(events):  # oldest to newest for correct "current"
         last_event_at = ev.get("created_at") or last_event_at
         payload = ev.get("payload") or {}
         etype = ev.get("event_type")
         if etype == "workflow_status":
             phase = payload.get("phase") or phase
         elif etype == "node_input":
-            current_node_id = payload.get("node_id") or current_node_id
-            current_node_label = payload.get("node_label") or current_node_label
-        elif etype == "node_done":
             nid = payload.get("node_id")
             if nid:
-                done_nodes.add(nid)
+                current_node_id = nid
+                current_node_label = (
+                    payload.get("node_label")
+                    or node_label_map.get(nid)
+                    or nid
+                )
 
+    done_nodes = await _load_done_node_ids(db, run_id, runnable_node_ids)
+    done_count = len(done_nodes)
     percent = 0
     if total_nodes:
-        percent = min(100, int(len(done_nodes) * 100 / total_nodes))
+        if run_row.get("status") == "completed":
+            done_count = total_nodes
+            percent = 100
+        else:
+            percent = min(100, int(done_count * 100 / total_nodes))
 
     elapsed_ms: int | None = None
     started_at = run_row.get("started_at")
@@ -587,15 +620,78 @@ async def summarise_progress(db, run_id: str) -> dict[str, Any]:
         "current_node_id": current_node_id,
         "current_node_label": current_node_label,
         "total_nodes": total_nodes,
-        "done_nodes": len(done_nodes),
+        "done_nodes": done_count,
         "percent": percent,
         "elapsed_ms": elapsed_ms,
         "last_event_at": last_event_at,
     }
 
 
+def _runnable_node_ids(nodes: Iterable[dict] | None) -> set[str]:
+    """Return node ids that actually execute (skip visual containers)."""
+    if not nodes:
+        return set()
+    return {
+        str(n.get("id"))
+        for n in nodes
+        if n.get("id") and (n.get("type") or "") != "loop_group"
+    }
+
+
 def _count_runnable_nodes(nodes: Iterable[dict] | None) -> int:
     """Count nodes that actually execute (skip purely visual containers)."""
+    return len(_runnable_node_ids(nodes))
+
+
+def _build_node_label_map(nodes: Iterable[dict] | None) -> dict[str, str]:
+    """Map node ids to display labels for progress snapshots."""
+    labels: dict[str, str] = {}
     if not nodes:
-        return 0
-    return sum(1 for n in nodes if (n.get("type") or "") != "loop_group")
+        return labels
+    for node in nodes:
+        node_id = node.get("id")
+        if not node_id:
+            continue
+        data = node.get("data") or {}
+        label = data.get("label") or data.get("user_content") or str(node_id)
+        labels[str(node_id)] = str(label)
+    return labels
+
+
+async def _load_done_node_ids(
+    db,
+    run_id: str,
+    runnable_node_ids: set[str],
+) -> set[str]:
+    """Load all completed node ids for a run, independent of recent-event window."""
+    done: set[str] = set()
+    page_size = 1000
+    offset = 0
+
+    while True:
+        try:
+            result = (
+                await db.from_("ss_workflow_run_events")
+                .select("payload")
+                .eq("run_id", run_id)
+                .eq("event_type", "node_done")
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Failed to load done-node events for run %s: %s", run_id, exc)
+            return done
+
+        rows = result.data or []
+        for row in rows:
+            payload = row.get("payload") or {}
+            node_id = payload.get("node_id")
+            if not node_id:
+                continue
+            node_id = str(node_id)
+            if not runnable_node_ids or node_id in runnable_node_ids:
+                done.add(node_id)
+
+        if len(rows) < page_size:
+            return done
+        offset += page_size
