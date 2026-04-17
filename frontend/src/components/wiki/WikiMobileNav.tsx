@@ -19,10 +19,15 @@ export default function WikiMobileNav({ navItems }: WikiMobileNavProps) {
   return (
     <>
       <div className="wiki-mobile-header">
-        <Link href="/wiki" className="wiki-mobile-brand">
-          <BookOpen className="h-4 w-4" />
-          <span>文档中心</span>
-        </Link>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <Link href="/wiki" className="wiki-mobile-brand min-w-0">
+            <BookOpen className="h-4 w-4 shrink-0" aria-hidden />
+            <span className="truncate">文档中心</span>
+          </Link>
+          <Link href="/workspace" className="wiki-mobile-back-workspace shrink-0">
+            工作区
+          </Link>
+        </div>
         <button
           type="button"
           aria-label={open ? '关闭导航' : '打开导航'}

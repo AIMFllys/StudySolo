@@ -73,7 +73,7 @@ export default async function WikiDocPage({ params }: Props) {
             </span>
           )}
         </header>
-        <div className="wiki-markdown prose prose-slate max-w-none">
+        <div className="wiki-markdown prose max-w-none">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{

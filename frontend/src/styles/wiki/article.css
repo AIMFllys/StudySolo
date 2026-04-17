@@ -1,7 +1,7 @@
 .wiki-doc-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) clamp(220px, 18vw, 280px);
+  gap: clamp(20px, 2vw, 32px);
   align-items: start;
   min-height: calc(100vh - 64px);
 }
@@ -14,17 +14,29 @@
 .wiki-article {
   border-radius: 20px;
   padding: 0;
-  color: #0f172a;
+  color: var(--card-foreground);
   overflow: hidden;
 }
 
 .wiki-doc-header {
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
   background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 42%),
-    linear-gradient(to right, rgba(226, 232, 240, 0.7) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(226, 232, 240, 0.7) 1px, transparent 1px),
-    #ffffff;
+    linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--primary) 12%, transparent),
+      transparent 42%
+    ),
+    linear-gradient(
+      to right,
+      color-mix(in oklch, var(--border) 55%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--border) 55%, transparent) 1px,
+      transparent 1px
+    ),
+    var(--card);
   background-size: auto, 24px 24px, 24px 24px, auto;
   padding: 42px 48px 34px;
 }
@@ -36,7 +48,7 @@
 .wiki-doc-header span {
   display: block;
   margin-top: 16px;
-  color: #64748b;
+  color: var(--muted-foreground);
   font-size: 14px;
 }
 
@@ -51,9 +63,9 @@
 .wiki-markdown h2 {
   position: relative;
   margin-top: 3.25rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border);
   padding-top: 2.25rem;
-  color: #0f172a;
+  color: var(--foreground);
   font-family: var(--font-serif);
   font-size: 1.875rem;
   letter-spacing: 0;
@@ -67,13 +79,13 @@
   left: 0;
   width: 72px;
   height: 2px;
-  background: #2563eb;
+  background: var(--primary);
   content: "";
 }
 
 .wiki-markdown h3 {
   margin-top: 2rem;
-  color: #0f172a;
+  color: var(--foreground);
   font-family: var(--font-serif);
   font-size: 1.25rem;
   letter-spacing: 0;
@@ -83,7 +95,7 @@
 
 .wiki-markdown p,
 .wiki-markdown li {
-  color: #334155;
+  color: color-mix(in oklch, var(--foreground) 92%, var(--muted-foreground));
   font-size: 16px;
   line-height: 2;
 }
@@ -101,7 +113,7 @@
 }
 
 .wiki-markdown li::marker {
-  color: #2563eb;
+  color: var(--primary);
   font-weight: 800;
 }
 
@@ -119,10 +131,10 @@
 
 .wiki-rich-list > li {
   position: relative;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 14px;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  background: var(--card);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 5%, transparent);
   margin: 0;
   padding: 0.85rem 1rem 0.85rem 2.7rem;
 }
@@ -134,9 +146,9 @@
   width: 0.65rem;
   height: 0.65rem;
   border-radius: 999px;
-  background: #2563eb;
+  background: var(--primary);
   content: "";
-  box-shadow: 0 0 0 4px #dbeafe;
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 22%, transparent);
 }
 
 .wiki-rich-list-ordered {
@@ -153,9 +165,9 @@
   height: 1.45rem;
   display: grid;
   place-items: center;
-  background: #2563eb;
+  background: var(--primary);
   box-shadow: none;
-  color: #ffffff;
+  color: var(--primary-foreground);
   content: counter(wiki-step);
   font-size: 0.75rem;
   font-weight: 900;
@@ -166,41 +178,48 @@
 }
 
 .wiki-markdown strong {
-  color: #0f172a;
+  color: var(--foreground);
   font-weight: 800;
 }
 
 .wiki-markdown a {
-  color: #1d4ed8;
+  color: var(--primary);
   font-weight: 700;
-  text-decoration-color: #93c5fd;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--primary) 45%, transparent);
   text-underline-offset: 4px;
+  transition: text-decoration-color 160ms ease;
 }
 
 .wiki-markdown a:hover {
-  color: #1e40af;
+  text-decoration-color: var(--primary);
+}
+
+.wiki-markdown a:focus-visible {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
 }
 
 .wiki-markdown blockquote {
   margin: 1.75rem 0;
-  border-left-color: #2563eb;
-  border-left-width: 4px;
+  border-left: 4px solid var(--primary);
   border-radius: 0 14px 14px 0;
-  background: #eff6ff;
-  color: #1e3a8a;
+  background: color-mix(in oklch, var(--primary) 10%, transparent);
+  color: var(--foreground);
   padding: 1.1rem 1.35rem;
 }
 
 .wiki-markdown blockquote p {
-  color: #1e3a8a;
+  color: var(--muted-foreground);
   margin: 0;
 }
 
 .wiki-markdown code:not(pre code) {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: #f1f5f9;
-  color: #0f172a;
+  background: color-mix(in oklch, var(--muted) 65%, transparent);
+  color: var(--foreground);
   font-size: 0.9em;
   padding: 0.15rem 0.35rem;
 }
@@ -208,10 +227,10 @@
 .wiki-markdown pre {
   margin: 1.75rem 0;
   overflow-x: auto;
-  border: 1px solid #dbeafe;
+  border: 1px solid color-mix(in oklch, var(--primary) 22%, var(--border));
   border-radius: 14px;
-  background: #f8fafc;
-  color: #0f172a;
+  background: color-mix(in oklch, var(--muted) 35%, var(--card));
+  color: var(--foreground);
   padding: 1.25rem;
 }
 
@@ -219,7 +238,7 @@
   display: block;
   width: 100%;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 14px;
   margin: 1.75rem 0;
 }
@@ -229,24 +248,24 @@
 }
 
 .wiki-markdown th {
-  background: #eff6ff;
-  color: #0f172a;
+  background: color-mix(in oklch, var(--primary) 12%, transparent);
+  color: var(--foreground);
   font-weight: 800;
 }
 
 .wiki-markdown th,
 .wiki-markdown td {
-  border-color: #e2e8f0;
+  border-color: var(--border);
   padding: 0.8rem 1rem;
 }
 
 .wiki-markdown tbody tr:nth-child(even) {
-  background: #f8fafc;
+  background: color-mix(in oklch, var(--muted) 28%, transparent);
 }
 
 .wiki-markdown hr {
   margin: 2.5rem 0;
-  border-color: #e2e8f0;
+  border-color: var(--border);
 }
 
 .wiki-markdown > *:first-child {

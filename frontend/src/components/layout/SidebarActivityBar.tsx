@@ -87,10 +87,14 @@ export function SidebarActivityBar({ logoutAndRedirect, isRight }: SidebarActivi
           </Link>
           {renderButton('wallet')}
           {renderButton('settings')}
-          <a href="https://docs.1037solo.com/#/docs/studysolo-intro" target="_blank" rel="noopener noreferrer"
-            className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl text-muted-foreground border-[1.5px] border-transparent transition-all hover:bg-muted/40 hover:text-foreground shrink-0" title="使用手册">
-            <BookOpenText className="h-[18px] w-[18px] stroke-[1.5] hover:stroke-[2]" />
-          </a>
+          <Link
+            href="/wiki"
+            className="flex h-10 w-10 mx-auto min-h-10 min-w-10 items-center justify-center rounded-xl text-muted-foreground border-[1.5px] border-transparent transition-[color,background-color,border-color,transform] hover:bg-muted/40 hover:text-foreground shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            title="文档中心"
+          >
+            <BookOpenText className="h-[18px] w-[18px] stroke-[1.5] hover:stroke-[2]" aria-hidden />
+            <span className="sr-only">文档中心</span>
+          </Link>
           <button onClick={() => setShowLogoutConfirm(true)}
             className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl text-muted-foreground border-[1.5px] border-transparent transition-all hover:bg-rose-50/50 dark:hover:bg-rose-950/20 hover:text-rose-500 shrink-0" title="退出登录">
             <LogOut className="h-[18px] w-[18px] stroke-[1.5] hover:stroke-[2]" />

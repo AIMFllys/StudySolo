@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Mail, UserCheck, Shield, ExternalLink, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { Mail, UserCheck, Shield, ExternalLink, ChevronRight, BookOpen } from 'lucide-react';
 import { eventBus } from '@/lib/events/event-bus';
 import { getUser, getTierLabel, type UserInfo } from '@/services/auth.service';
 
@@ -89,16 +90,14 @@ export default function UserPanel() {
             快捷操作
           </p>
           <div className="space-y-0.5">
-            <a
-              href="https://docs.1037solo.com/#/docs/studysolo-intro"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+            <Link
+              href="/wiki"
+              className="flex min-h-9 items-center gap-2.5 rounded-lg px-2 py-2 text-xs text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <ExternalLink className="h-3.5 w-3.5" />
-              查看使用手册
-              <ChevronRight className="ml-auto h-3 w-3 text-muted-foreground/30" />
-            </a>
+              <BookOpen className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+              文档中心
+              <ChevronRight className="ml-auto h-3 w-3 text-muted-foreground/30" aria-hidden />
+            </Link>
             <a
               href="https://github.com/AIMFllys/StudySolo/issues"
               target="_blank"

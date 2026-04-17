@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { ExternalLink } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { STUDYSOLO_WIKI_PLATFORM_LINKS } from '@/lib/studysolo-external-docs';
 import type { NavItem } from '@/lib/wiki';
 
 interface WikiSidebarClientProps {
@@ -57,7 +59,7 @@ export default function WikiSidebarClient({ navItems }: WikiSidebarClientProps) 
   const activeSlug = currentSlug(usePathname());
 
   return (
-    <nav className="wiki-nav">
+    <nav className="wiki-nav" aria-label="文档导航">
       {navItems.map((section, index) => (
         <div key={section.slug ?? `${section.title}-${index}`} className="wiki-nav-section">
           <p className="wiki-nav-section-title">
@@ -66,6 +68,26 @@ export default function WikiSidebarClient({ navItems }: WikiSidebarClientProps) 
           {section.children && <NavTree items={section.children} activeSlug={activeSlug} />}
         </div>
       ))}
+
+      <div className="wiki-nav-section wiki-nav-section-external">
+        <p className="wiki-nav-section-title">📋 平台说明</p>
+        <ul className="wiki-external-list">
+          {STUDYSOLO_WIKI_PLATFORM_LINKS.map((item) => (
+            <li key={item.href}>
+              <a
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="wiki-external-link"
+                aria-label={`${item.label}（在新标签页打开）`}
+              >
+                <span className="wiki-external-link-label">{item.label}</span>
+                <ExternalLink className="wiki-external-link-icon h-3.5 w-3.5 shrink-0" aria-hidden />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
     </nav>
   );
 }
