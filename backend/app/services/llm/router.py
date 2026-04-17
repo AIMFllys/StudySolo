@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "AIRouterError", "LLMCallResult", "LLMStreamResult",
     "call_llm", "call_llm_direct", "call_llm_structured", "call_llm_direct_structured",
+    "call_lightweight_chat_response",
 ]
 
 
@@ -173,6 +174,27 @@ async def call_llm_structured(
             logger.warning("Provider '%s/%s' failed: %s", sku.provider, sku.model_id, exc)
             errors.append(f"{sku.provider}/{sku.model_id}: {exc}")
     raise AIRouterError(f"All routes for '{node_type}' exhausted: {' | '.join(errors)}")
+
+
+async def _resolve_lightweight_chat_candidate():
+    candidates = await _build_route_candidates("chat_response")
+    return next((sku for sku in candidates if not sku.supports_thinking), None)
+
+
+async def call_lightweight_chat_response(
+    messages: list[dict],
+    stream: bool = False,
+) -> str | AsyncIterator[str]:
+    """Use the first configured non-reasoning chat model when available."""
+    lightweight = await _resolve_lightweight_chat_candidate()
+    if lightweight is None:
+        return await call_llm("chat_response", messages, stream=stream)
+    return await call_llm_direct(
+        lightweight.provider,
+        lightweight.model_id,
+        messages,
+        stream=stream,
+    )
 
 
 async def call_llm_direct(

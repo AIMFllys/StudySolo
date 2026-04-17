@@ -6,13 +6,14 @@ Both ``/chat`` (non-streaming) and ``/chat-stream`` (SSE) live here.
 
 import json
 import logging
+import os
 from typing import Any
 
 from fastapi import APIRouter, Depends
 from sse_starlette.sse import EventSourceResponse
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_supabase_client
 from app.models.ai_chat import AIChatRequest, AIChatResponse, CanvasAction
 from app.prompts import (
     get_chat_prompt,
@@ -24,15 +25,27 @@ from app.prompts import (
     get_plan_prompt,
 )
 from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed, resolve_selected_sku
+from app.services.ai_chat.agent_loop import run_agent_loop
 from app.services.ai_chat.helpers import build_canvas_summary, extract_json_obj
 from app.services.ai_chat.model_caller import call_with_model
 from app.services.ai_chat.validators import resolve_assistant_subtype, resolve_source_subtype
-from app.services.llm.router import AIRouterError, call_llm, call_llm_direct
+from app.services.llm.router import (
+    AIRouterError,
+    call_lightweight_chat_response,
+    call_llm_direct,
+    call_llm as call_task_llm,
+)
 from app.services.quota_service import check_daily_chat_quota
 from app.services.usage_tracker import track_usage, usage_request_scope
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+async def call_llm(*args, **kwargs):
+    """Compatibility wrapper; bare message calls use lightweight chat routing."""
+    if args and isinstance(args[0], str):
+        return await call_task_llm(*args, **kwargs)
+    return await call_lightweight_chat_response(*args, **kwargs)
 
 _DEPTH_INSTRUCTIONS: dict[str, str] = {
     "fast": "Please answer briefly and directly.",
@@ -45,6 +58,34 @@ _MODIFY_FORMAT_ERROR = (
     "首字符必须是 {，不得包含 Markdown 代码块、解释文字或额外前后缀。"
 )
 _MODEL_TIER_FORBIDDEN_RESPONSE = "This model requires a paid tier."
+_AGENT_LOOP_CHAT_KEYWORDS = (
+    "workflow",
+    "工作流",
+    "canvas",
+    "画布",
+    "node",
+    "节点",
+    "edge",
+    "连线",
+    "run",
+    "运行",
+    "执行",
+    "status",
+    "状态",
+    "open",
+    "打开",
+    "rename",
+    "重命名",
+    "add",
+    "新增",
+    "添加",
+    "update",
+    "修改",
+    "delete",
+    "删除",
+    "list",
+    "列出",
+)
 
 
 def _normalize_modify_actions(parsed: dict[str, Any]) -> list[dict[str, Any]]:
@@ -243,10 +284,28 @@ async def ai_chat(
     return await _ai_chat_impl(body, current_user)
 
 
+def _agent_loop_enabled(body: AIChatRequest) -> bool:
+    """Return whether this request needs the tool-capable XML agent loop."""
+    if os.getenv("AGENT_LOOP_DISABLED") == "1":
+        return False
+    intent_hint = (body.intent_hint or "").upper()
+    if intent_hint in ("BUILD", "ACTION", "LEGACY"):
+        return False
+    if body.mode in ("plan", "create"):
+        return True
+    if body.canvas_context is not None:
+        return True
+    text = body.user_input.lower()
+    if any(keyword in text for keyword in _AGENT_LOOP_CHAT_KEYWORDS):
+        return True
+    return False
+
+
 async def _chat_stream_generator(
     body: AIChatRequest,
     current_user: dict,
     service_db=None,
+    db=None,
 ):
     async with usage_request_scope(
         user_id=current_user["id"],
@@ -296,6 +355,19 @@ async def _chat_stream_generator(
                     )
                 }
                 return
+
+            # ── Agent-loop XML protocol (default path) ──────────────────
+            if _agent_loop_enabled(body) and db is not None and service_db is not None:
+                try:
+                    async for event in run_agent_loop(
+                        body, current_user, db=db, service_db=service_db,
+                    ):
+                        yield event
+                    return
+                except Exception as exc:  # noqa: BLE001
+                    usage_scope.status = "failed"
+                    logger.exception("Agent loop failed, falling back to legacy stream: %s", exc)
+                    # Fall through to legacy flow below.
 
             canvas_summary = build_canvas_summary(body.canvas_context)
             has_canvas = bool(body.canvas_context and body.canvas_context.nodes)
@@ -398,7 +470,7 @@ async def _chat_stream_generator(
                 {"role": "user", "content": body.user_input},
             ]
 
-            force_thinking = body.thinking_level in ("balanced", "deep")
+            force_thinking = body.thinking_level == "deep"
             _ = _DEPTH_INSTRUCTIONS.get(body.thinking_level, "")
 
             yield {"data": json.dumps({"intent": intent}, ensure_ascii=False)}
@@ -418,7 +490,7 @@ async def _chat_stream_generator(
                     stream=True,
                 )
             else:
-                token_iter = await call_llm("chat_response", stream_msgs, stream=True)
+                token_iter = await call_llm(stream_msgs, stream=True)
 
             full = ""
             async for token in token_iter:
@@ -452,5 +524,8 @@ async def ai_chat_stream(
     body: AIChatRequest,
     current_user: dict = Depends(get_current_user),
     service_db=Depends(get_db),
+    db=Depends(get_supabase_client),
 ):
-    return EventSourceResponse(_chat_stream_generator(body, current_user, service_db=service_db))
+    return EventSourceResponse(
+        _chat_stream_generator(body, current_user, service_db=service_db, db=db)
+    )

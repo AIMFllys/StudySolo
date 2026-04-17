@@ -113,23 +113,19 @@ async def stream_tokens(
         reasoning = getattr(delta, "reasoning_content", None)
         if reasoning:
             if not in_thinking:
-                content_parts.append("<think>")
                 yield "<think>"
                 in_thinking = True
-            content_parts.append(reasoning)
             yield reasoning
 
         content = getattr(delta, "content", None)
         if content:
             if in_thinking:
-                content_parts.append("</think>")
                 yield "</think>"
                 in_thinking = False
             content_parts.append(content)
             yield content
 
     if in_thinking:
-        content_parts.append("</think>")
         yield "</think>"
 
     result.content = "".join(content_parts)

@@ -120,6 +120,24 @@ def get_intent_prompt(
     return f"{identity}\n\n{classifier}"
 
 
+def get_agent_xml_prompt(
+    canvas_summary: str,
+    workflow_list_summary: str,
+    tools_block: str,
+    model_identity: str = "StudySolo 默认模型",
+) -> str:
+    """Assemble the agent-loop XML protocol system prompt."""
+    identity = load_prompt("identity", model_identity=model_identity)
+    agent = load_prompt(
+        "agent_xml_protocol",
+        MODEL_IDENTITY=model_identity,
+        CANVAS_SUMMARY=canvas_summary or "（当前没有打开画布）",
+        WORKFLOW_LIST=workflow_list_summary or "（暂无工作流）",
+        TOOLS_BLOCK=tools_block or "（无可用工具）",
+    )
+    return f"{identity}\n\n{agent}"
+
+
 # ── Backward Compat (旧接口, 逐步废弃) ───────────────────────────
 
 def get_intent_system_prompt(canvas_context_str: str) -> str:

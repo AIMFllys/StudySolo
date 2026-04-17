@@ -17,6 +17,7 @@ from app.prompts.prompt_loader import (  # noqa: F401
     get_chat_prompt,
     get_create_prompt,
     get_intent_prompt,
+    get_agent_xml_prompt,
     load_prompt,
     DEPTH_LABELS,
     # ── Legacy compat (v1, will be deprecated) ──
