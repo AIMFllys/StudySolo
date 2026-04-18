@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import type { ReactFlowInstance } from '@xyflow/react';
 
@@ -38,7 +39,7 @@ export function useCanvasTouch({
   const [selectedNodeForMenu, setSelectedNodeForMenu] = useState<string | null>(null);
 
   // Calculate distance between two touch points
-  const getTouchDistance = useCallback((touches: TouchList): number => {
+  const getTouchDistance = useCallback((touches: React.TouchList): number => {
     if (touches.length < 2) return 0;
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
@@ -46,7 +47,7 @@ export function useCanvasTouch({
   }, []);
 
   // Calculate center between two touch points
-  const getTouchCenter = useCallback((touches: TouchList): { x: number; y: number } | null => {
+  const getTouchCenter = useCallback((touches: React.TouchList): { x: number; y: number } | null => {
     if (touches.length < 2) return null;
     return {
       x: (touches[0].clientX + touches[1].clientX) / 2,

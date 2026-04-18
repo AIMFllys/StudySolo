@@ -85,12 +85,15 @@ export function useWorkflowExecution() {
   const commitAndClearNodeStream = useCallback((nodeId: string) => {
     const streamed = nodeStreamStore.get(nodeId);
     if (streamed !== undefined && streamed.length > 0) {
-      updateNodeData(nodeId, (prev: { output?: string | null }) => ({
+      updateNodeData(nodeId, (prev) => {
         // Only promote the streamed text when the main store hasn't already
         // received a richer authoritative output (e.g. from a node_done that
         // arrived before the terminal node_status).
-        output: prev.output && prev.output.length >= streamed.length ? prev.output : streamed,
-      }));
+        const prevOutput = typeof prev.output === 'string' ? prev.output : '';
+        return {
+          output: prevOutput.length >= streamed.length ? prevOutput : streamed,
+        };
+      });
     }
     nodeStreamStore.clear(nodeId);
   }, [updateNodeData]);

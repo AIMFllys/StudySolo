@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   FileText,
   Lightbulb,
@@ -89,7 +88,6 @@ interface WorkflowWithMeta extends WorkflowMeta {
 }
 
 export default function MobileHomePage() {
-  const router = useRouter();
   const { createWorkflow, creating } = useCreateWorkflowAction();
   const [recentWorkflows, setRecentWorkflows] = useState<WorkflowWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +107,7 @@ export default function MobileHomePage() {
           setStats((prev) => ({
             ...prev,
             totalWorkflows: data.length,
-            favoriteCount: data.filter((w: WorkflowMeta) => w.is_favorite).length,
+            favoriteCount: data.filter((w: WorkflowMeta) => w.is_favorited).length,
           }));
         }
       })
@@ -132,10 +130,7 @@ export default function MobileHomePage() {
   }, []);
 
   const handleCreateWorkflow = async () => {
-    const newWorkflow = await createWorkflow();
-    if (newWorkflow?.id) {
-      router.push(`/c/${newWorkflow.id}`);
-    }
+    await createWorkflow();
   };
 
   return (
@@ -279,7 +274,7 @@ export default function MobileHomePage() {
                     <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                       <Clock className="h-3 w-3" />
                       <span>{workflow.lastModified || '最近'}</span>
-                      {workflow.is_favorite && (
+                      {workflow.is_favorited && (
                         <Heart className="h-3 w-3 text-rose-400 fill-rose-400" />
                       )}
                     </div>

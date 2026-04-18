@@ -40,20 +40,37 @@ introduce/
 
 ## 生产部署
 
-构建产物 `dist/` 通过 Nginx `alias` 指令托管：
+### 目录与 Nginx 必须一致（C-09）
 
-```nginx
-location ^~ /introduce/ {
-    alias /www/wwwroot/studyflow.1037solo.com/introduce/dist/;
-    try_files $uri $uri/ /introduce/index.html;
-    expires 7d;
-}
+线上**物理路径**必须与 Nginx `alias` 指向的目录**同构**：`index.html` 与 `assets/` 必须来自**同一次** `npm run build` 输出的 `dist/`，并整体同步到服务器，例如：
+
+```text
+.../introduce/dist/
+  index.html
+  assets/index-<hash>.js
+  assets/index-<hash>.css
+  StudySolo.png
 ```
 
-更新流程：
+仓库内 `npm run build` 会在末尾执行 `scripts/verify-dist.mjs`，若 `index.html` 引用的带哈希文件在 `dist/` 中不存在会直接失败，避免带病发布。
+
+### 白屏 + `index-xxxx.js` 404 的常见根因
+
+1. **只上传了部分文件**：`index.html` 已更新引用新的哈希，但 `assets/` 未同步 → 浏览器请求旧 URL 或新哈希文件不存在。
+2. **`index.html` 被长期缓存**：Nginx/CDN 对整站 `expires 7d` 时，用户仍持有**旧** HTML，其中引用的 `index-OLD.js` 已被新部署删除 → 404 + 白屏。**勿对 HTML 设长缓存**；带哈希的 `assets/*` 可长期缓存。
+3. **`alias` 路径错误**：`location` 与 `alias` 尾部斜杠不成对，或 `alias` 未指向 `dist/`（见 `docs/.../C-nginx-deploy.md` C-01、C-09）。
+
+### 推荐 Nginx 片段
+
+见同目录 **`nginx-introduce.example.conf`**（`assets/` 长期缓存 + 其余 `no-cache`，避免陈旧入口 HTML）。
+
+更新流程（建议整目录原子替换）：
 
 ```bash
 cd introduce
-npm run build     # 重新构建
-# Nginx 自动加载新的 dist/ 内容，无需重启
+npm run build     # 含 dist 校验；通过后再同步 dist/
+# 将服务器上 introduce/dist 整体替换为新 dist（勿只替换 index.html）
+# nginx -s reload  # 若改动了 include 配置
 ```
+
+线上排障请同时核对：`nginx -T`、`curl -I https://studyflow.1037solo.com/introduce/assets/<当前哈希>.js`、`ls` 服务器 `dist` 目录。

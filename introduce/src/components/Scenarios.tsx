@@ -29,71 +29,71 @@ import {
 const SCENARIOS = [
   {
     id: 'machine-learning',
-    title: '???????',
-    subtitle: '??????',
+    title: '机器学习入门',
+    subtitle: '从零到体系',
     icon: BrainCircuit,
-    input: '???????????????????????',
+    input: '希望在 4 周内建立机器学习基础，并完成一个小型实战项目。',
     color: 'var(--accent-blue)',
     flow: [
-      { node: 'Trigger Input', icon: Zap, output: '?????????????', time: '0.1s' },
-      { node: 'AI Planner', icon: Map, output: '????????? -> ???? -> ????', time: '1.2s' },
-      { node: 'Outline Gen', icon: FileText, output: '?? 12 ??????', time: '2.0s' },
-      { node: 'Web Search', icon: Search, output: '?????????????', time: '1.8s' },
-      { node: 'Flashcard', icon: AppWindow, output: '?? 45 ????????', time: '2.3s' },
-      { node: 'Export File', icon: Download, output: '????????Markdown?', time: '0.3s' },
+      { node: 'Trigger Input', icon: Zap, output: '解析学习目标与时间约束', time: '0.1s' },
+      { node: 'AI Planner', icon: Map, output: '拆解为阶段 → 周目标 → 日任务', time: '1.2s' },
+      { node: 'Outline Gen', icon: FileText, output: '生成 12 章结构化大纲', time: '2.0s' },
+      { node: 'Web Search', icon: Search, output: '补充权威教程与最新进展', time: '1.8s' },
+      { node: 'Flashcard', icon: AppWindow, output: '生成 45 张概念闪卡', time: '2.3s' },
+      { node: 'Export File', icon: Download, output: '导出 Markdown 学习包', time: '0.3s' },
     ],
-    result: '6 ????????????????????????????',
+    result: '6 个节点串联后，形成可执行的学习路线图与配套资料。',
   },
   {
     id: 'paper-reading',
-    title: '???????',
-    subtitle: '??????',
+    title: '论文精读',
+    subtitle: '长文到测验',
     icon: BookOpen,
-    input: '????????????????????',
+    input: '精读一篇约 40 页的 NLP 论文，输出摘要、图表要点与自测题。',
     color: 'var(--accent-purple)',
     flow: [
-      { node: 'Trigger Input', icon: Zap, output: '????????', time: '0.1s' },
-      { node: 'Knowledge Base', icon: BookOpen, output: '???????????', time: '3.0s' },
-      { node: 'Content Extract', icon: Scissors, output: '?????????', time: '2.6s' },
-      { node: 'AI Analyzer', icon: Microscope, output: '???????????', time: '3.8s' },
-      { node: 'Summary', icon: SlidersHorizontal, output: '??????????', time: '1.9s' },
-      { node: 'Quiz Gen', icon: HelpCircle, output: '?? 20 ???????', time: '2.1s' },
+      { node: 'Trigger Input', icon: Zap, output: '触发解析与分段索引', time: '0.1s' },
+      { node: 'Knowledge Base', icon: BookOpen, output: '全文向量化与段落定位', time: '3.0s' },
+      { node: 'Content Extract', icon: Scissors, output: '提取方法、实验与图表要点', time: '2.6s' },
+      { node: 'AI Analyzer', icon: Microscope, output: '多维度批判性阅读笔记', time: '3.8s' },
+      { node: 'Summary', icon: SlidersHorizontal, output: '生成结构化一页纸摘要', time: '1.9s' },
+      { node: 'Quiz Gen', icon: HelpCircle, output: '生成 20 道理解检验题', time: '2.1s' },
     ],
-    result: '?????? 15 ??????????????????',
+    result: '约 15 分钟内完成从原文到测验题的闭环。',
   },
   {
     id: 'exam-prep',
-    title: '??????',
-    subtitle: '??????',
+    title: '考前突击',
+    subtitle: '导图 + 闪卡',
     icon: GraduationCap,
-    input: '???????????????????',
+    input: '基于课程 PPT 与讲义，在两周内备考《操作系统》期末考试。',
     color: 'var(--accent-green)',
     flow: [
-      { node: 'Trigger Input', icon: Zap, output: '?????????', time: '0.1s' },
-      { node: 'Knowledge Base', icon: BookOpen, output: '??????????', time: '1.5s' },
-      { node: 'AI Analyzer', icon: Microscope, output: '??????????', time: '3.1s' },
-      { node: 'Mind Map', icon: Network, output: '??????????', time: '2.0s' },
-      { node: 'Flashcard', icon: AppWindow, output: '?? 60 ?????', time: '3.2s' },
-      { node: 'Quiz Gen', icon: HelpCircle, output: '????????', time: '2.6s' },
+      { node: 'Trigger Input', icon: Zap, output: '识别考纲与章节权重', time: '0.1s' },
+      { node: 'Knowledge Base', icon: BookOpen, output: '讲义入库与语义索引', time: '1.5s' },
+      { node: 'AI Analyzer', icon: Microscope, output: '提炼高频考点与易错点', time: '3.1s' },
+      { node: 'Mind Map', icon: Network, output: '生成章节思维导图骨架', time: '2.0s' },
+      { node: 'Flashcard', icon: AppWindow, output: '生成 60 张考点闪卡', time: '3.2s' },
+      { node: 'Quiz Gen', icon: HelpCircle, output: '混合题型模拟卷', time: '2.6s' },
     ],
-    result: '10 ?????????????????????????',
+    result: '10 个知识模块串联，覆盖高频考点与自测路径。',
   },
   {
     id: 'community-share',
-    title: '??????',
-    subtitle: '???????',
+    title: '社区协作',
+    subtitle: '分支与合并',
     icon: Globe2,
-    input: '????????????????? Fork?',
+    input: '多人 Fork 同一条工作流，分别补充章节后合并为社区发布版。',
     color: 'var(--accent-rose)',
     flow: [
-      { node: 'Trigger Input', icon: Zap, output: '????????', time: '0.1s' },
-      { node: 'Write DB', icon: Database, output: '??????????', time: '0.5s' },
-      { node: 'Chat Response', icon: Sparkles, output: '???????????', time: '1.2s' },
-      { node: 'Logic Switch', icon: Shuffle, output: '?? Fork ???????', time: '0.9s' },
-      { node: 'Merge Polish', icon: Sparkles, output: '???????????', time: '2.0s' },
-      { node: 'Export File', icon: Download, output: '??????????', time: '0.2s' },
+      { node: 'Trigger Input', icon: Zap, output: '接收协作任务与分支说明', time: '0.1s' },
+      { node: 'Write DB', icon: Database, output: '写入版本快照与元数据', time: '0.5s' },
+      { node: 'Chat Response', icon: Sparkles, output: '汇总评论与修订建议', time: '1.2s' },
+      { node: 'Logic Switch', icon: Shuffle, output: '按 Fork 来源选择执行分支', time: '0.9s' },
+      { node: 'Merge Polish', icon: Sparkles, output: '合并冲突段落并统一文风', time: '2.0s' },
+      { node: 'Export File', icon: Download, output: '导出发布稿与变更说明', time: '0.2s' },
     ],
-    result: '?????????????? -> Fork -> ?? -> ?????????',
+    result: '协作路径：Fork → 并行编辑 → 评审合并 → 统一发布。',
   },
 ];
 
@@ -120,15 +120,15 @@ export default function Scenarios() {
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px' }}>
         <div className="reveal" style={{ marginBottom: 64, textAlign: 'center' }}>
           <span className="label label-green" style={{ marginBottom: 20, display: 'inline-flex' }}>
-            REAL USE CASES ? ????
+            REAL USE CASES · 场景演示
           </span>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(36px, 5vw, 56px)', color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 24 }}>
-            ??????
+            真实学习场景
             <br />
-            <span className="marker-highlight" style={{ fontSize: 'clamp(32px, 4.5vw, 48px)' }}>????????</span>
+            <span className="marker-highlight" style={{ fontSize: 'clamp(32px, 4.5vw, 48px)' }}>一条工作流串起来</span>
           </h2>
           <p style={{ fontSize: 18, color: 'var(--text-secondary)', maxWidth: 560, margin: '0 auto', lineHeight: 1.6 }}>
-            ???????????????????????
+            从个人自学到小组协作，同一套节点可按需编排、复用与分享。
           </p>
         </div>
 
@@ -188,7 +188,7 @@ export default function Scenarios() {
                 style={{ marginTop: 16, width: '100%', padding: '14px', borderRadius: 12, border: 'none', background: scenario.color, color: '#ffffff', fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
                 <PlayCircle size={20} />
-                {'???????'}
+                运行工作流演示
               </button>
             </div>
 
@@ -244,8 +244,8 @@ export default function Scenarios() {
             <div style={{ background: 'var(--bg-canvas)', borderRadius: 16, border: '1px solid var(--border-subtle)', padding: '16px 20px', display: 'flex', gap: 16, alignItems: 'center' }}>
               <ClipboardList size={24} color="var(--text-secondary)" />
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>???????</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>?????????????? Fork ??????</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>模板与 Fork</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>任意场景可保存为模板，支持 Fork、分享与二次编辑。</div>
               </div>
             </div>
           </div>
