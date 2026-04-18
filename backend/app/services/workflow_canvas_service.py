@@ -17,6 +17,23 @@ from app.nodes import BaseNode
 DEFAULT_NODE_WIDTH_OFFSET = 340
 DEFAULT_NODE_Y = 120
 DEFAULT_NODE_X = 120
+# Approximate visual footprint per node type, used for auto-layout spacing and
+# collision detection when the LLM omits `position` on `add_node`.
+# Keep these values aligned with the React Flow node renderers on the frontend.
+_NODE_BBOX_BY_TYPE: dict[str, tuple[float, float]] = {
+    # (width, height). Fallback applies to everything not listed here.
+    "loop_group": (500.0, 350.0),
+    "logic_switch": (240.0, 160.0),
+    "trigger_input": (320.0, 180.0),
+}
+_DEFAULT_NODE_BBOX: tuple[float, float] = (320.0, 180.0)
+# Horizontal gap placed between an anchor's right edge and the new node.
+_NODE_HORIZONTAL_GAP = 60.0
+# Vertical step used to fan branch targets of a `logic_switch` out along Y,
+# and to resolve collisions when the preferred slot is already occupied.
+_NODE_VERTICAL_STEP = 200.0
+# Safety cap on collision-resolution iterations.
+_LAYOUT_MAX_PROBES = 24
 
 _HANDLE_SOURCE_RIGHT = "source-right"
 _HANDLE_TARGET_LEFT = "target-left"
@@ -264,11 +281,168 @@ def _resolve_ref(value: Any, id_map: dict[str, str]) -> str:
     return value
 
 
-def _next_position(nodes: list[dict[str, Any]]) -> dict[str, float]:
+def _node_bbox(node_type: str | None) -> tuple[float, float]:
+    if not node_type:
+        return _DEFAULT_NODE_BBOX
+    return _NODE_BBOX_BY_TYPE.get(node_type, _DEFAULT_NODE_BBOX)
+
+
+def _canonical_type_of(node: dict[str, Any]) -> str:
+    data = node.get("data") if isinstance(node.get("data"), dict) else {}
+    raw = str(node.get("type") or data.get("type") or "")
+    return _canonical_node_type(raw)
+
+
+def _node_center(node: dict[str, Any]) -> tuple[float, float, float, float]:
+    """Return `(cx, cy, width, height)` for a positioned node."""
+    position = node.get("position") if isinstance(node.get("position"), dict) else {}
+    try:
+        x = float(position.get("x", DEFAULT_NODE_X))
+        y = float(position.get("y", DEFAULT_NODE_Y))
+    except (TypeError, ValueError):
+        x, y = float(DEFAULT_NODE_X), float(DEFAULT_NODE_Y)
+    style = node.get("style") if isinstance(node.get("style"), dict) else {}
+    default_w, default_h = _node_bbox(_canonical_type_of(node))
+    try:
+        w = float(style.get("width", default_w)) if style else default_w
+        h = float(style.get("height", default_h)) if style else default_h
+    except (TypeError, ValueError):
+        w, h = default_w, default_h
+    return x + w / 2.0, y + h / 2.0, w, h
+
+
+def _rects_overlap(
+    ax: float, ay: float, aw: float, ah: float,
+    bx: float, by: float, bw: float, bh: float,
+    *,
+    margin: float = 16.0,
+) -> bool:
+    """Axis-aligned rectangle overlap test with a small `margin` buffer."""
+    return (
+        abs(ax - bx) < (aw + bw) / 2.0 + margin
+        and abs(ay - by) < (ah + bh) / 2.0 + margin
+    )
+
+
+def _outgoing_edge_count(node_id: str, edges: list[dict[str, Any]] | None) -> int:
+    if not edges:
+        return 0
+    return sum(1 for edge in edges if edge.get("source") == node_id)
+
+
+def _resolve_to_non_colliding(
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    nodes: list[dict[str, Any]],
+) -> tuple[float, float]:
+    """Nudge `(x, y)` along Y until the resulting box does not overlap any existing node.
+
+    Alternates between downward and upward probes so placements stay near the
+    anchor. Returns the first conflict-free slot, or the original position if
+    no slot was found within `_LAYOUT_MAX_PROBES` attempts (defensive fallback).
+    """
+    if not nodes:
+        return x, y
+    cx = x + width / 2.0
+    cy = y + height / 2.0
+    existing = [_node_center(node) for node in nodes]
+
+    def is_free(candidate_cy: float) -> bool:
+        return not any(
+            _rects_overlap(cx, candidate_cy, width, height, nx, ny, nw, nh)
+            for nx, ny, nw, nh in existing
+        )
+
+    if is_free(cy):
+        return x, y
+
+    for step in range(1, _LAYOUT_MAX_PROBES + 1):
+        for direction in (1, -1):
+            probe_cy = cy + direction * step * _NODE_VERTICAL_STEP
+            if is_free(probe_cy):
+                return x, probe_cy - height / 2.0
+    return x, y
+
+
+def _next_position(
+    nodes: list[dict[str, Any]],
+    *,
+    node_type: str | None = None,
+    anchor_node_id: str | None = None,
+    edges: list[dict[str, Any]] | None = None,
+) -> dict[str, float]:
+    """Compute a non-overlapping position for a new node.
+
+    - When `anchor_node_id` resolves to an existing node, the new node is
+      placed to the right of that anchor, using an anchor-aware vertical
+      offset for branching sources (e.g. `logic_switch`).
+    - When no anchor is available, the new node is appended to the right of
+      the right-most existing node, matching legacy behaviour.
+    - In all cases the final slot is passed through a collision resolver so
+      two auto-placed nodes never land on identical coordinates.
+    """
+    new_w, new_h = _node_bbox(node_type)
+
     if not nodes:
         return {"x": float(DEFAULT_NODE_X), "y": float(DEFAULT_NODE_Y)}
-    max_x = max(float((node.get("position") or {}).get("x", DEFAULT_NODE_X)) for node in nodes)
-    return {"x": max_x + DEFAULT_NODE_WIDTH_OFFSET, "y": float(DEFAULT_NODE_Y)}
+
+    anchor = None
+    if anchor_node_id:
+        for candidate in nodes:
+            if candidate.get("id") == anchor_node_id:
+                anchor = candidate
+                break
+
+    if anchor is not None:
+        anchor_position = anchor.get("position") if isinstance(anchor.get("position"), dict) else {}
+        try:
+            ax = float(anchor_position.get("x", DEFAULT_NODE_X))
+            ay = float(anchor_position.get("y", DEFAULT_NODE_Y))
+        except (TypeError, ValueError):
+            ax = float(DEFAULT_NODE_X)
+            ay = float(DEFAULT_NODE_Y)
+        anchor_type = _canonical_type_of(anchor)
+        anchor_style = anchor.get("style") if isinstance(anchor.get("style"), dict) else {}
+        anchor_default_w, _anchor_default_h = _node_bbox(anchor_type)
+        try:
+            anchor_w = float(anchor_style.get("width", anchor_default_w)) if anchor_style else anchor_default_w
+        except (TypeError, ValueError):
+            anchor_w = anchor_default_w
+
+        target_x = ax + anchor_w + _NODE_HORIZONTAL_GAP
+        target_y = ay
+        # When the anchor is a branching source, fan targets out along Y so
+        # branches A/B/C don't stack directly on top of each other. The index
+        # is `outgoing_count` because this new edge will be appended after the
+        # existing ones; centring the whole fan around the anchor's Y keeps
+        # the first branch roughly at the anchor line.
+        if anchor_type == "logic_switch":
+            branch_index = _outgoing_edge_count(str(anchor.get("id") or ""), edges)
+            # 0 → 0, 1 → +step, 2 → -step, 3 → +2*step, 4 → -2*step, ...
+            if branch_index > 0:
+                magnitude = (branch_index + 1) // 2
+                sign = 1 if branch_index % 2 == 1 else -1
+                target_y = ay + sign * magnitude * _NODE_VERTICAL_STEP
+        return dict(zip(("x", "y"), _resolve_to_non_colliding(target_x, target_y, new_w, new_h, nodes)))
+
+    # No anchor: extend the right-most column.
+    positioned = [node for node in nodes if isinstance(node.get("position"), dict)]
+    if not positioned:
+        return {"x": float(DEFAULT_NODE_X), "y": float(DEFAULT_NODE_Y)}
+    rightmost = max(positioned, key=lambda n: float((n.get("position") or {}).get("x", DEFAULT_NODE_X)))
+    rightmost_position = rightmost.get("position") or {}
+    try:
+        rx = float(rightmost_position.get("x", DEFAULT_NODE_X))
+        ry = float(rightmost_position.get("y", DEFAULT_NODE_Y))
+    except (TypeError, ValueError):
+        rx, ry = float(DEFAULT_NODE_X), float(DEFAULT_NODE_Y)
+    rightmost_type = _canonical_type_of(rightmost)
+    rightmost_w, _rightmost_h = _node_bbox(rightmost_type)
+    target_x = rx + rightmost_w + _NODE_HORIZONTAL_GAP
+    target_y = ry
+    return dict(zip(("x", "y"), _resolve_to_non_colliding(target_x, target_y, new_w, new_h, nodes)))
 
 
 def apply_canvas_patch(
@@ -292,10 +466,28 @@ def apply_canvas_patch(
             node_type = str(op.get("node_type") or op.get("type") or "")
             if not node_type:
                 raise CanvasPatchError("create_node is missing node_type", code="missing_node_type")
+            if isinstance(op.get("position"), dict):
+                resolved_position: dict[str, Any] | None = op.get("position")
+            else:
+                # Optional anchor hint lets callers (e.g. the add_node tool) get
+                # an anchor-aware auto-placement without having to pre-compute
+                # coordinates themselves.
+                anchor_hint = op.get("anchor_node_id")
+                anchor_id = (
+                    _resolve_ref(anchor_hint, id_map)
+                    if isinstance(anchor_hint, str) and anchor_hint
+                    else None
+                )
+                resolved_position = _next_position(
+                    next_nodes,
+                    node_type=_canonical_node_type(node_type),
+                    anchor_node_id=anchor_id,
+                    edges=next_edges,
+                )
             node = create_workflow_node_instance(
                 node_type,
                 label=op.get("label") if isinstance(op.get("label"), str) else None,
-                position=op.get("position") if isinstance(op.get("position"), dict) else _next_position(next_nodes),
+                position=resolved_position,
                 data_patch=op.get("data") if isinstance(op.get("data"), dict) else {},
                 node_id=op.get("node_id") if isinstance(op.get("node_id"), str) and op.get("node_id") else None,
             )
@@ -308,6 +500,11 @@ def apply_canvas_patch(
         elif op_name == "update_node_data":
             node_id = _resolve_ref(op.get("node_id") or op.get("target_node_id"), id_map)
             patch = op.get("data") if isinstance(op.get("data"), dict) else {}
+            # Optional top-level meta patch for a limited whitelist (e.g.
+            # `parentId` / `extent`) so the LLM can move a node into a
+            # `loop_group` container. We resolve `parentId` through `id_map`
+            # so it also accepts `$client_id` references from the same patch.
+            meta_patch = op.get("meta") if isinstance(op.get("meta"), dict) else {}
             updated = False
             for node in next_nodes:
                 if node.get("id") != node_id:
@@ -316,6 +513,37 @@ def apply_canvas_patch(
                 node["data"] = _merge_dict(data, patch)
                 if node.get("type") != "loop_group":
                     node["data"]["type"] = node.get("type")
+                if meta_patch:
+                    if "parentId" in meta_patch:
+                        raw_parent = meta_patch.get("parentId")
+                        if raw_parent in (None, ""):
+                            node.pop("parentId", None)
+                        else:
+                            parent_id = _resolve_ref(raw_parent, id_map)
+                            if parent_id == node_id:
+                                raise CanvasPatchError(
+                                    "Node cannot be its own parent",
+                                    code="invalid_parent_self",
+                                )
+                            if not any(n.get("id") == parent_id for n in next_nodes):
+                                raise CanvasPatchError(
+                                    f"parentId references unknown node: {parent_id}",
+                                    code="invalid_parent_id",
+                                )
+                            parent_node = next(n for n in next_nodes if n.get("id") == parent_id)
+                            if _canonical_type_of(parent_node) != "loop_group":
+                                raise CanvasPatchError(
+                                    "parentId must reference a loop_group node",
+                                    code="invalid_parent_type",
+                                )
+                            node["parentId"] = parent_id
+                            node.setdefault("extent", "parent")
+                    if "extent" in meta_patch:
+                        extent_val = meta_patch.get("extent")
+                        if extent_val in (None, ""):
+                            node.pop("extent", None)
+                        else:
+                            node["extent"] = extent_val
                 updated = True
                 break
             if not updated:

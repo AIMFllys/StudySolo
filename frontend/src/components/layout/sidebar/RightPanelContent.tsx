@@ -55,14 +55,12 @@ function getEdgeSummary(node: Node, edges: { source: string; target: string }[])
 }
 
 export default function RightPanelContent() {
-  const {
-    edges,
-    executionSession,
-    lastImplicitContext,
-    lastPrompt,
-    nodes,
-    selectedNodeId,
-  } = useWorkflowStore();
+  const edges = useWorkflowStore((s) => s.edges);
+  const executionSession = useWorkflowStore((s) => s.executionSession);
+  const lastImplicitContext = useWorkflowStore((s) => s.lastImplicitContext);
+  const lastPrompt = useWorkflowStore((s) => s.lastPrompt);
+  const nodes = useWorkflowStore((s) => s.nodes);
+  const selectedNodeId = useWorkflowStore((s) => s.selectedNodeId);
   const { manifest } = useNodeManifest();
   const manifestByType = useMemo(() => buildManifestLookup(manifest), [manifest]);
 

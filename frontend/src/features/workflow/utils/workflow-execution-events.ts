@@ -24,6 +24,23 @@ interface WorkflowExecutionEventDeps {
   ) => void;
   updateNodeTrace: (nodeId: string, updates: Record<string, unknown>) => void;
   appendNodeTraceToken: (nodeId: string, token: string) => void;
+  /**
+   * Buffered token append for `node_token` events.
+   * Implementations SHOULD coalesce multiple tokens per node within a frame
+   * to avoid thrashing the workflow store subscribers (which would otherwise
+   * re-render chat history / canvas on every LLM token).
+   */
+  bufferNodeToken: (nodeId: string, token: string) => void;
+  /** Force flush pending buffered tokens (called before terminal-ish events). */
+  flushBufferedTokens: () => void;
+  /**
+   * Copy the in-memory streamed output for this node from the dedicated stream
+   * store into the main workflow store (preserving partial output on error /
+   * skipped paths that never receive a `node_done` payload) and then clear the
+   * stream store entry so the renderer falls back to `node.data.output`.
+   * No-op when there is no stream-store value for this node.
+   */
+  commitAndClearNodeStream: (nodeId: string) => void;
   updateExecutionSessionMeta: (updates: Partial<WorkflowExecutionSession>) => void;
   finalizeExecutionSession: (status: ExecutionTerminalStatus) => void;
   closeStream: () => void;
@@ -69,6 +86,13 @@ export function applyWorkflowExecutionEvent(
 
     if (event === 'node_status') {
       const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'node_status' }>;
+      if (data.status && data.status !== 'running') {
+        deps.flushBufferedTokens();
+        // For error / skipped transitions we may never receive a `node_done`
+        // with `full_output`; persist whatever we streamed so far to the main
+        // workflow store before clearing the stream overlay.
+        deps.commitAndClearNodeStream(data.node_id);
+      }
       deps.setSelectedNodeId(data.node_id);
 
       const updates: Record<string, unknown> = {
@@ -113,10 +137,7 @@ export function applyWorkflowExecutionEvent(
     if (event === 'node_token') {
       const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'node_token' }>;
       deps.setSelectedNodeId(data.node_id);
-      deps.updateNodeData(data.node_id, (prev: { output?: string | null }) => ({
-        output: (prev.output ?? '') + data.token,
-      }));
-      deps.appendNodeTraceToken(data.node_id, data.token);
+      deps.bufferNodeToken(data.node_id, data.token);
       deps.updateNodeTrace(data.node_id, {
         isParallel: Boolean(data.parallel_group_id),
         parallelGroupId: data.parallel_group_id,
@@ -129,7 +150,11 @@ export function applyWorkflowExecutionEvent(
     }
 
     if (event === 'node_done') {
+      deps.flushBufferedTokens();
       const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'node_done' }>;
+      // `full_output` below overwrites the workflow store's `output`; drop the
+      // stream overlay so renderers fall back to the authoritative final value.
+      deps.commitAndClearNodeStream(data.node_id);
       const resolvedModelRoute =
         typeof data.metadata?.resolved_model_route === 'string'
           ? data.metadata.resolved_model_route
@@ -215,6 +240,7 @@ export function applyWorkflowExecutionEvent(
     }
 
     if (event === 'workflow_done') {
+      deps.flushBufferedTokens();
       const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'workflow_done' }>;
       const nextStatus = data.status === 'completed' ? 'completed' : 'error';
       deps.setStatus(nextStatus);

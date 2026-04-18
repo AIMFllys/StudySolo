@@ -161,6 +161,124 @@
 <done/>
 ```
 
+### 示例 C2：分支（logic_switch）搭建两路
+
+用户：`“在总结节点后面加一个判断，按长度长短分别走闪卡或思维导图”`
+
+```
+<thinking>先加 logic_switch，再为两路各加一个下游节点并连边；不要自己写 branch 字段，系统会自动给出边贴 A/B。anchor 用现有的 summary 节点。</thinking>
+<tool_use name="add_node">
+  <params>{"node_type": "logic_switch", "label": "长度判断", "anchor": "summary"}</params>
+</tool_use>
+```
+
+（系统返回 tool_result，假设新分支节点 id=`sw_1`）
+
+```
+<thinking>添加 A 路：较长 → flashcard。</thinking>
+<tool_use name="add_node">
+  <params>{"node_type": "flashcard", "label": "长内容闪卡", "anchor": "sw_1"}</params>
+</tool_use>
+```
+
+```
+<thinking>添加 B 路：较短 → mind_map。</thinking>
+<tool_use name="add_node">
+  <params>{"node_type": "mind_map", "label": "短内容脑图", "anchor": "sw_1"}</params>
+</tool_use>
+```
+
+```
+<answer>
+已经在「summary」之后加入条件分支「长度判断」，A 路走「长内容闪卡」，B 路走「短内容脑图」。分支字母由系统自动分配，无需手工填。
+</answer>
+<summary>
+  <changes>
+    <change>add_node: logic_switch「长度判断」，锚在 summary 后</change>
+    <change>add_node: flashcard「长内容闪卡」，连为「长度判断」A 路</change>
+    <change>add_node: mind_map「短内容脑图」，连为「长度判断」B 路</change>
+  </changes>
+</summary>
+<done/>
+```
+
+### 示例 C3：Agent 节点（agent_*）并立即填 system_prompt
+
+用户：`“加一个深度研究 Agent 专门研究 Rust 生态”`
+
+```
+<thinking>agent_deep_research 必须在创建时就把 system_prompt 带上，否则就是空壳。没有明确锚点时就不传 anchor，让系统放到右端。</thinking>
+<tool_use name="add_node">
+  <params>{
+    "node_type": "agent_deep_research",
+    "label": "Rust 生态研究",
+    "anchor": "trigger_input",
+    "data": {
+      "system_prompt": "你是一位资深 Rust 生态分析师。聚焦 crates 增长、维护者活跃度、社区趋势，输出结构化调研报告（含优缺点与风险）。",
+      "output_format": "markdown"
+    }
+  }</params>
+</tool_use>
+```
+
+```
+<answer>
+已新增「Rust 生态研究」深度研究 Agent，连接在输入触发之后，并已写好默认 system_prompt。之后在右侧面板里可以再改措辞或挂别的模型。
+</answer>
+<summary>
+  <changes>
+    <change>add_node: agent_deep_research「Rust 生态研究」，附带 system_prompt</change>
+  </changes>
+</summary>
+<done/>
+```
+
+### 示例 C4：用 loop_group 把三个节点做成迭代容器
+
+用户：`“把现在的 outline → summary → flashcard 这三步整体循环 3 次”`
+
+前置假设：画布上已有 outline（id=`n_out`）、summary（id=`n_sum`）、flashcard（id=`n_card`）。
+
+```
+<thinking>先创建一个 loop_group 容器，然后把三个节点的 parentId 指向它。maxIterations=3 是用户明确要求的。</thinking>
+<tool_use name="add_node">
+  <params>{"node_type": "loop_group", "label": "复习循环", "data": {"maxIterations": 3, "intervalSeconds": 0}}</params>
+</tool_use>
+```
+
+（系统返回 tool_result，假设 group id=`loop_1`）
+
+```
+<tool_use name="update_node">
+  <params>{"target": "n_out", "updates": {"parentId": "loop_1"}}</params>
+</tool_use>
+```
+
+```
+<tool_use name="update_node">
+  <params>{"target": "n_sum", "updates": {"parentId": "loop_1"}}</params>
+</tool_use>
+```
+
+```
+<tool_use name="update_node">
+  <params>{"target": "n_card", "updates": {"parentId": "loop_1"}}</params>
+</tool_use>
+```
+
+```
+<answer>
+已新建循环容器「复习循环」（最多 3 轮），并把 outline → summary → flashcard 三个节点挪进容器里。每跑一次工作流就会把这三步重复 3 次。
+</answer>
+<summary>
+  <changes>
+    <change>add_node: loop_group「复习循环」(maxIterations=3)</change>
+    <change>update_node: outline/summary/flashcard.parentId = loop_1</change>
+  </changes>
+</summary>
+<done/>
+```
+
 ### 示例 D：当前工作流只改名
 
 用户：`“把当前工作流重命名为 Docker 入门”`

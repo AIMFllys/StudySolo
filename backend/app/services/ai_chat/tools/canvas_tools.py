@@ -29,6 +29,17 @@ _WRITABLE_DATA_FIELDS = {
     "user_content",
     "status",
     "output",
+    # loop_group 容器专属字段
+    "maxIterations",
+    "intervalSeconds",
+}
+
+# Top-level node fields the LLM is allowed to patch via `update_node`.
+# `parentId` lets it move a node into a `loop_group` container; `extent`
+# controls whether the child may be dragged outside the parent.
+_WRITABLE_META_FIELDS = {
+    "parentId",
+    "extent",
 }
 
 
@@ -181,16 +192,22 @@ async def add_node_tool(ctx: ToolContext, params: dict[str, Any]) -> ToolResult:
             )
 
     new_node_client_id = "new_node"
-    ops: list[dict[str, Any]] = [
-        {
-            "op": "create_node",
-            "client_id": new_node_client_id,
-            "node_type": node_type,
-            "label": params.get("label") if isinstance(params.get("label"), str) else None,
-            "position": params.get("position") if isinstance(params.get("position"), dict) else None,
-            "data": params.get("data") if isinstance(params.get("data"), dict) else {},
-        }
-    ]
+    create_node_op: dict[str, Any] = {
+        "op": "create_node",
+        "client_id": new_node_client_id,
+        "node_type": node_type,
+        "label": params.get("label") if isinstance(params.get("label"), str) else None,
+        "position": params.get("position") if isinstance(params.get("position"), dict) else None,
+        "data": params.get("data") if isinstance(params.get("data"), dict) else {},
+    }
+    # When an anchor is specified and no explicit position was given, pass the
+    # anchor id through as a layout hint so the canvas service can place the
+    # new node next to its predecessor (and fan out `logic_switch` branches
+    # along Y instead of stacking them).
+    if anchor_node and not isinstance(params.get("position"), dict):
+        create_node_op["anchor_node_id"] = anchor_node["id"]
+
+    ops: list[dict[str, Any]] = [create_node_op]
     if anchor_node:
         ops.append({
             "op": "create_edge",
@@ -217,8 +234,10 @@ async def add_node_tool(ctx: ToolContext, params: dict[str, Any]) -> ToolResult:
 @register(
     name="update_node",
     description=(
-        "修改一个现有节点的 data 字段。target 可以是 label 或 id。updates 是合并 patch，"
-        "白名单字段: label / system_prompt / model_route / output_format / config / user_content / status / output。"
+        "修改一个现有节点。target 可以是 label 或 id。updates 是合并 patch，含两类字段：\n"
+        "  - data 白名单: label / system_prompt / model_route / output_format / config / "
+        "user_content / status / output / maxIterations / intervalSeconds\n"
+        "  - 节点元信息白名单: parentId（把节点装入某个 loop_group 容器）/ extent（'parent' 让子节点不能拖出容器）"
     ),
     params_schema={
         "type": "object",
@@ -256,28 +275,42 @@ async def update_node_tool(ctx: ToolContext, params: dict[str, Any]) -> ToolResu
         )
 
     filtered: dict[str, Any] = {}
+    meta_filtered: dict[str, Any] = {}
     rejected: list[str] = []
     for key, value in raw_updates.items():
         if key in _WRITABLE_DATA_FIELDS:
             filtered[key] = value
+        elif key in _WRITABLE_META_FIELDS:
+            meta_filtered[key] = value
         else:
             rejected.append(key)
-    if not filtered:
+    if not filtered and not meta_filtered:
         return ToolResult(
             ok=False,
             error=(
                 "updates 中没有任何白名单字段。允许字段: "
-                + ", ".join(sorted(_WRITABLE_DATA_FIELDS))
+                + ", ".join(sorted(_WRITABLE_DATA_FIELDS | _WRITABLE_META_FIELDS))
             ),
         )
 
-    ops = [
-        {
-            "op": "update_node_data",
-            "node_id": node["id"],
-            "data": filtered,
-        }
-    ]
+    # When the LLM references a parent via label (e.g. "复习循环") instead of a
+    # node id, resolve it here so the canvas service sees a clean id string.
+    if "parentId" in meta_filtered and isinstance(meta_filtered["parentId"], str):
+        raw_parent = meta_filtered["parentId"].strip()
+        if raw_parent and not raw_parent.startswith("$"):
+            resolved_parent = _resolve_node(nodes, raw_parent)
+            if resolved_parent is not None:
+                meta_filtered["parentId"] = resolved_parent["id"]
+
+    op: dict[str, Any] = {
+        "op": "update_node_data",
+        "node_id": node["id"],
+    }
+    if filtered:
+        op["data"] = filtered
+    if meta_filtered:
+        op["meta"] = meta_filtered
+    ops = [op]
     try:
         next_nodes, next_edges, _id_map, _warnings = apply_canvas_patch(nodes, edges, ops)
     except CanvasPatchError as exc:
@@ -289,6 +322,7 @@ async def update_node_tool(ctx: ToolContext, params: dict[str, Any]) -> ToolResu
         data={
             "updated_node_id": node["id"],
             "applied_fields": sorted(filtered.keys()),
+            "applied_meta_fields": sorted(meta_filtered.keys()),
             "ignored_fields": rejected,
         },
         canvas_mutation=CanvasMutation(workflow_id=wf_id, nodes=next_nodes, edges=next_edges),
@@ -432,5 +466,217 @@ async def delete_edge_tool(ctx: ToolContext, params: dict[str, Any]) -> ToolResu
     return ToolResult(
         ok=True,
         data={"removed_edge": True},
+        canvas_mutation=CanvasMutation(workflow_id=wf_id, nodes=next_nodes, edges=next_edges),
+    )
+
+
+# ── add_branching (high-level) ───────────────────────────────────────────
+
+@register(
+    name="add_branching",
+    description=(
+        "在 anchor 之后一次性搭建一个 logic_switch + 多路下游：一次调用即可完成"
+        "「加分支节点 → 为每路加子节点 → 连线」。分支字母 A/B/C… 由系统自动分配。"
+    ),
+    params_schema={
+        "type": "object",
+        "required": ["anchor", "branches"],
+        "properties": {
+            "workflow_id": {"type": "string"},
+            "anchor": {"type": "string", "description": "作为分支入口的上游节点 label 或 id"},
+            "switch_label": {"type": "string", "description": "logic_switch 节点的标签，默认「条件分支」"},
+            "branches": {
+                "type": "array",
+                "minItems": 2,
+                "description": "每一路分支目标节点的描述。长度决定了分支数。",
+                "items": {
+                    "type": "object",
+                    "required": ["node_type"],
+                    "properties": {
+                        "node_type": {"type": "string"},
+                        "label": {"type": "string"},
+                        "data": {"type": "object"},
+                    },
+                },
+            },
+        },
+    },
+    mutates_canvas=True,
+)
+async def add_branching_tool(ctx: ToolContext, params: dict[str, Any]) -> ToolResult:
+    wf_id = _require_workflow_id(ctx, params)
+    if not wf_id:
+        return ToolResult(ok=False, error="需要 workflow_id")
+    anchor_raw = str(params.get("anchor") or "").strip()
+    if not anchor_raw:
+        return ToolResult(ok=False, error="缺少 anchor")
+    branches = params.get("branches")
+    if not isinstance(branches, list) or len(branches) < 2:
+        return ToolResult(ok=False, error="branches 至少需要 2 路")
+
+    row = await _load_workflow(ctx, wf_id)
+    if not row:
+        return ToolResult(ok=False, error=f"找不到工作流 {wf_id}")
+    nodes = row.get("nodes_json") or []
+    edges = row.get("edges_json") or []
+
+    anchor_node = _resolve_node(nodes, anchor_raw)
+    if anchor_node is None:
+        return ToolResult(ok=False, error=f"找不到锚点节点「{anchor_raw}」")
+
+    switch_label = params.get("switch_label") if isinstance(params.get("switch_label"), str) else None
+    switch_client_id = "switch_root"
+    ops: list[dict[str, Any]] = [
+        {
+            "op": "create_node",
+            "client_id": switch_client_id,
+            "node_type": "logic_switch",
+            "label": switch_label or "条件分支",
+            "anchor_node_id": anchor_node["id"],
+        },
+        {
+            "op": "create_edge",
+            "source": anchor_node["id"],
+            "target": f"${switch_client_id}",
+        },
+    ]
+
+    branch_client_ids: list[str] = []
+    for index, branch in enumerate(branches):
+        if not isinstance(branch, dict):
+            return ToolResult(ok=False, error=f"branches[{index}] 必须是对象")
+        node_type = str(branch.get("node_type") or "").strip()
+        if not node_type:
+            return ToolResult(ok=False, error=f"branches[{index}] 缺少 node_type")
+        client_id = f"branch_{index}"
+        branch_client_ids.append(client_id)
+        ops.append({
+            "op": "create_node",
+            "client_id": client_id,
+            "node_type": node_type,
+            "label": branch.get("label") if isinstance(branch.get("label"), str) else None,
+            "data": branch.get("data") if isinstance(branch.get("data"), dict) else {},
+            # Anchor to the switch so layout can fan branches along Y.
+            "anchor_node_id": f"${switch_client_id}",
+        })
+        ops.append({
+            "op": "create_edge",
+            "source": f"${switch_client_id}",
+            "target": f"${client_id}",
+        })
+
+    try:
+        next_nodes, next_edges, id_map, _warnings = apply_canvas_patch(nodes, edges, ops)
+    except CanvasPatchError as exc:
+        return ToolResult(ok=False, error=f"[{exc.code}] {exc}")
+
+    await _save_canvas(ctx, wf_id, next_nodes, next_edges)
+    return ToolResult(
+        ok=True,
+        data={
+            "switch_node_id": id_map.get(switch_client_id),
+            "branch_node_ids": [id_map.get(cid) for cid in branch_client_ids],
+            "branch_count": len(branch_client_ids),
+        },
+        canvas_mutation=CanvasMutation(workflow_id=wf_id, nodes=next_nodes, edges=next_edges),
+    )
+
+
+# ── wrap_into_loop_group (high-level) ────────────────────────────────────
+
+@register(
+    name="wrap_into_loop_group",
+    description=(
+        "把若干已存在的节点一次性装入一个新建的 loop_group 容器（按 maxIterations 轮循环）。"
+        "省去「add_node loop_group → 多次 update_node parentId」的重复调用。"
+    ),
+    params_schema={
+        "type": "object",
+        "required": ["targets"],
+        "properties": {
+            "workflow_id": {"type": "string"},
+            "label": {"type": "string", "description": "loop_group 标签，默认「循环容器」"},
+            "max_iterations": {"type": "integer", "minimum": 1, "maximum": 50},
+            "interval_seconds": {"type": "number", "minimum": 0},
+            "targets": {
+                "type": "array",
+                "minItems": 1,
+                "description": "要放入容器的已有节点 label 或 id 列表",
+                "items": {"type": "string"},
+            },
+        },
+    },
+    mutates_canvas=True,
+)
+async def wrap_into_loop_group_tool(ctx: ToolContext, params: dict[str, Any]) -> ToolResult:
+    wf_id = _require_workflow_id(ctx, params)
+    if not wf_id:
+        return ToolResult(ok=False, error="需要 workflow_id")
+    targets_raw = params.get("targets")
+    if not isinstance(targets_raw, list) or not targets_raw:
+        return ToolResult(ok=False, error="targets 至少需要 1 个节点")
+
+    row = await _load_workflow(ctx, wf_id)
+    if not row:
+        return ToolResult(ok=False, error=f"找不到工作流 {wf_id}")
+    nodes = row.get("nodes_json") or []
+    edges = row.get("edges_json") or []
+
+    resolved_ids: list[str] = []
+    unresolved: list[str] = []
+    for target in targets_raw:
+        if not isinstance(target, str):
+            continue
+        node = _resolve_node(nodes, target)
+        if node is None:
+            unresolved.append(target)
+        elif node["id"] in resolved_ids:
+            continue
+        else:
+            resolved_ids.append(node["id"])
+    if unresolved:
+        return ToolResult(
+            ok=False,
+            error=f"找不到节点: {', '.join(unresolved)}",
+        )
+    if not resolved_ids:
+        return ToolResult(ok=False, error="没有任何 targets 解析到已存在的节点")
+
+    loop_data: dict[str, Any] = {}
+    if isinstance(params.get("max_iterations"), int):
+        loop_data["maxIterations"] = params["max_iterations"]
+    if isinstance(params.get("interval_seconds"), (int, float)):
+        loop_data["intervalSeconds"] = params["interval_seconds"]
+
+    group_client_id = "loop_group_root"
+    ops: list[dict[str, Any]] = [
+        {
+            "op": "create_node",
+            "client_id": group_client_id,
+            "node_type": "loop_group",
+            "label": params.get("label") if isinstance(params.get("label"), str) else "循环容器",
+            "data": loop_data,
+        }
+    ]
+    for node_id in resolved_ids:
+        ops.append({
+            "op": "update_node_data",
+            "node_id": node_id,
+            "meta": {"parentId": f"${group_client_id}"},
+        })
+
+    try:
+        next_nodes, next_edges, id_map, _warnings = apply_canvas_patch(nodes, edges, ops)
+    except CanvasPatchError as exc:
+        return ToolResult(ok=False, error=f"[{exc.code}] {exc}")
+
+    await _save_canvas(ctx, wf_id, next_nodes, next_edges)
+    return ToolResult(
+        ok=True,
+        data={
+            "loop_group_id": id_map.get(group_client_id),
+            "wrapped_node_ids": resolved_ids,
+            "wrapped_count": len(resolved_ids),
+        },
         canvas_mutation=CanvasMutation(workflow_id=wf_id, nodes=next_nodes, edges=next_edges),
     )

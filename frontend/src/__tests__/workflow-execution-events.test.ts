@@ -50,6 +50,9 @@ describe('workflow execution event application', () => {
           updateNodeTraceCalls.push({ nodeId, updates });
         },
         appendNodeTraceToken: () => {},
+        bufferNodeToken: () => {},
+        flushBufferedTokens: () => {},
+        commitAndClearNodeStream: () => {},
         updateExecutionSessionMeta: (updates: Partial<WorkflowExecutionSession>) => {
           sessionMetaUpdates.push(updates as Record<string, unknown>);
         },
@@ -100,6 +103,29 @@ describe('workflow execution event application', () => {
     let closed = 0;
     let reset = 0;
 
+    // In-memory token buffer mirroring the production rAF batcher so tests
+    // can assert token coalescing behaviour deterministically.
+    const tokenBuffer = new Map<string, string>();
+
+    const updateNodeDataImpl = (nodeId: string, update: unknown) => {
+      const next = typeof update === 'function'
+        ? (update as (prev: Record<string, unknown>) => Record<string, unknown>)(nodeDataState[nodeId] ?? {})
+        : (update as Record<string, unknown>);
+      nodeDataState[nodeId] = { ...(nodeDataState[nodeId] ?? {}), ...next };
+    };
+
+    const flushBufferedTokensImpl = () => {
+      if (tokenBuffer.size === 0) return;
+      for (const [nodeId, tokens] of tokenBuffer.entries()) {
+        if (!tokens) continue;
+        updateNodeDataImpl(nodeId, (prev: { output?: string | null }) => ({
+          output: (prev.output ?? '') + tokens,
+        }));
+        traceTokens.push(tokens);
+      }
+      tokenBuffer.clear();
+    };
+
     const deps = {
       getExecutionSession: () => null,
       now: () => now,
@@ -114,12 +140,7 @@ describe('workflow execution event application', () => {
       setSelectedNodeId: (nodeId: string) => {
         selectedNodeIds.push(nodeId);
       },
-      updateNodeData: (nodeId: string, update: unknown) => {
-        const next = typeof update === 'function'
-          ? (update as (prev: Record<string, unknown>) => Record<string, unknown>)(nodeDataState[nodeId] ?? {})
-          : (update as Record<string, unknown>);
-        nodeDataState[nodeId] = { ...(nodeDataState[nodeId] ?? {}), ...next };
-      },
+      updateNodeData: updateNodeDataImpl,
       registerNodeTrace: () => {},
       updateNodeTrace: (nodeId: string, updates: Record<string, unknown>) => {
         traceUpdates.push({ nodeId, updates });
@@ -127,6 +148,12 @@ describe('workflow execution event application', () => {
       appendNodeTraceToken: (_nodeId: string, token: string) => {
         traceTokens.push(token);
       },
+      bufferNodeToken: (nodeId: string, token: string) => {
+        if (!token) return;
+        tokenBuffer.set(nodeId, (tokenBuffer.get(nodeId) ?? '') + token);
+      },
+      flushBufferedTokens: flushBufferedTokensImpl,
+      commitAndClearNodeStream: () => {},
       updateExecutionSessionMeta: (updates: Partial<WorkflowExecutionSession>) => {
         sessionMetaUpdates.push(updates as Record<string, unknown>);
       },
@@ -142,8 +169,10 @@ describe('workflow execution event application', () => {
       JSON.stringify({ type: 'node_token', node_id: 'node', token: ' 输出' }),
       deps,
     )).toBe(false);
-    expect(nodeDataState.node.output).toBe('前缀 输出');
-    expect(traceTokens).toEqual([' 输出']);
+    // Tokens are buffered, not applied to the store directly, to avoid
+    // thrashing subscribers on every streamed token.
+    expect(nodeDataState.node.output).toBe('前缀');
+    expect(traceTokens).toEqual([]);
 
     now = 145;
     expect(applyWorkflowExecutionEvent(
@@ -151,6 +180,9 @@ describe('workflow execution event application', () => {
       JSON.stringify({ type: 'node_status', node_id: 'node', status: 'done' }),
       deps,
     )).toBe(false);
+    // node_status with a terminal status flushes pending tokens before applying the status patch.
+    expect(nodeDataState.node.output).toBe('前缀 输出');
+    expect(traceTokens).toEqual([' 输出']);
     expect(nodeDataState.node.status).toBe('done');
     expect(nodeDataState.node.execution_time_ms).toBe(45);
     expect(startTimeMap.node).toBeUndefined();
@@ -215,6 +247,9 @@ describe('workflow execution event application', () => {
         traceUpdates.push({ nodeId, updates });
       },
       appendNodeTraceToken: () => {},
+      bufferNodeToken: () => {},
+      flushBufferedTokens: () => {},
+      commitAndClearNodeStream: () => {},
       updateExecutionSessionMeta: (updates: Partial<WorkflowExecutionSession>) => {
         sessionMetaUpdates.push(updates as Record<string, unknown>);
       },

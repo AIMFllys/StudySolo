@@ -16,6 +16,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { GitFork, Settings2 } from 'lucide-react';
 import type { AIStepNodeData } from '@/types';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
+import { useNodeStreamOutput } from '@/stores/workflow/use-node-stream-store';
 import { eventBus } from '@/lib/events/event-bus';
 import BranchManagerPanel from './BranchManagerPanel';
 import { NodeResultSlip } from './NodeResultSlip';
@@ -28,6 +29,8 @@ const DIAMOND_H = 120;
 function LogicSwitchNode({ data, selected, id }: NodeProps) {
   const nodeData = data as unknown as SwitchData;
   const { status, output, output_format, error, input_snapshot, execution_time_ms } = nodeData;
+  const streamedOutput = useNodeStreamOutput(id);
+  const displayOutput = streamedOutput ?? output;
   const label = nodeData.label || '条件分支';
 
   const showAllNodeSlips = useWorkflowStore((s) => s.showAllNodeSlips);
@@ -223,7 +226,7 @@ function LogicSwitchNode({ data, selected, id }: NodeProps) {
           <NodeResultSlip
             nodeId={id}
             status={status}
-            output={output || ''}
+            output={displayOutput || ''}
             error={error}
             inputSnapshot={input_snapshot}
             nodeType="logic_switch"

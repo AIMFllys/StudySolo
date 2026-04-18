@@ -58,7 +58,8 @@ export function SidebarAIPanel() {
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
   const leftPanelWidth = usePanelStore((s) => s.leftPanelWidth);
-  const { lastPrompt, undo } = useWorkflowStore();
+  const lastPrompt = useWorkflowStore((s) => s.lastPrompt);
+  const undo = useWorkflowStore((s) => s.undo);
   const { start: startExecution } = useWorkflowExecution();
   const { serialize } = useCanvasContext();
   const {

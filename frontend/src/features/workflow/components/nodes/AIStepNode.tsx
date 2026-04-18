@@ -8,6 +8,7 @@ import { getNodeTypeMeta, getNodeTheme } from '@/features/workflow/constants/wor
 import { getCommunityIcon } from '@/features/community-nodes/constants/catalog';
 import { useNodeManifestItem } from '@/features/workflow/hooks/use-node-manifest';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
+import { useNodeStreamOutput } from '@/stores/workflow/use-node-stream-store';
 import { eventBus } from '@/lib/events/event-bus';
 import BranchManagerPanel from './BranchManagerPanel';
 import { NodeModelSelector } from './NodeModelSelector';
@@ -20,6 +21,10 @@ type WorkflowNodeVisualData = AIStepNodeData & { hideSlip?: boolean };
 function AIStepNode({ data, selected, type, id }: NodeProps) {
   const nodeData = data as unknown as WorkflowNodeVisualData;
   const { error, label, model_route, output, output_format, status, input_snapshot, execution_time_ms } = nodeData;
+  // 流式 token 优先从节点级 store 读取；主 workflow store 只保存最终/持久值。
+  // 这样每 token 只会让 **当前节点** 重渲，不会触发画布/聊天等广播订阅者重渲。
+  const streamedOutput = useNodeStreamOutput(id);
+  const displayOutput = streamedOutput ?? output;
   const nodeType = nodeData.type ?? type ?? 'chat_response';
   const isLogicSwitch = nodeType === 'logic_switch';
   const isCommunityNode = nodeType === 'community_node';
@@ -186,7 +191,7 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
         <NodeResultSlip
           nodeId={id}
           status={status}
-          output={output || ''}
+          output={displayOutput || ''}
           error={error}
           inputSnapshot={input_snapshot}
           nodeType={nodeType}

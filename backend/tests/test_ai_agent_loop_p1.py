@@ -128,6 +128,8 @@ def test_agent_tool_registry_contains_expected_tools():
         "delete_node",
         "add_edge",
         "delete_edge",
+        "add_branching",
+        "wrap_into_loop_group",
     }
 
 

@@ -177,6 +177,140 @@ def test_validate_canvas_reports_unknown_missing_self_and_cycle():
     assert "cycle_detected" in codes
 
 
+def test_apply_canvas_patch_auto_layout_avoids_overlap_when_position_missing():
+    nodes, _edges, _id_map, _warnings = apply_canvas_patch(
+        [],
+        [],
+        [
+            {"op": "create_node", "client_id": "a", "node_type": "summary"},
+            {"op": "create_node", "client_id": "b", "node_type": "summary"},
+            {"op": "create_node", "client_id": "c", "node_type": "summary"},
+        ],
+    )
+
+    positions = [(n["position"]["x"], n["position"]["y"]) for n in nodes]
+    # No two auto-placed nodes may share identical coordinates and, for the
+    # no-anchor path, they fan out along X with a positive horizontal gap.
+    assert len(set(positions)) == 3
+    xs = [p[0] for p in positions]
+    assert xs == sorted(xs)
+    assert xs[1] > xs[0]
+    assert xs[2] > xs[1]
+
+
+def test_apply_canvas_patch_logic_switch_branches_fan_out_vertically():
+    # Seed a switch node so subsequent auto-placed branch targets can see both
+    # the switch and the already-created sibling branches via `anchor_node_id`.
+    nodes, edges, _id_map, _warnings = apply_canvas_patch(
+        [],
+        [],
+        [
+            {
+                "op": "create_node",
+                "client_id": "sw",
+                "node_type": "logic_switch",
+                "position": {"x": 200, "y": 200},
+            },
+            {
+                "op": "create_node",
+                "client_id": "a",
+                "node_type": "summary",
+                "anchor_node_id": "$sw",
+            },
+            {"op": "create_edge", "source": "$sw", "target": "$a"},
+            {
+                "op": "create_node",
+                "client_id": "b",
+                "node_type": "summary",
+                "anchor_node_id": "$sw",
+            },
+            {"op": "create_edge", "source": "$sw", "target": "$b"},
+            {
+                "op": "create_node",
+                "client_id": "c",
+                "node_type": "summary",
+                "anchor_node_id": "$sw",
+            },
+            {"op": "create_edge", "source": "$sw", "target": "$c"},
+        ],
+    )
+
+    by_label = {str((n["data"] or {}).get("label") or n["id"]): n for n in nodes}
+    switch = next(n for n in nodes if n["type"] == "logic_switch")
+    branch_a, branch_b, branch_c = nodes[1], nodes[2], nodes[3]
+
+    assert branch_a["position"]["x"] > switch["position"]["x"]
+    assert branch_b["position"]["x"] > switch["position"]["x"]
+    assert branch_c["position"]["x"] > switch["position"]["x"]
+    # Branches must not stack on the same Y coordinate; the fan is centred
+    # around the switch's Y so second/third branches end up above/below it.
+    ys = {branch_a["position"]["y"], branch_b["position"]["y"], branch_c["position"]["y"]}
+    assert len(ys) == 3, ys
+    assert by_label  # touch mapping for lint-friendly unused-var avoidance
+    assert edges and len(edges) == 3
+
+
+def test_apply_canvas_patch_resolves_collision_when_slot_occupied():
+    # Pre-existing node sits exactly where the naive right-of-rightmost rule
+    # would place the new one. The layout helper must shift along Y rather
+    # than stacking on top of it.
+    blocker = create_workflow_node_instance(
+        "summary", node_id="blocker", label="blocker", position={"x": 480, "y": 120}
+    )
+    nodes, _edges, _id_map, _warnings = apply_canvas_patch(
+        [blocker],
+        [],
+        [{"op": "create_node", "client_id": "new", "node_type": "summary"}],
+    )
+
+    assert len(nodes) == 2
+    created = next(n for n in nodes if n["id"] != "blocker")
+    assert (created["position"]["x"], created["position"]["y"]) != (
+        blocker["position"]["x"],
+        blocker["position"]["y"],
+    )
+
+
+def test_update_node_data_meta_patches_parent_id_for_loop_group():
+    loop = create_workflow_node_instance("loop_group", node_id="loop_1", label=ZH_LOOP)
+    child = create_workflow_node_instance("summary", node_id="child_1", label=ZH_SUMMARY)
+    nodes, _edges, _id_map, _warnings = apply_canvas_patch(
+        [loop, child],
+        [],
+        [
+            {
+                "op": "update_node_data",
+                "node_id": "child_1",
+                "meta": {"parentId": "loop_1"},
+            }
+        ],
+    )
+
+    moved = next(n for n in nodes if n["id"] == "child_1")
+    assert moved["parentId"] == "loop_1"
+    # `extent` defaults to "parent" so the child cannot be dragged outside
+    # the loop_group container on the canvas.
+    assert moved["extent"] == "parent"
+
+
+def test_update_node_data_meta_rejects_non_loop_group_parent():
+    a = create_workflow_node_instance("summary", node_id="a", label="a")
+    b = create_workflow_node_instance("summary", node_id="b", label="b")
+    with pytest.raises(CanvasPatchError) as exc:
+        apply_canvas_patch(
+            [a, b],
+            [],
+            [
+                {
+                    "op": "update_node_data",
+                    "node_id": "b",
+                    "meta": {"parentId": "a"},
+                }
+            ],
+        )
+    assert exc.value.code == "invalid_parent_type"
+
+
 def test_validate_canvas_treats_legacy_input_as_trigger_input():
     issues = validate_canvas(
         [

@@ -87,28 +87,30 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
     }
   }, [status]);
 
-  // Listen for global expand/collapse-all events (used by Memory View)
+  // Listen for global expand/collapse-all events (used by Memory View).
+  // The `allSlipsExpandedRef` tracks the latest broadcasted value so the
+  // context-menu trigger can flip it without reading React state (which would
+  // force us to use a functional updater — and calling `eventBus.emit` inside
+  // a state updater violates React's "no side effects in updater" contract
+  // and produced a "setState during render" warning in dev).
   const [allSlipsExpanded, setAllSlipsExpanded] = useState(false);
-  const applyExpandedState = useCallback((expanded: boolean) => {
-    setAllSlipsExpanded(expanded);
-    setIsExpanded(expanded);
-  }, []);
+  const allSlipsExpandedRef = useRef(false);
 
   useEffect(() => {
     const unsubscribe = eventBus.on('workflow:toggle-all-slips', ({ expanded }) => {
-      applyExpandedState(expanded);
+      allSlipsExpandedRef.current = expanded;
+      setAllSlipsExpanded(expanded);
+      setIsExpanded(expanded);
     });
     return () => {
       unsubscribe();
     };
-  }, [applyExpandedState]);
+  }, []);
 
   const handleToggleAllSlipsExpand = useCallback(() => {
-    setAllSlipsExpanded((previous) => {
-      const next = !previous;
-      eventBus.emit('workflow:toggle-all-slips', { expanded: next });
-      return next;
-    });
+    const next = !allSlipsExpandedRef.current;
+    allSlipsExpandedRef.current = next;
+    eventBus.emit('workflow:toggle-all-slips', { expanded: next });
   }, []);
 
   // Native capture-phase right-click: beats ReactFlow's node wrapper handler
